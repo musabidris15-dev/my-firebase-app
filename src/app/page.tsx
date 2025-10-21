@@ -88,33 +88,7 @@ export default function Home() {
 
     try {
       const audioDataUri = await readFileAsDataURL(audio);
-      // A mock for the lip sync data structure, since the AI output is a black box.
-      // This helps in development and can be replaced when the actual AI output is known.
-      const mockLipSyncData = [
-        {"start":0.29, "end":0.57, "viseme": "F"},
-        {"start":0.57, "end":0.83, "viseme": "A"},
-        {"start":0.83, "end":1.04, "viseme": "C"},
-        {"start":1.04, "end":1.12, "viseme": "B"},
-        {"start":1.12, "end":1.47, "viseme": "E"},
-        {"start":1.47, "end":2.12, "viseme": "A"},
-        {"start":2.12, "end":2.46, "viseme": "F"},
-        {"start":2.46, "end":2.64, "viseme": "A"},
-        {"start":2.64, "end":2.9, "viseme": "B"},
-        {"start":2.9, "end":3.2, "viseme": "A"},
-        {"start":3.2, "end":3.35, "viseme": "B"},
-        {"start":3.35, "end":3.57, "viseme": "E"},
-        {"start":3.57, "end":4.1, "viseme": "C"},
-      ]
-      setLipSyncData(mockLipSyncData);
-      setStatus("ready");
-      toast({
-        title: "Success!",
-        description: "Lip sync data generated. Ready to preview.",
-      });
-
-      // NOTE: The following is the actual AI call. It's commented out to use mock data for stability.
-      // To use the real AI, uncomment the lines below and remove the mock data section above.
-      /*
+      
       const result = await generateLipSyncData({ audioDataUri });
       if (result.lipSyncData) {
         // We are assuming the AI returns a parsable JSON string.
@@ -128,7 +102,6 @@ export default function Home() {
       } else {
         throw new Error("AI did not return lip sync data.");
       }
-      */
     } catch (e) {
       console.error(e);
       const error = e instanceof Error ? e.message : "An unknown error occurred.";
