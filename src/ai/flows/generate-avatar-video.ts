@@ -40,19 +40,6 @@ export async function generateAvatarVideo(
   return generateAvatarVideoFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateAvatarVideoPrompt',
-  input: { schema: GenerateAvatarVideoInputSchema },
-  output: { schema: GenerateAvatarVideoOutputSchema },
-  prompt: `You are an expert video synthesis AI. Your task is to create a video of the person in the provided photo speaking the words from the provided audio file. The lip movements in the video must be perfectly synchronized with the audio.
-
-  Photo: {{media url=photoDataUri}}
-  Audio: {{media url=audioDataUri}}
-
-  Generate a high-quality video with realistic facial movements and expressions that match the tone of the audio. The output must be a single video file encoded as a data URI.
-  `,
-});
-
 const generateAvatarVideoFlow = ai.defineFlow(
   {
     name: 'generateAvatarVideoFlow',
@@ -60,11 +47,49 @@ const generateAvatarVideoFlow = ai.defineFlow(
     outputSchema: GenerateAvatarVideoOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    if (!output?.videoDataUri) {
-      console.warn("AI model did not return a video. This may be due to content safety filters or other issues.");
+    let { operation } = await ai.generate({
+      model: 'googleai/veo-2.0-generate-001',
+      prompt: [
+        {
+          media: {
+            url: input.photoDataUri,
+          },
+        },
+        {
+          media: {
+            url: input.audioDataUri,
+          },
+        },
+        {
+          text: "Create a video of the person in the provided photo speaking the words from the provided audio file. The lip movements in the video must be perfectly synchronized with the audio."
+        }
+      ],
+      config: {
+        durationSeconds: 5,
+        personGeneration: 'allow_adult',
+      },
+    });
+
+    if (!operation) {
+      throw new Error("The model did not return an operation. This may be due to a configuration error or an issue with the AI service.");
+    }
+    
+    // Poll for completion
+    while (!operation.done) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      operation = await ai.checkOperation(operation);
+    }
+    
+    if (operation.error) {
+      throw new Error(`Video generation failed: ${operation.error.message}`);
+    }
+    
+    const video = operation.output?.message?.content.find(p => !!p.media);
+    
+    if (!video || !video.media?.url) {
       throw new Error("The AI model failed to generate a video. This can be due to content safety filters or an unsupported input format. Please try a different photo or audio file.");
     }
-    return output;
+    
+    return { videoDataUri: video.media.url };
   }
 );
