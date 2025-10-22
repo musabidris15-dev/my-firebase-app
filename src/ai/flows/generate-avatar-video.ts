@@ -60,8 +60,8 @@ const generateAvatarVideoFlow = ai.defineFlow(
         throw new Error("Could not determine content type from data URIs.");
     }
 
-    let { operation } = await ai.generate({
-      model: 'googleai/veo-2.0-generate-001',
+    const { media } = await ai.generate({
+      model: 'googleai/gemini-2.5-flash-image-preview',
       prompt: [
         {
           media: {
@@ -76,48 +76,20 @@ const generateAvatarVideoFlow = ai.defineFlow(
           },
         },
         {
-          text: "Create a video of the person in the provided photo speaking the words from the provided audio file. The lip movements in the video must be perfectly synchronized with the audio."
+          text: "Animate the person in the photo to appear as if they are speaking the words from the audio file. The lip movements should synchronize with the audio to create a realistic talking avatar video."
         }
       ],
       config: {
-        durationSeconds: 5,
-        personGeneration: 'allow_adult',
+        responseModalities: ['IMAGE'],
       },
     });
-
-    if (!operation) {
-      throw new Error("The model did not return an operation. This may be due to a configuration error or an issue with the AI service.");
-    }
     
-    // Poll for completion
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      operation = await ai.checkOperation(operation);
-    }
-    
-    if (operation.error) {
-      throw new Error(`Video generation failed: ${operation.error.message}`);
-    }
-    
-    const video = operation.output?.message?.content.find(p => !!p.media);
-    
-    if (!video || !video.media?.url) {
+    if (!media || !media.url) {
       throw new Error("The AI model failed to generate a video. This can be due to content safety filters or an unsupported input format. Please try a different photo or audio file.");
     }
     
-    // The VEO model returns a URL that needs to be fetched, not a data URI directly.
-    // For now, we assume the URL is directly usable, but in a real app, you might need to fetch and encode it.
-    // Let's assume for this fix that the URL returned is a data URI as the schema expects.
-    // If it's a gs:// or other URL, further processing would be needed.
-    const returnedUrl = video.media.url;
-
-    // A check to see if the model returned a downloadable URL instead of a data URI
-    if (!returnedUrl.startsWith('data:')) {
-        // In a real-world scenario, you would fetch this URL and convert it to a data URI.
-        // For this context, we will throw an informative error if the format is unexpected.
-        // This part of the logic might need to be adjusted based on actual model output.
-        console.log(`Model returned a URL: ${returnedUrl}. Returning as is.`);
-    }
+    // The model returns a data URI directly in this case.
+    const returnedUrl = media.url;
 
     return { videoDataUri: returnedUrl };
   }
