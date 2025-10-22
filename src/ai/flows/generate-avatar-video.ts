@@ -62,10 +62,8 @@ const generateAvatarVideoFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     if (!output?.videoDataUri) {
-      // In a real scenario, you might want to retry or handle this gracefully.
-      // For this example, we'll simulate a successful output if the model fails.
       console.warn("AI model did not return a video. This may be due to content safety filters or other issues.");
-      throw new Error("The AI model failed to generate a video. Please try a different photo or audio file.");
+      throw new Error("The AI model failed to generate a video. This can be due to content safety filters or an unsupported input format. Please try a different photo or audio file.");
     }
     return output;
   }
