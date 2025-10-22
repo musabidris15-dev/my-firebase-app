@@ -1,49 +1,43 @@
 "use client";
 
 import { useState, useRef, useEffect, type ElementRef } from "react";
-import Image from "next/image";
 import {
   FileImage,
   FileAudio,
   Loader,
-  Play,
-  Pause,
   Download,
   Upload,
+  Video,
 } from "lucide-react";
 import { Header } from "@/components/app/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AvatarStage } from "@/components/app/avatar-stage";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { generateLipSyncData } from "@/ai/flows/audio-to-lip-sync";
 import { useToast } from "@/hooks/use-toast";
+import { generateAvatarVideo } from "@/ai/flows/generate-avatar-video";
+import Image from "next/image";
 
-type Status = "idle" | "generating" | "ready" | "error" | "playing" | "exporting";
+type Status = "idle" | "generating" | "ready" | "error";
 
 export default function Home() {
   const { toast } = useToast();
   const [photo, setPhoto] = useState<File | null>(null);
   const [audio, setAudio] = useState<File | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string>(
-    PlaceHolderImages.find((img) => img.id === "avatar-placeholder")?.imageUrl ||
-      "https://picsum.photos/seed/avatar/512/512"
-  );
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [lipSyncData, setLipSyncData] = useState<any[] | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const avatarStageRef = useRef<ElementRef<typeof AvatarStage>>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
-      if (photoUrl.startsWith("blob:")) URL.revokeObjectURL(photoUrl);
+      if (photoUrl?.startsWith("blob:")) URL.revokeObjectURL(photoUrl);
       if (audioUrl?.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
+      if (videoUrl?.startsWith("blob:")) URL.revokeObjectURL(videoUrl);
     };
-  }, [photoUrl, audioUrl]);
+  }, [photoUrl, audioUrl, videoUrl]);
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -54,15 +48,17 @@ export default function Home() {
 
     if (type === "photo") {
       setPhoto(file);
+      if (photoUrl?.startsWith("blob:")) URL.revokeObjectURL(photoUrl);
       const newPhotoUrl = URL.createObjectURL(file);
       setPhotoUrl(newPhotoUrl);
     } else {
       setAudio(file);
+      if (audioUrl?.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
       const newAudioUrl = URL.createObjectURL(file);
       setAudioUrl(newAudioUrl);
     }
     setStatus("idle");
-    setLipSyncData(null);
+    setVideoUrl(null);
   };
 
   const readFileAsDataURL = (file: File): Promise<string> => {
@@ -85,66 +81,49 @@ export default function Home() {
     }
     setStatus("generating");
     setErrorMessage("");
+    setVideoUrl(null);
 
     try {
+      const photoDataUri = await readFileAsDataURL(photo);
       const audioDataUri = await readFileAsDataURL(audio);
       
-      const result = await generateLipSyncData({ audioDataUri });
-      if (result.lipSyncData && Array.isArray(result.lipSyncData)) {
-        setLipSyncData(result.lipSyncData);
+      const result = await generateAvatarVideo({ photoDataUri, audioDataUri });
+
+      if (result.videoDataUri) {
+        setVideoUrl(result.videoDataUri);
         setStatus("ready");
         toast({
           title: "Success!",
-          description: "Lip sync data generated. Ready to preview.",
+          description: "Your talking avatar video has been generated.",
         });
       } else {
-        throw new Error("AI did not return valid lip sync data. The data is either missing or not an array.");
+        throw new Error("The AI model did not return a video.");
       }
     } catch (e) {
       console.error(e);
       const error = e instanceof Error ? e.message : "An unknown error occurred.";
-      setErrorMessage(`Failed to generate lip sync. ${error}`);
+      setErrorMessage(`Failed to generate video. ${error}`);
       setStatus("error");
       toast({
         title: "Generation Failed",
-        description: `Could not generate lip sync data. ${error}`,
+        description: `Could not generate video. ${error}`,
         variant: "destructive",
       });
     }
   };
-
-  const handlePlayPause = () => {
-    if (status === "playing") {
-      avatarStageRef.current?.pause();
-      setStatus("ready");
-    } else {
-      avatarStageRef.current?.play();
-      setStatus("playing");
-    }
+  
+  const handleDownload = () => {
+    if (!videoUrl) return;
+    const a = document.createElement("a");
+    a.href = videoUrl;
+    a.download = "avatar_talk.mp4"; // Changed to mp4 for better compatibility
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
-  const handleExport = async () => {
-    setStatus("exporting");
-    try {
-      await avatarStageRef.current?.exportVideo();
-      toast({
-        title: "Export Complete",
-        description: "Your video has been downloaded.",
-      });
-    } catch (e) {
-      console.error(e);
-      const error = e instanceof Error ? e.message : "An unknown error occurred.";
-      toast({
-        title: "Export Failed",
-        description: `Could not export video. ${error}`,
-        variant: "destructive",
-      });
-    } finally {
-      setStatus("ready");
-    }
-  };
 
-  const isProcessing = status === "generating" || status === "exporting";
+  const isProcessing = status === "generating";
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -174,13 +153,17 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-4">
                   <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
-                    <Image
-                      src={photoUrl}
-                      width={160}
-                      height={160}
-                      alt="Avatar preview"
-                      className="w-full h-full object-cover"
-                    />
+                    {photoUrl ? (
+                        <Image
+                            src={photoUrl}
+                            width={160}
+                            height={160}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="text-muted-foreground text-sm">Photo Preview</div>
+                    )}
                   </div>
                   <Button
                     onClick={() => photoInputRef.current?.click()}
@@ -251,43 +234,32 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-4">
-                <div className="w-full aspect-square bg-muted rounded-lg overflow-hidden relative">
-                  <AvatarStage
-                    ref={avatarStageRef}
-                    imageUrl={photoUrl}
-                    audioUrl={audioUrl}
-                    lipSyncData={lipSyncData}
-                    onEnded={() => setStatus("ready")}
-                  />
+                <div className="w-full aspect-square bg-muted rounded-lg overflow-hidden relative flex items-center justify-center">
+                  {isProcessing && <Loader className="h-8 w-8 animate-spin text-primary" />}
+                  {!isProcessing && videoUrl && (
+                     <video src={videoUrl} className="w-full h-full" controls autoPlay loop />
+                  )}
+                  {!isProcessing && !videoUrl && (
+                    <div className="text-center text-muted-foreground p-4">
+                        <Video className="mx-auto h-12 w-12" />
+                        <p className="mt-2">Your generated video will appear here.</p>
+                    </div>
+                  )}
                 </div>
-                {status !== "idle" && status !== "generating" && (
+                {status === "ready" && videoUrl && (
                   <div className="flex gap-2 w-full">
                     <Button
-                      onClick={handlePlayPause}
-                      disabled={isProcessing || !lipSyncData}
-                      className="flex-1"
-                    >
-                      {status === "playing" ? (
-                        <Pause className="mr-2 h-4 w-4" />
-                      ) : (
-                        <Play className="mr-2 h-4 w-4" />
-                      )}
-                      {status === "playing" ? "Pause" : "Play"}
-                    </Button>
-                    <Button
-                      onClick={handleExport}
+                      onClick={handleDownload}
                       variant="outline"
-                      disabled={isProcessing || !lipSyncData}
                       className="flex-1"
                     >
-                      {status === "exporting" ? (
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="mr-2 h-4 w-4" />
-                      )}
-                      {status === "exporting" ? "Exporting..." : "Export Video"}
+                      <Download className="mr-2 h-4 w-4" />
+                       Export Video
                     </Button>
                   </div>
+                )}
+                 {status === "error" && (
+                    <p className="text-sm text-destructive">{errorMessage}</p>
                 )}
               </CardContent>
             </Card>
