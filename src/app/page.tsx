@@ -90,17 +90,15 @@ export default function Home() {
       const audioDataUri = await readFileAsDataURL(audio);
       
       const result = await generateLipSyncData({ audioDataUri });
-      if (result.lipSyncData) {
-        // We are assuming the AI returns a parsable JSON string.
-        const parsedData = JSON.parse(result.lipSyncData);
-        setLipSyncData(parsedData);
+      if (result.lipSyncData && Array.isArray(result.lipSyncData)) {
+        setLipSyncData(result.lipSyncData);
         setStatus("ready");
         toast({
           title: "Success!",
           description: "Lip sync data generated. Ready to preview.",
         });
       } else {
-        throw new Error("AI did not return lip sync data.");
+        throw new Error("AI did not return valid lip sync data. The data is either missing or not an array.");
       }
     } catch (e) {
       console.error(e);

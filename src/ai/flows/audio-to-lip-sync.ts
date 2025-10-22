@@ -22,8 +22,14 @@ export type GenerateLipSyncDataInput = z.infer<typeof GenerateLipSyncDataInputSc
 
 const GenerateLipSyncDataOutputSchema = z.object({
   lipSyncData: z
-    .string()
-    .describe('A JSON array of viseme objects, each with start time, end time, and viseme identifier. The entire output must be a parsable JSON string.')
+    .array(
+      z.object({
+        start: z.number().describe('The start time of the viseme in seconds.'),
+        end: z.number().describe('The end time of the viseme in seconds.'),
+        viseme: z.string().describe('The viseme identifier (e.g., A, B, C).'),
+      })
+    )
+    .describe('A JSON array of viseme objects, each with start time, end time, and viseme identifier.')
 });
 export type GenerateLipSyncDataOutput = z.infer<typeof GenerateLipSyncDataOutputSchema>;
 
@@ -39,7 +45,7 @@ const prompt = ai.definePrompt({
 
   Analyze the uploaded audio and generate lip sync data that drives the avatar\'s mouth movements. The tool will adjust the mouth movements to match the audio.
 
-  The output must be a valid JSON string representing an array of objects. Each object must contain 'start' (number), 'end' (number), and 'viseme' (string) properties.
+  The output must be a valid JSON array of objects. Each object must contain 'start' (number), 'end' (number), and 'viseme' (string) properties.
   Example format:
   [
     {"start": 0.1, "end": 0.3, "viseme": "A"},
