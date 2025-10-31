@@ -5,8 +5,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Navbar } from '@/components/app/navbar';
 
 export const metadata: Metadata = {
-  title: 'Amharic AI Tools',
-  description: 'A collection of AI-powered tools for Amharic.',
+  title: 'Geez Voice',
+  description: 'AI-powered Text to Speech synthesis.',
 };
 
 export default function RootLayout({
@@ -39,7 +39,7 @@ export default function RootLayout({
             <Navbar />
             <main className="flex-grow">{children}</main>
             <footer className="py-6 text-center text-muted-foreground">
-              <p>&copy; {new Date().getFullYear()} Amharic AI Tools. All Rights Reserved.</p>
+              <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
             </footer>
           </div>
           <Toaster />

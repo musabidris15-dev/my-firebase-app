@@ -9,20 +9,20 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Mic, ArrowRight, Rss } from 'lucide-react';
+import { Mic, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center flex-grow p-4">
       <div className="text-center mb-12 max-w-4xl">
          <h1 className="text-4xl md:text-6xl font-bold text-primary tracking-tight">
-          Amharic AI Tools
+          Geez Voice
         </h1>
         <p className="text-muted-foreground mt-4 text-lg md:text-xl font-amharic">
-          በአርቴፊሻል ኢንተለጀንስ የሚሰሩ የአማርኛ መሳሪያዎች
+          በአርቴፊሻል ኢንተለጀንስ የሚሰራ የድምፅ ልምምድ
         </p>
          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          A suite of powerful, AI-driven tools designed to bridge language barriers and empower Amharic speakers and learners.
+          A suite of powerful, AI-driven tools designed for high-quality voice synthesis and language applications.
         </p>
       </div>
 
@@ -35,7 +35,7 @@ export default function HomePage() {
             <div className="space-y-1">
               <CardTitle className="text-2xl">
                 <Link href="/tts" className="hover:underline">
-                  Amharic Text to Speech
+                  Text to Speech
                 </Link>
               </CardTitle>
               <CardDescription className="font-amharic">
@@ -45,7 +45,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-6 font-amharic">
-              ማንኛውንም የአማርኛ ወይም የእንግሊዝኛ ጽሑፍ ወደ ተፈጥሯዊ ንግግር ይለውጡ። ከተለያዩ የድምፅ አማራጮች ይምረጡ።
+              ማንኛውንም ጽሑፍ ወደ ተፈጥሯዊ ንግግር ይለውጡ። ከተለያዩ የድምፅ አማራጮች ይምረጡ።
             </p>
             <Link href="/tts" passHref>
               <Button className="w-full text-lg">

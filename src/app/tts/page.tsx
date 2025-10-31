@@ -171,7 +171,7 @@ export default function AmharicTTSPage() {
     <div className="container mx-auto max-w-3xl py-12 px-4">
         <Card className="shadow-lg">
             <CardHeader className="text-center">
-                <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Amharic Text to Speech</CardTitle>
+                <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Text to Speech</CardTitle>
                 <p className="text-muted-foreground mt-2 font-amharic text-lg">የጽሑፍን ወደ ንግግር መለወጫ</p>
             </CardHeader>
             <CardContent className="p-6 md:p-8 space-y-6">
