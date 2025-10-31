@@ -1,21 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Bot, User } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
 
 export function Navbar() {
+  // For now, we'll assume the user is not logged in.
+  const isLoggedIn = false;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -35,36 +28,23 @@ export function Navbar() {
             Text-to-Speech
           </Link>
         </nav>
-        <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="flex flex-1 items-center justify-end space-x-2">
             <ThemeToggle />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {isLoggedIn ? (
+                // Placeholder for logged-in user avatar menu
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder-user.jpg" alt="@shadcn" />
-                    <AvatarFallback>
-                      <User />
-                    </AvatarFallback>
-                  </Avatar>
+                    {/* Avatar component here */}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">User</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      user@example.com
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            ) : (
+                <div className="flex items-center space-x-2">
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/login">Login</Link>
+                    </Button>
+                    <Button asChild size="sm">
+                       <Link href="/signup">Sign Up</Link>
+                    </Button>
+                </div>
+            )}
         </div>
       </div>
     </header>
