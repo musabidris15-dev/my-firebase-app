@@ -1,271 +1,203 @@
-"use client";
 
-import { useState, useRef, useEffect, type ElementRef } from "react";
-import {
-  FileImage,
-  FileAudio,
-  Loader,
-  Download,
-  Upload,
-  Video,
-} from "lucide-react";
-import { Header } from "@/components/app/header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { generateAvatarVideo } from "@/ai/flows/generate-avatar-video";
-import Image from "next/image";
+'use client';
 
-type Status = "idle" | "generating" | "ready" | "error";
+import { useState, useEffect, useRef } from 'react';
 
-export default function Home() {
-  const { toast } = useToast();
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [audio, setAudio] = useState<File | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<Status>("idle");
-  const [errorMessage, setErrorMessage] = useState("");
+// --- Voice Definitions with Ethiopian Names ---
+const voices = [
+    // Standard Female Voices
+    { name: 'ሔዋን (Puck)', value: 'Puck' },         // Upbeat, Female
+    { name: 'ታሪክ (Kore)', value: 'Kore' },         // Firm, Female
+    { name: 'ሊያ (Leda)', value: 'Leda' },          // Youthful, Female
+    { name: 'ራሄል (Aoede)', value: 'Aoede' },        // Breezy, Female
+    { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' }, // Easy-going, Female
+    { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },  // Bright, Female
+    { name: 'ቅድስት (Umbriel)', value: 'Umbriel' },    // Easy-going, Female
+    { name: 'ዲቦራ (Erinome)', value: 'Erinome' },    // Clear, Female
+    { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },    // Smooth, Female
+    { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },// Upbeat, Female
+    { name: 'ፀዳል (Schedar)', value: 'Schedar' },      // Even, Female
+    { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },        // Mature, Female
+    { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },// Forward, Female
+    { name: 'አልማዝ (Achird)', value: 'Achird' },      // Friendly, Female
+    { name: 'ሚሚ (Vindemiatrix)', value: 'Vindemiatrix' },// Gentle, Female
+    { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },// Lively, Female
+    { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },    // Warm, Female
+    // Standard Male Voices
+    { name: 'አበበ (Zephyr)', value: 'Zephyr' },       // Bright, Male
+    { name: 'ጌታቸው (Charon)', value: 'Charon' },     // Informative, Male
+    { name: 'ተስፋዬ (Zubenelgenubi)', value: 'Zubenelgenubi' }, // Casual, Male
+    { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },    // Firm, Male (Villain Voice)
+    { name: 'በረከት (Fenrir)', value: 'Fenrir' },     // Excitable, Male
+    { name: 'ዳዊት (Orus)', value: 'Orus' },         // Firm, Male
+    { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' }, // Breathy, Male
+    { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },     // Clear, Male
+    { name: 'ካሌብ (Algieba)', value: 'Algieba' },     // Smooth, Male
+    { name: 'ሀይሌ (Algenib)', value: 'Algenib' },      // Gravelly, Male
+    { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },// Informative, Male
+    { name: 'በላይ (Achernar)', value: 'Achernar' },   // Soft, Male
+    { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },// Knowledgeable, Male
+];
 
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
+// Sort voices alphabetically by Ethiopian name
+voices.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
 
+export default function AmharicTTSPage() {
+  const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
+  const [selectedVoice, setSelectedVoice] = useState(voices[0].value);
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState({ message: '', type: '' });
+  const [audioUrl, setAudioUrl] = useState('');
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  
   useEffect(() => {
+    // Cleanup object URL
     return () => {
-      if (photoUrl?.startsWith("blob:")) URL.revokeObjectURL(photoUrl);
-      if (audioUrl?.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
-      if (videoUrl?.startsWith("blob:")) URL.revokeObjectURL(videoUrl);
-    };
-  }, [photoUrl, audioUrl, videoUrl]);
-
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "photo" | "audio"
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (type === "photo") {
-      setPhoto(file);
-      if (photoUrl?.startsWith("blob:")) URL.revokeObjectURL(photoUrl);
-      const newPhotoUrl = URL.createObjectURL(file);
-      setPhotoUrl(newPhotoUrl);
-    } else {
-      setAudio(file);
-      if (audioUrl?.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
-      const newAudioUrl = URL.createObjectURL(file);
-      setAudioUrl(newAudioUrl);
-    }
-    setStatus("idle");
-    setVideoUrl(null);
-  };
-
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleGenerate = async () => {
-    if (!photo || !audio) {
-      toast({
-        title: "Missing files",
-        description: "Please upload both a photo and an audio file.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setStatus("generating");
-    setErrorMessage("");
-    setVideoUrl(null);
-
-    try {
-      const photoDataUri = await readFileAsDataURL(photo);
-      const audioDataUri = await readFileAsDataURL(audio);
-      
-      const result = await generateAvatarVideo({ photoDataUri, audioDataUri });
-
-      if (result.videoDataUri) {
-        setVideoUrl(result.videoDataUri);
-        setStatus("ready");
-        toast({
-          title: "Success!",
-          description: "Your talking avatar video has been generated.",
-        });
-      } else {
-        throw new Error("The AI model did not return a video.");
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
       }
-    } catch (e) {
-      console.error(e);
-      const error = e instanceof Error ? e.message : "An unknown error occurred.";
-      setErrorMessage(`Failed to generate video. ${error}`);
-      setStatus("error");
-      toast({
-        title: "Generation Failed",
-        description: `Could not generate video. ${error}`,
-        variant: "destructive",
-      });
+    };
+  }, [audioUrl]);
+
+  const showStatus = (message: string, type = 'info') => {
+    setStatus({ message, type });
+  };
+  
+  const setUiLoading = (loading: boolean) => {
+    setIsLoading(loading);
+    if (loading) {
+      showStatus('ድምፅ እየተፈጠረ ነው... እባክዎ ይጠብቁ...', 'loading');
+      setAudioUrl('');
+    } else {
+        if (status.type === 'loading') {
+            showStatus('', '');
+        }
+    }
+  };
+
+  const handleSpeak = async () => {
+    setUiLoading(true);
+
+    if (text.trim().length < 2) {
+        showStatus('ስህተት፦ እባክዎ ድምፅ ለመፍጠር ቢያንስ 2 ፊደላትን ያስገቡ።', 'error');
+        setUiLoading(false);
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/genkit/flow/textToSpeechFlow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voice: selectedVoice }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.error || `የኤፒአይ ጥያቄ አልተሳካም። ሁኔታ: ${response.status}.`;
+            if (response.status === 429) {
+              throw new Error("Too many requests. Please wait a moment and try again.");
+            }
+            throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+
+        if (result.audioDataUri) {
+            setAudioUrl(result.audioDataUri);
+            showStatus('ድምፅ በተሳካ ሁኔታ ተፈጥሯል!', 'success');
+        } else {
+            const finishReason = result?.candidates?.[0]?.finishReason || 'UNKNOWN';
+            let errorMessage = `ሞዴሉ የድምፅ መረጃ መፍጠር አልቻለም። ምክንያት: ${finishReason}.`;
+            if (finishReason === "SAFETY") {
+                errorMessage = "ይዘቱ በደህንነት መመሪያዎች ምክንያት ድምፅ ሊፈጠርለት አልቻለም። እባክዎ ጽሑፉን ይቀይሩ።";
+            }
+            console.error('API response did not contain valid audio data. Full response:', result);
+            throw new Error(errorMessage);
+        }
+    } catch (error: any) {
+        console.error('TTS Error:', error);
+        showStatus(`ስህተት፦ ${error.message}`, 'error');
+    } finally {
+        setUiLoading(false);
     }
   };
   
-  const handleDownload = () => {
-    if (!videoUrl) return;
-    const a = document.createElement("a");
-    a.href = videoUrl;
-    a.download = "avatar_talk.mp4"; // Changed to mp4 for better compatibility
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-
-  const isProcessing = status === "generating";
+  useEffect(() => {
+      if (audioUrl && audioPlayerRef.current) {
+          audioPlayerRef.current.play();
+      }
+  }, [audioUrl]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow container mx-auto p-4 md:p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Create Your Speaking Avatar
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-              Turn any photo into a life-like animated avatar with just a voice clip. Three simple steps to bring your image to life.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 items-start">
-            <div className="flex flex-col gap-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileImage className="text-primary w-5 h-5" />
-                    Step 1: Upload Your Photo
-                  </CardTitle>
-                  <CardDescription>
-                    Choose a clear, front-facing portrait for the best results.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center gap-4">
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
-                    {photoUrl ? (
-                        <Image
-                            src={photoUrl}
-                            width={160}
-                            height={160}
-                            alt="Avatar preview"
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="text-muted-foreground text-sm">Photo Preview</div>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => photoInputRef.current?.click()}
-                    variant="outline"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {photo ? "Change Photo" : "Upload Photo"}
-                  </Button>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileChange(e, "photo")}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileAudio className="text-primary w-5 h-5" />
-                    Step 2: Upload Your Audio
-                  </CardTitle>
-                  <CardDescription>
-                    Provide a clear audio file of the speech for the avatar.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center gap-4">
-                  {audioUrl && (
-                    <audio src={audioUrl} controls className="w-full" />
-                  )}
-                  <Button
-                    onClick={() => audioInputRef.current?.click()}
-                    variant="outline"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {audio ? "Change Audio" : "Upload Audio"}
-                  </Button>
-                  <input
-                    ref={audioInputRef}
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={(e) => handleFileChange(e, "audio")}
-                  />
-                </CardContent>
-              </Card>
-
-              <Button
-                onClick={handleGenerate}
-                disabled={!photo || !audio || isProcessing}
-                size="lg"
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-              >
-                {status === "generating" && (
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {status === "generating" ? "Generating..." : "Step 3: Generate Avatar"}
-              </Button>
+    <div className="bg-gray-900 text-gray-200 min-h-screen flex items-center justify-center p-4 font-body">
+        <div className="w-full max-w-2xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
+            <div className="text-center">
+                <h1 className="text-3xl md:text-4xl font-bold text-cyan-400">Amharic Text to Speech</h1>
+                <p className="text-gray-400 mt-2 font-amharic">የጽሑፍን ወደ ንግግር መለወጫ</p>
+            </div>
+                
+            <div>
+                <label htmlFor="text-to-speak" className="block text-sm font-medium text-gray-300 mb-2 font-amharic">ጽሑፍ ያስገቡ (በአማርኛ ወይም በእንግሊዝኛ)</label>
+                <textarea 
+                    id="text-to-speak" 
+                    rows={6}
+                    className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-200 text-lg font-amharic"
+                    placeholder="እባክዎ ንግግር ለማድረግ የሚፈልጉትን ጽሑፍ እዚህ ያስገቡ... (ለምሳሌ፦ 'ሰላም እንዴት ነህ?')"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                ></textarea>
             </div>
 
-            <Card className="sticky top-8">
-              <CardHeader>
-                <CardTitle>Preview & Export</CardTitle>
-                <CardDescription>
-                  Watch your avatar come to life. Export when you're ready.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center gap-4">
-                <div className="w-full aspect-square bg-muted rounded-lg overflow-hidden relative flex items-center justify-center">
-                  {isProcessing && <Loader className="h-8 w-8 animate-spin text-primary" />}
-                  {!isProcessing && videoUrl && (
-                     <video src={videoUrl} className="w-full h-full" controls autoPlay loop />
-                  )}
-                  {!isProcessing && !videoUrl && (
-                    <div className="text-center text-muted-foreground p-4">
-                        <Video className="mx-auto h-12 w-12" />
-                        <p className="mt-2">Your generated video will appear here.</p>
+            <div>
+                <label htmlFor="voice-select" className="block text-sm font-medium text-gray-300 mb-2 font-amharic">ድምፅ ይምረጡ</label>
+                <select 
+                    id="voice-select" 
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-200 text-lg"
+                    value={selectedVoice}
+                    onChange={(e) => setSelectedVoice(e.target.value)}
+                >
+                    {voices.map(voice => (
+                        <option key={voice.value} value={voice.value}>
+                            {voice.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <button 
+                id="speak-button" 
+                className="w-full flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 ease-in-out disabled:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleSpeak}
+                disabled={isLoading}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                <span className="font-amharic">ወደ ድምፅ ቀይር</span>
+            </button>
+
+            <div className="text-center min-h-[44px]">
+                {status.message && (
+                    <div className={`p-3 rounded-lg font-amharic ${
+                        status.type === 'error' ? 'text-red-400 bg-red-900 bg-opacity-30' : 
+                        status.type === 'success' ? 'text-green-400' :
+                        status.type === 'loading' ? 'text-cyan-400 flex items-center justify-center gap-2' : ''
+                    }`}>
+                        {status.type === 'loading' && (
+                           <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-600 border-t-blue-500"></div>
+                        )}
+                        {status.message}
                     </div>
-                  )}
+                )}
+            </div>
+            
+            {audioUrl && (
+                <div className="w-full">
+                    <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full">
+                    </audio>
                 </div>
-                {status === "ready" && videoUrl && (
-                  <div className="flex gap-2 w-full">
-                    <Button
-                      onClick={handleDownload}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                       Export Video
-                    </Button>
-                  </div>
-                )}
-                 {status === "error" && (
-                    <p className="text-sm text-destructive">{errorMessage}</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            )}
         </div>
-      </main>
     </div>
   );
 }
