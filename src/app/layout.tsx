@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
@@ -13,8 +14,11 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic } from 'lucide-react';
+import { Bot, Home, Mic, User } from 'lucide-react';
 import Link from 'next/link';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function RootLayout({
   children,
@@ -74,6 +78,47 @@ export default function RootLayout({
                   </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarContent>
+              <SidebarFooter>
+                 <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start space-x-2 px-3 py-2 h-auto text-left">
+                       <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src="https://picsum.photos/seed/avatar/100/100"
+                          alt="@user"
+                        />
+                        <AvatarFallback>
+                          <User />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col space-y-1 items-start">
+                        <p className="text-sm font-medium leading-none">Guest</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          guest@example.com
+                        </p>
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 mb-2 ml-2" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">Guest</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          guest@example.com
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>Billing</DropdownMenuItem>
+                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>Log out</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarFooter>
             </Sidebar>
             <SidebarInset>
               <Header />
