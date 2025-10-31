@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'Amharic Text to Speech',
-  description: 'Convert Amharic and English text to speech.',
+  title: 'Amharic AI Tools',
+  description: 'A collection of AI-powered tools for Amharic.',
 };
 
 export default function RootLayout({
