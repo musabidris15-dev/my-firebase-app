@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { type TextToSpeechOutput } from '@/ai/flows/text-to-speech-flow';
 
 // --- Voice Definitions with Ethiopian Names ---
 const voices = [
@@ -85,54 +85,27 @@ export default function AmharicTTSPage() {
     }
     
     try {
-        let response;
-        let delay = 1000; // start with 1 second
-        for (let i = 0; i < 4; i++) { // Try up to 4 times
-            response = await fetch('/api/genkit/flow/textToSpeechFlow', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, voice: selectedVoice }),
-            });
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, voice: selectedVoice }),
+      });
 
-            if (response.ok) {
-                break; // Success, exit loop
-            }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'An unexpected error occurred.');
+      }
+      
+      const result: TextToSpeechOutput = await response.json();
 
-            if (response.status === 429 || response.status >= 500) {
-                // Throttling or server error, wait and retry
-                showStatus(`Too many requests, retrying in ${delay / 1000}s...`, 'loading');
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2; // Double the delay
-            } else {
-                // Other client-side error (e.g., 400, 401), don't retry
-                break;
-            }
-        }
-
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            const errorMessage = errorData.error || `የኤፒአይ ጥያቄ አልተሳካም። ሁኔታ: ${response.status}.`;
-            if (response.status === 429) {
-              throw new Error("Too many requests. Please wait a moment and try again.");
-            }
-            throw new Error(errorMessage);
-        }
-
-        const result = await response.json();
-
-        if (result.audioDataUri) {
-            setAudioUrl(result.audioDataUri);
-            showStatus('ድምፅ በተሳካ ሁኔታ ተፈጥሯል!', 'success');
-        } else {
-            const finishReason = result?.candidates?.[0]?.finishReason || 'UNKNOWN';
-            let errorMessage = `ሞዴሉ የድምፅ መረጃ መፍጠር አልቻለም። ምክንያት: ${finishReason}.`;
-            if (finishReason === "SAFETY") {
-                errorMessage = "ይዘቱ በደህንነት መመሪያዎች ምክንያት ድምፅ ሊፈጠርለት አልቻለም። እባክዎ ጽሑፉን ይቀይሩ።";
-            }
-            console.error('API response did not contain valid audio data. Full response:', result);
-            throw new Error(errorMessage);
-        }
+      if (result.audioDataUri) {
+          setAudioUrl(result.audioDataUri);
+          showStatus('ድምፅ በተሳካ ሁኔታ ተፈጥሯል!', 'success');
+      } else {
+          throw new Error('API response did not contain valid audio data.');
+      }
     } catch (error: any) {
         console.error('TTS Error:', error);
         let errorMessage = `ስህተት፦ ${error.message}`;
