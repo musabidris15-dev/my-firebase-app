@@ -1,6 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // --- Voice Definitions with Ethiopian Names ---
 const voices = [
@@ -41,16 +53,16 @@ const voices = [
 // Sort voices alphabetically by Ethiopian name
 voices.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
 
-type TextToSpeechOutput = {
-  audioDataUri?: string;
-  error?: string;
+type Status = {
+  message: string | null;
+  type: 'info' | 'error' | 'success' | 'loading' | null;
 };
 
 export default function AmharicTTSPage() {
   const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
   const [selectedVoice, setSelectedVoice] = useState(voices[0].value);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState({ message: '', type: '' });
+  const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   
@@ -63,7 +75,7 @@ export default function AmharicTTSPage() {
     };
   }, [audioUrl]);
 
-  const showStatus = (message: string, type = 'info') => {
+  const showStatus = (message: string, type: Status['type'] = 'info') => {
     setStatus({ message, type });
   };
   
@@ -74,7 +86,7 @@ export default function AmharicTTSPage() {
       setAudioUrl('');
     } else {
         if (status.type === 'loading') {
-            showStatus('', '');
+            showStatus(null, null);
         }
     }
   };
@@ -97,13 +109,12 @@ export default function AmharicTTSPage() {
         body: JSON.stringify({ text, voice: selectedVoice }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'An unexpected error occurred.');
+        throw new Error(result.error || 'An unexpected error occurred.');
       }
       
-      const result: TextToSpeechOutput = await response.json();
-
       if (result.audioDataUri) {
           setAudioUrl(result.audioDataUri);
           showStatus('ድምፅ በተሳካ ሁኔታ ተፈጥሯል!', 'success');
@@ -116,8 +127,8 @@ export default function AmharicTTSPage() {
         if (error.message.includes("API key not valid")) {
             errorMessage = "ስህተት፦ የኤፒአይ ቁልፍዎ (API Key) ትክክል አይደለም። እባክዎ በ .env ፋይል ውስጥ ያስገቡት።";
         }
-        if (error.message.includes("Unexpected token '<'")) {
-            errorMessage = "ስህተት፦ ከሰርቨሩ ያልተጠበቀ ምላሽ ደርሷል። እባክዎ እንደገና ይሞክሩ።";
+         if (error.message.includes("not valid JSON")) {
+            errorMessage = "ስህተት፦ ከሰርቨሩ ያልተጠበቀ ምላሽ ደርሷል። የኤፒአይ ቁልፍ ትክክል መሆኑን ያረጋግጡ።";
         }
         showStatus(errorMessage, 'error');
     } finally {
@@ -131,76 +142,91 @@ export default function AmharicTTSPage() {
       }
   }, [audioUrl]);
 
+  const StatusAlert = () => {
+    if (!status.message) return null;
+
+    const icon = {
+      loading: <Loader2 className="h-5 w-5 animate-spin" />,
+      success: <CircleCheck className="h-5 w-5" />,
+      error: <AlertCircle className="h-5 w-5" />,
+      info: <Terminal className="h-5 w-5" />,
+    }[status.type || 'info'];
+
+    return (
+        <Alert variant={status.type === 'error' ? 'destructive' : 'default'} className="mt-6">
+            <div className="flex items-center gap-3">
+                {icon}
+                <div className='flex-1'>
+                    <AlertTitle className="font-amharic text-lg">{status.type === 'error' ? 'ስህተት' : status.type === 'success' ? 'ተሳክቷል' : 'ሁኔታ'}</AlertTitle>
+                    <AlertDescription className='font-amharic'>
+                      {status.message}
+                    </AlertDescription>
+                </div>
+            </div>
+        </Alert>
+    );
+  }
+
   return (
-    <div className="bg-gray-900 text-gray-200 min-h-screen flex items-center justify-center p-4 font-body">
-        <div className="w-full max-w-2xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
-            <div className="text-center">
-                <h1 className="text-3xl md:text-4xl font-bold text-cyan-400">Amharic Text to Speech</h1>
-                <p className="text-gray-400 mt-2 font-amharic">የጽሑፍን ወደ ንግግር መለወጫ</p>
-            </div>
-                
-            <div>
-                <label htmlFor="text-to-speak" className="block text-sm font-medium text-gray-300 mb-2 font-amharic">ጽሑፍ ያስገቡ (በአማርኛ ወይም በእንግሊዝኛ)</label>
-                <textarea 
-                    id="text-to-speak" 
-                    rows={6}
-                    className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-200 text-lg font-amharic"
-                    placeholder="እባክዎ ንግግር ለማድረግ የሚፈልጉትን ጽሑፍ እዚህ ያስገቡ... (ለምሳሌ፦ 'ሰላም እንዴት ነህ?')"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                ></textarea>
-            </div>
+    <div className="container mx-auto max-w-3xl py-12 px-4">
+        <Card className="shadow-lg">
+            <CardHeader className="text-center">
+                <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Amharic Text to Speech</CardTitle>
+                <p className="text-muted-foreground mt-2 font-amharic text-lg">የጽሑፍን ወደ ንግግር መለወጫ</p>
+            </CardHeader>
+            <CardContent className="p-6 md:p-8 space-y-6">
+                <div>
+                    <label htmlFor="text-to-speak" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ጽሑፍ ያስገቡ (በአማርኛ ወይም በእንግሊዝኛ)</label>
+                    <Textarea 
+                        id="text-to-speak" 
+                        rows={6}
+                        className="text-lg font-amharic"
+                        placeholder="እባክዎ ንግግር ለማድረግ የሚፈልጉትን ጽሑፍ እዚህ ያስገቡ..."
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                    />
+                </div>
 
-            <div>
-                <label htmlFor="voice-select" className="block text-sm font-medium text-gray-300 mb-2 font-amharic">ድምፅ ይምረጡ</label>
-                <select 
-                    id="voice-select" 
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-200 text-lg"
-                    value={selectedVoice}
-                    onChange={(e) => setSelectedVoice(e.target.value)}
+                <div>
+                    <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ድምፅ ይምረጡ</label>
+                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                      <SelectTrigger id="voice-select" className="w-full p-3 text-lg h-auto">
+                        <SelectValue placeholder="Select a voice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {voices.map(voice => (
+                            <SelectItem key={voice.value} value={voice.value}>
+                                {voice.name}
+                            </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                </div>
+
+                <Button 
+                    id="speak-button" 
+                    className="w-full text-lg py-6"
+                    onClick={handleSpeak}
+                    disabled={isLoading}
                 >
-                    {voices.map(voice => (
-                        <option key={voice.value} value={voice.value}>
-                            {voice.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
+                    {isLoading ? (
+                       <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                    ) : (
+                       <Volume2 className="mr-2 h-6 w-6" />
+                    )}
+                    <span className="font-amharic">ወደ ድምፅ ቀይር</span>
+                </Button>
 
-            <button 
-                id="speak-button" 
-                className="w-full flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 ease-in-out disabled:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleSpeak}
-                disabled={isLoading}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
-                <span className="font-amharic">ወደ ድምፅ ቀይር</span>
-            </button>
-
-            <div className="text-center min-h-[44px]">
-                {status.message && (
-                    <div className={`p-3 rounded-lg font-amharic ${
-                        status.type === 'error' ? 'text-red-400 bg-red-900 bg-opacity-30' : 
-                        status.type === 'success' ? 'text-green-400' :
-                        status.type === 'loading' ? 'text-cyan-400 flex items-center justify-center gap-2' : ''
-                    }`}>
-                        {status.type === 'loading' && (
-                           <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-600 border-t-blue-500"></div>
-                        )}
-                        {status.message}
+                {audioUrl && (
+                    <div className="w-full pt-4">
+                        <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full">
+                        </audio>
                     </div>
                 )}
-            </div>
-            
-            {audioUrl && (
-                <div className="w-full">
-                    <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full">
-                    </audio>
-                </div>
-            )}
-        </div>
+
+                <StatusAlert />
+            </CardContent>
+        </Card>
     </div>
   );
 }

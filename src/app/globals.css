@@ -13,26 +13,48 @@ body {
 
 @layer base {
   :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 198 93% 40%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 198 93% 45%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 198 93% 60%; /* cyan-400 */
+    --primary: 198 93% 60%;
     --primary-foreground: 210 40% 9%;
     --secondary: 210 40% 14.9%;
     --secondary-foreground: 210 40% 98%;
     --muted: 210 40% 14.9%;
     --muted-foreground: 210 40% 63.9%;
-    --accent: 187 83% 58%; /* cyan-600 */
+    --accent: 187 83% 58%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 210 40% 20%; /* gray-600 */
-    --input: 210 40% 18%; /* gray-700 */
-    --ring: 187 93% 55%; /* cyan-500 */
-    --radius: 0.5rem;
+    --border: 210 40% 20%;
+    --input: 210 40% 18%;
+    --ring: 187 93% 55%;
   }
 }
 
@@ -42,6 +64,7 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s, color 0.3s;
   }
 }
 
@@ -50,9 +73,9 @@ textarea::-webkit-scrollbar {
     width: 8px;
 }
 textarea::-webkit-scrollbar-thumb {
-    background-color: #0891b2; /* cyan-600 */
+    background-color: hsl(var(--primary));
     border-radius: 4px;
 }
 textarea::-webkit-scrollbar-track {
-    background-color: #374151; /* gray-700 */
+    background-color: hsl(var(--input));
 }
