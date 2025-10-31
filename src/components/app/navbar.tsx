@@ -13,16 +13,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { usePathname } from 'next/navigation';
 
 export function Navbar() {
-  // For now, we'll assume the user is not logged in.
-  const isLoggedIn = false;
+  const pathname = usePathname();
+  // We will assume the user is logged in when they are not on an auth page.
+  // This is a placeholder until real authentication is added.
+  const isLoggedIn = !['/', '/signup'].includes(pathname);
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/dashboard" className="flex items-center space-x-2">
             <Bot className="h-6 w-6 text-primary" />
             <span className="font-bold sm:inline-block">
               Geez Voice
@@ -71,7 +75,7 @@ export function Navbar() {
             ) : (
                 <div className="flex items-center space-x-2">
                     <Button asChild variant="ghost" size="sm">
-                      <Link href="/login">Login</Link>
+                      <Link href="/">Login</Link>
                     </Button>
                     <Button asChild size="sm">
                        <Link href="/signup">Sign Up</Link>

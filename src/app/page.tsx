@@ -1,61 +1,77 @@
 'use client';
 
-import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Mic, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Bot } from 'lucide-react';
+import Link from 'next/link';
 
-export default function HomePage() {
+// For now, we'll assume the user is not logged in.
+const isLoggedIn = false;
+
+export default function LoginPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            router.replace('/dashboard');
+        }
+    }, [router]);
+
+  if (isLoggedIn) {
+    return null; // or a loading spinner
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center flex-grow p-4">
-      <div className="text-center mb-12 max-w-4xl">
-         <h1 className="text-4xl md:text-6xl font-bold text-primary tracking-tight">
-          Geez Voice
-        </h1>
-        <p className="text-muted-foreground mt-4 text-lg md:text-xl font-amharic">
-          በአርቴፊሻል ኢንተለጀንስ የሚሰራ የድምፅ ልምምድ
-        </p>
-         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          A suite of powerful, AI-driven tools designed for high-quality voice synthesis and language applications.
-        </p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+       <div className="mb-8 text-center">
+        <Link href="/" className="flex items-center justify-center space-x-2">
+            <Bot className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold">
+              Geez Voice
+            </span>
+          </Link>
+          <p className="text-muted-foreground mt-2">
+            AI-powered Text to Speech synthesis.
+          </p>
       </div>
-
-      <div className="grid gap-8 md:grid-cols-1 max-w-md w-full">
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-            <div className="p-3 bg-primary/10 rounded-lg">
-              <Mic className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-1">
-              <CardTitle className="text-2xl">
-                <Link href="/tts" className="hover:underline">
-                  Text to Speech
-                </Link>
-              </CardTitle>
-              <CardDescription className="font-amharic">
-                የጽሑፍን ወደ ንግግር መለወጫ
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-6 font-amharic">
-              ማንኛውንም ጽሑፍ ወደ ተፈጥሯዊ ንግግር ይለውጡ። ከተለያዩ የድምፅ አማራጮች ይምረጡ።
-            </p>
-            <Link href="/tts" passHref>
-              <Button className="w-full text-lg">
-                <span className="font-amharic">መሳሪያውን ተጠቀም</span>
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Enter your email below to login to your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="m@example.com" required />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" required />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col items-start">
+          <Button className="w-full">Sign in</Button>
+           <p className="mt-4 text-xs text-center text-muted-foreground w-full">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="underline hover:text-primary">
+              Sign up
             </Link>
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
