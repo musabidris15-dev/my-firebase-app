@@ -17,7 +17,7 @@ const creditUsagePercentage = (userProfile.creditsUsed / userProfile.totalCredit
 
 export default function ProfilePage() {
     return (
-        <div className="container mx-auto max-w-4xl py-12 px-4">
+        <div className="container mx-auto max-w-4xl">
             <header className="mb-10">
                 <h1 className="text-4xl font-bold tracking-tight">Account</h1>
                 <p className="text-lg text-muted-foreground mt-2">Manage your account settings and subscription plan.</p>

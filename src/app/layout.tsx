@@ -3,7 +3,18 @@
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Navbar } from '@/components/app/navbar';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+} from '@/components/ui/sidebar';
+import { Header } from '@/components/app/header';
+import { Bot, Home, Mic } from 'lucide-react';
+import Link from 'next/link';
 
 export default function RootLayout({
   children,
@@ -33,13 +44,45 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <footer className="py-6 text-center text-muted-foreground">
-              <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
-            </footer>
-          </div>
+          <SidebarProvider>
+            <Sidebar>
+              <SidebarContent>
+                <div className="flex h-14 items-center px-4">
+                   <Link href="/" className="flex items-center space-x-2">
+                    <Bot className="h-6 w-6 text-primary" />
+                    <span className="font-bold">
+                      Geez Voice
+                    </span>
+                  </Link>
+                </div>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/">
+                        <Home />
+                        Home
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                     <SidebarMenuButton asChild>
+                      <Link href="/tts">
+                        <Mic />
+                        Text-to-Speech
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarContent>
+            </Sidebar>
+            <SidebarInset>
+              <Header />
+              <main className="flex-grow p-4 md:p-6 lg:p-8">{children}</main>
+              <footer className="py-6 text-center text-sm text-muted-foreground">
+                <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
+              </footer>
+            </SidebarInset>
+          </SidebarProvider>
           <Toaster />
         </ThemeProvider>
       </body>

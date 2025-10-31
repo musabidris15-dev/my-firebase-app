@@ -2,15 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check } from 'lucide-react';
@@ -181,7 +172,7 @@ export default function TTSPage() {
   }
   
   return (
-    <div className="container mx-auto max-w-3xl py-12 px-4">
+    <div className="container mx-auto max-w-3xl">
         <Card className="shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Text to Speech</CardTitle>

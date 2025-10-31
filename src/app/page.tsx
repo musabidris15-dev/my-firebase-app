@@ -1,14 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Bot, Languages, Clapperboard, MicVocal } from 'lucide-react';
+import { Languages, Clapperboard, MicVocal } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-1">
+    <div className="flex flex-col">
         {/* Hero Section */}
         <section className="w-full py-20 md:py-32 lg:py-40 bg-gradient-to-b from-background to-muted/50">
           <div className="container px-4 md:px-6">
@@ -114,7 +113,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      </main>
     </div>
   );
 }
