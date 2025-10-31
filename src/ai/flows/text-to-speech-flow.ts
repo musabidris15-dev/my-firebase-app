@@ -49,6 +49,10 @@ export const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async ({ text, voice }) => {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
+    }
+
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-preview-tts',
       config: {

@@ -85,11 +85,30 @@ export default function AmharicTTSPage() {
     }
     
     try {
-        const response = await fetch('/api/genkit/flow/textToSpeechFlow', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, voice: selectedVoice }),
-        });
+        let response;
+        let delay = 1000; // start with 1 second
+        for (let i = 0; i < 4; i++) { // Try up to 4 times
+            response = await fetch('/api/genkit/flow/textToSpeechFlow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, voice: selectedVoice }),
+            });
+
+            if (response.ok) {
+                break; // Success, exit loop
+            }
+
+            if (response.status === 429 || response.status >= 500) {
+                // Throttling or server error, wait and retry
+                showStatus(`Too many requests, retrying in ${delay / 1000}s...`, 'loading');
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Double the delay
+            } else {
+                // Other client-side error (e.g., 400, 401), don't retry
+                break;
+            }
+        }
+
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -116,7 +135,11 @@ export default function AmharicTTSPage() {
         }
     } catch (error: any) {
         console.error('TTS Error:', error);
-        showStatus(`ስህተት፦ ${error.message}`, 'error');
+        let errorMessage = `ስህተት፦ ${error.message}`;
+        if (error.message.includes("API key not valid")) {
+            errorMessage = "ስህተት፦ የኤፒአይ ቁልፍዎ (API Key) ትክክል አይደለም። እባክዎ በ .env ፋይል ውስጥ ያስገቡት።";
+        }
+        showStatus(errorMessage, 'error');
     } finally {
         setUiLoading(false);
     }
