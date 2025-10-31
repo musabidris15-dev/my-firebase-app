@@ -1,22 +1,24 @@
-import type { Metadata } from 'next';
+'use client';
+
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Navbar } from '@/components/app/navbar';
-
-export const metadata: Metadata = {
-  title: 'Geez Voice',
-  description: 'AI-powered Text to Speech synthesis.',
-};
+import { usePathname } from 'next/navigation';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>Geez Voice</title>
+        <meta name="description" content="AI-powered Text to Speech synthesis." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -35,13 +37,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <footer className="py-6 text-center text-muted-foreground">
-              <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
-            </footer>
-          </div>
+          {isAuthPage ? (
+            children
+          ) : (
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-grow">{children}</main>
+              <footer className="py-6 text-center text-muted-foreground">
+                <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
+              </footer>
+            </div>
+          )}
           <Toaster />
         </ThemeProvider>
       </body>

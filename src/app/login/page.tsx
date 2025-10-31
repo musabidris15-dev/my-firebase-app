@@ -11,11 +11,23 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Bot } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+       <div className="mb-8 text-center">
+        <Link href="/" className="flex items-center justify-center space-x-2">
+            <Bot className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold">
+              Geez Voice
+            </span>
+          </Link>
+          <p className="text-muted-foreground mt-2">
+            AI-powered Text to Speech synthesis.
+          </p>
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
@@ -33,11 +45,11 @@ export default function LoginPage() {
             <Input id="password" type="password" required />
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col">
+        <CardFooter className="flex flex-col items-start">
           <Button className="w-full">Sign in</Button>
-           <p className="mt-4 text-xs text-center text-muted-foreground">
+           <p className="mt-4 text-xs text-center text-muted-foreground w-full">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="underline">
+            <Link href="/signup" className="underline hover:text-primary">
               Sign up
             </Link>
           </p>
