@@ -112,6 +112,9 @@ export default function AmharicTTSPage() {
         if (error.message.includes("API key not valid")) {
             errorMessage = "ስህተት፦ የኤፒአይ ቁልፍዎ (API Key) ትክክል አይደለም። እባክዎ በ .env ፋይል ውስጥ ያስገቡት።";
         }
+        if (error.message.includes("Unexpected token '<'")) {
+            errorMessage = "ስህተት፦ ከሰርቨሩ ያልተጠበቀ ምላሽ ደርሷል። እባክዎ እንደገና ይሞክሩ።";
+        }
         showStatus(errorMessage, 'error');
     } finally {
         setUiLoading(false);

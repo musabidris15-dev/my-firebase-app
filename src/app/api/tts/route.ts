@@ -1,4 +1,4 @@
-import { textToSpeechFlow, type TextToSpeechInput } from '@/ai/flows/text-to-speech-flow';
+import { textToSpeechFlow, type TextToSpeechInput } from '@/app/ai/flows/text-to-speech-flow';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
