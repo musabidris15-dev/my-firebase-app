@@ -17,7 +17,7 @@ import Link from 'next/link';
 export default function SignupPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center max-w-md">
             <Link href="/" className="flex items-center justify-center space-x-2">
                 <Bot className="h-8 w-8 text-primary" />
                 <span className="text-2xl font-bold">
@@ -25,7 +25,7 @@ export default function SignupPage() {
                 </span>
             </Link>
             <p className="text-muted-foreground mt-2">
-                AI-powered Text to Speech synthesis.
+                Transform text into natural-sounding speech in Amharic and English. Perfect for content creators, educators, and anyone looking to voice their words.
             </p>
         </div>
       <Card className="w-full max-w-sm">
@@ -53,7 +53,7 @@ export default function SignupPage() {
           <Button className="w-full">Create account</Button>
            <p className="mt-4 text-xs text-center text-muted-foreground w-full">
             Already have an account?{' '}
-            <Link href="/login" className="underline hover:text-primary">
+            <Link href="/" className="underline hover:text-primary">
               Sign in
             </Link>
           </p>
