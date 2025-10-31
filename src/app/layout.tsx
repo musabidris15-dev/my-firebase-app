@@ -12,7 +12,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/' || pathname === '/signup';
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isHomePage = pathname === '/';
+
+  const renderContent = () => {
+    if (isHomePage) {
+      return children;
+    }
+    if (isAuthPage) {
+      return children;
+    }
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow">{children}</main>
+        <footer className="py-6 text-center text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
+        </footer>
+      </div>
+    );
+  };
+
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -37,17 +57,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {isAuthPage ? (
-            children
-          ) : (
-            <div className="flex flex-col min-h-screen">
-              <Navbar />
-              <main className="flex-grow">{children}</main>
-              <footer className="py-6 text-center text-muted-foreground">
-                <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
-              </footer>
-            </div>
-          )}
+          {renderContent()}
           <Toaster />
         </ThemeProvider>
       </body>

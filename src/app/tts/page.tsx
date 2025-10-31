@@ -13,6 +13,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+
+// For now, we'll assume the user is not logged in.
+const isLoggedIn = true;
 
 // --- Voice Definitions with Ethiopian Names ---
 const voices = [
@@ -59,12 +63,19 @@ type Status = {
 };
 
 export default function AmharicTTSPage() {
+  const router = useRouter();
   const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
   const [selectedVoice, setSelectedVoice] = useState(voices[0].value);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace('/login');
+    }
+  }, [router]);
   
   useEffect(() => {
     // Cleanup object URL
@@ -165,6 +176,10 @@ export default function AmharicTTSPage() {
             </div>
         </Alert>
     );
+  }
+  
+  if (!isLoggedIn) {
+    return null; // or a loading spinner
   }
 
   return (
