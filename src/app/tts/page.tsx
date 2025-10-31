@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -15,43 +17,49 @@ import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle } from 'lucide-rea
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // --- Voice Definitions with Ethiopian Names ---
-const voices = [
-    // Standard Female Voices
-    { name: 'ሔዋን (Puck)', value: 'Puck' },         // Upbeat, Female
-    { name: 'ታሪክ (Kore)', value: 'Kore' },         // Firm, Female
-    { name: 'ሊያ (Leda)', value: 'Leda' },          // Youthful, Female
-    { name: 'ራሄል (Aoede)', value: 'Aoede' },        // Breezy, Female
-    { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' }, // Easy-going, Female
-    { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },  // Bright, Female
-    { name: 'ቅድስት (Umbriel)', value: 'Umbriel' },    // Easy-going, Female
-    { name: 'ዲቦራ (Erinome)', value: 'Erinome' },    // Clear, Female
-    { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },    // Smooth, Female
-    { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },// Upbeat, Female
-    { name: 'ፀዳል (Schedar)', value: 'Schedar' },      // Even, Female
-    { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },        // Mature, Female
-    { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },// Forward, Female
-    { name: 'አልማዝ (Achird)', value: 'Achird' },      // Friendly, Female
-    { name: 'ሚሚ (Vindemiatrix)', value: 'Vindemiatrix' },// Gentle, Female
-    { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },// Lively, Female
-    { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },    // Warm, Female
-    // Standard Male Voices
-    { name: 'አበበ (Zephyr)', value: 'Zephyr' },       // Bright, Male
-    { name: 'ጌታቸው (Charon)', value: 'Charon' },     // Informative, Male
-    { name: 'ተስፋዬ (Zubenelgenubi)', value: 'Zubenelgenubi' }, // Casual, Male
-    { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },    // Firm, Male (Villain Voice)
-    { name: 'በረከት (Fenrir)', value: 'Fenrir' },     // Excitable, Male
-    { name: 'ዳዊት (Orus)', value: 'Orus' },         // Firm, Male
-    { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' }, // Breathy, Male
-    { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },     // Clear, Male
-    { name: 'ካሌብ (Algieba)', value: 'Algieba' },     // Smooth, Male
-    { name: 'ሀይሌ (Algenib)', value: 'Algenib' },      // Gravelly, Male
-    { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },// Informative, Male
-    { name: 'በላይ (Achernar)', value: 'Achernar' },   // Soft, Male
-    { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },// Knowledgeable, Male
-];
+const voices = {
+    female: [
+        { name: 'ሔዋን (Puck)', value: 'Puck' },
+        { name: 'ታሪክ (Kore)', value: 'Kore' },
+        { name: 'ሊያ (Leda)', value: 'Leda' },
+        { name: 'ራሄል (Aoede)', value: 'Aoede' },
+        { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' },
+        { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },
+        { name: 'ቅድስት (Umbriel)', value: 'Umbriel' },
+        { name: 'ዲቦራ (Erinome)', value: 'Erinome' },
+        { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },
+        { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },
+        { name: 'ፀዳል (Schedar)', value: 'Schedar' },
+        { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
+        { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },
+        { name: 'አልማዝ (Achird)', value: 'Achird' },
+        { name: 'ሚሚ (Vindemiatrix)', value: 'Vindemiatrix' },
+        { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
+        { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
+    ],
+    male: [
+        { name: 'አበበ (Zephyr)', value: 'Zephyr' },
+        { name: 'ጌታቸው (Charon)', value: 'Charon' },
+        { name: 'ተስፋዬ (Zubenelgenubi)', value: 'Zubenelgenubi' },
+        { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },
+        { name: 'በረከት (Fenrir)', value: 'Fenrir' },
+        { name: 'ዳዊት (Orus)', value: 'Orus' },
+        { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' },
+        { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },
+        { name: 'ካሌብ (Algieba)', value: 'Algieba' },
+        { name: 'ሀይሌ (Algenib)', value: 'Algenib' },
+        { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
+        { name: 'በላይ (Achernar)', value: 'Achernar' },
+        { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },
+    ]
+};
 
 // Sort voices alphabetically by Ethiopian name
-voices.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
+voices.female.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
+voices.male.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
+
+
+const allVoices = [...voices.female, ...voices.male];
 
 type Status = {
   message: string | null;
@@ -60,7 +68,7 @@ type Status = {
 
 export default function TTSPage() {
   const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
-  const [selectedVoice, setSelectedVoice] = useState(voices[0].value);
+  const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
@@ -194,11 +202,22 @@ export default function TTSPage() {
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
                       <SelectContent>
-                        {voices.map(voice => (
-                            <SelectItem key={voice.value} value={voice.value}>
-                                {voice.name}
-                            </SelectItem>
-                        ))}
+                        <SelectGroup>
+                            <SelectLabel>Female Voices</SelectLabel>
+                            {voices.female.map(voice => (
+                                <SelectItem key={voice.value} value={voice.value}>
+                                    {voice.name}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                             <SelectLabel>Male Voices</SelectLabel>
+                            {voices.male.map(voice => (
+                                <SelectItem key={voice.value} value={voice.value}>
+                                    {voice.name}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                 </div>
