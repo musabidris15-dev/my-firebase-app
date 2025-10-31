@@ -50,7 +50,7 @@ export default function HomePage() {
           </p>
           <div className="flex justify-center gap-4">
             <Button asChild size="lg">
-              <Link href="/signup">Get Started for Free</Link>
+              <Link href="/signup">Get Started</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <Link href="/login">I have an account</Link>
