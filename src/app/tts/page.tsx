@@ -13,8 +13,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+
 
 // --- Voice Definitions with Ethiopian Names ---
 const voices = {
@@ -73,6 +77,7 @@ export default function TTSPage() {
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     // Cleanup object URL
@@ -197,29 +202,69 @@ export default function TTSPage() {
 
                 <div>
                     <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ድምፅ ይምረጡ</label>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                      <SelectTrigger id="voice-select" className="w-full p-3 text-lg h-auto">
-                        <SelectValue placeholder="Select a voice" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                            <SelectLabel>Female Voices</SelectLabel>
-                            {voices.female.map(voice => (
-                                <SelectItem key={voice.value} value={voice.value}>
-                                    {voice.name}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                             <SelectLabel>Male Voices</SelectLabel>
-                            {voices.male.map(voice => (
-                                <SelectItem key={voice.value} value={voice.value}>
-                                    {voice.name}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={popoverOpen}
+                            className="w-full justify-between text-lg h-auto p-3"
+                            >
+                            {selectedVoice
+                                ? allVoices.find((voice) => voice.value === selectedVoice)?.name
+                                : "Select a voice..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search voice..." />
+                                <CommandList>
+                                    <CommandEmpty>No voice found.</CommandEmpty>
+                                    <CommandGroup heading="Female Voices">
+                                        {voices.female.map((voice) => (
+                                            <CommandItem
+                                            key={voice.value}
+                                            value={voice.name}
+                                            onSelect={() => {
+                                                setSelectedVoice(voice.value);
+                                                setPopoverOpen(false);
+                                            }}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedVoice === voice.value ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            {voice.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                    <CommandGroup heading="Male Voices">
+                                        {voices.male.map((voice) => (
+                                            <CommandItem
+                                            key={voice.value}
+                                            value={voice.name}
+                                            onSelect={() => {
+                                                setSelectedVoice(voice.value);
+                                                setPopoverOpen(false);
+                                            }}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedVoice === voice.value ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            {voice.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 </div>
 
                 <Button 
