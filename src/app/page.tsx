@@ -21,13 +21,6 @@ export default function HomePage() {
                     Generate incredibly natural-sounding AI speech in Amharic and English. Perfect for creators, educators, and businesses who need high-quality voice-overs in a fraction of the time.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link
-                    href="/tts"
-                  >
-                    <Button size="lg">Get Started</Button>
-                  </Link>
-                </div>
               </div>
               <Image
                 src="https://picsum.photos/seed/promo/600/400"
