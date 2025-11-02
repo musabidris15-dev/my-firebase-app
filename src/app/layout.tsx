@@ -49,7 +49,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            <Sidebar>
+            <Sidebar collapsible="icon">
               <SidebarContent>
                 <div className="flex h-14 items-center px-4">
                    <Link href="/" className="flex items-center space-x-2">
@@ -61,18 +61,18 @@ export default function RootLayout({
                 </div>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild tooltip="Home">
                       <Link href="/">
                         <Home />
-                        Home
+                        <span>Home</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                     <SidebarMenuButton asChild>
+                     <SidebarMenuButton asChild tooltip="Text-to-Speech">
                       <Link href="/tts">
                         <Mic />
-                        Text-to-Speech
+                        <span>Text-to-Speech</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
