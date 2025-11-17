@@ -28,7 +28,7 @@ const voices = {
         { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
         { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },
         { name: 'አልማዝ (Achird)', value: 'Achird' },
-        { name: 'ሚሚ (Vindemiatrix)', value: 'Vindemiatrix' },
+        { name: 'ሚኪ (Mickey-like)', value: 'Vindemiatrix' },
         { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
         { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
     ],
