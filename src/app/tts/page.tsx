@@ -8,6 +8,7 @@ import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, C
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 
@@ -53,8 +54,18 @@ const voices = {
 voices.female.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
 voices.male.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
 
-
 const allVoices = [...voices.female, ...voices.male];
+
+const expressions = [
+    { value: 'Default', label: 'Default' },
+    { value: 'Whispering', label: 'Whispering' },
+    { value: 'Sad', label: 'Sad' },
+    { value: 'Happy', label: 'Happy' },
+    { value: 'Excited', label: 'Excited' },
+    { value: 'Shouting', label: 'Shouting' },
+    { value: 'Afraid', label: 'Afraid' },
+    { value: 'News Host', label: 'News Host' },
+];
 
 type Status = {
   message: string | null;
@@ -64,6 +75,7 @@ type Status = {
 export default function TTSPage() {
   const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
+  const [selectedExpression, setSelectedExpression] = useState(expressions[0].value);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
@@ -120,7 +132,7 @@ export default function TTSPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: selectedExpression }),
       });
 
       const result = await response.json();
@@ -200,72 +212,90 @@ export default function TTSPage() {
                         onChange={(e) => setText(e.target.value)}
                     />
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ድምፅ ይምረጡ</label>
+                         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={popoverOpen}
+                                className="w-full justify-between text-lg h-auto p-3"
+                                >
+                                {selectedVoice
+                                    ? allVoices.find((voice) => voice.value === selectedVoice)?.name
+                                    : "Select a voice..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search voice..." />
+                                    <CommandList>
+                                        <CommandEmpty>No voice found.</CommandEmpty>
+                                        <CommandGroup heading="Female Voices">
+                                            {voices.female.map((voice) => (
+                                                <CommandItem
+                                                key={voice.value}
+                                                value={voice.name}
+                                                onSelect={() => {
+                                                    setSelectedVoice(voice.value);
+                                                    setPopoverOpen(false);
+                                                }}
+                                                >
+                                                <Check
+                                                    className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    selectedVoice === voice.value ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {voice.name}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                        <CommandGroup heading="Male Voices">
+                                            {voices.male.map((voice) => (
+                                                <CommandItem
+                                                key={voice.value}
+                                                value={voice.name}
+                                                onSelect={() => {
+                                                    setSelectedVoice(voice.value);
+                                                    setPopoverOpen(false);
+                                                }}
+                                                >
+                                                <Check
+                                                    className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    selectedVoice === voice.value ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {voice.name}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
 
-                <div>
-                    <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ድምፅ ይምረጡ</label>
-                     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={popoverOpen}
-                            className="w-full justify-between text-lg h-auto p-3"
-                            >
-                            {selectedVoice
-                                ? allVoices.find((voice) => voice.value === selectedVoice)?.name
-                                : "Select a voice..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Search voice..." />
-                                <CommandList>
-                                    <CommandEmpty>No voice found.</CommandEmpty>
-                                    <CommandGroup heading="Female Voices">
-                                        {voices.female.map((voice) => (
-                                            <CommandItem
-                                            key={voice.value}
-                                            value={voice.name}
-                                            onSelect={() => {
-                                                setSelectedVoice(voice.value);
-                                                setPopoverOpen(false);
-                                            }}
-                                            >
-                                            <Check
-                                                className={cn(
-                                                "mr-2 h-4 w-4",
-                                                selectedVoice === voice.value ? "opacity-100" : "opacity-0"
-                                                )}
-                                            />
-                                            {voice.name}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                    <CommandGroup heading="Male Voices">
-                                        {voices.male.map((voice) => (
-                                            <CommandItem
-                                            key={voice.value}
-                                            value={voice.name}
-                                            onSelect={() => {
-                                                setSelectedVoice(voice.value);
-                                                setPopoverOpen(false);
-                                            }}
-                                            >
-                                            <Check
-                                                className={cn(
-                                                "mr-2 h-4 w-4",
-                                                selectedVoice === voice.value ? "opacity-100" : "opacity-0"
-                                                )}
-                                            />
-                                            {voice.name}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <div>
+                        <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ስሜት ይምረጡ</label>
+                        <Select value={selectedExpression} onValueChange={setSelectedExpression}>
+                            <SelectTrigger className="w-full text-lg h-auto p-3">
+                                <SelectValue placeholder="Select an expression" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {expressions.map((expression) => (
+                                    <SelectItem key={expression.value} value={expression.value}>
+                                        {expression.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 <Button 
@@ -295,5 +325,3 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    

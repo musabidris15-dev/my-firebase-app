@@ -7,6 +7,7 @@ import wav from 'wav';
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech.'),
   voice: z.string().describe('The voice to use for the speech.'),
+  expression: z.string().optional().describe('The emotional expression for the speech.'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
@@ -48,10 +49,14 @@ export const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text, voice }) => {
+  async ({ text, voice, expression }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
+
+    const expressionInstruction = (expression && expression.toLowerCase() !== 'default') 
+      ? ` The speech should be delivered in a ${expression.toLowerCase()} tone.` 
+      : '';
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-preview-tts',
@@ -63,7 +68,7 @@ export const textToSpeechFlow = ai.defineFlow(
           },
         },
       },
-      prompt: `System: You are an Amharic text-to-speech voice generator. Pronounce the following text accurately.\n\n${text}`,
+      prompt: `System: You are an Amharic text-to-speech voice generator. Pronounce the following text accurately.${expressionInstruction}\n\n${text}`,
     });
 
     if (!media || !media.url) {

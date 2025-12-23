@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { text, voice } = (await request.json()) as TextToSpeechInput;
+    const { text, voice, expression } = (await request.json()) as TextToSpeechInput;
 
     if (!text || !voice) {
       return NextResponse.json({ error: 'Missing text or voice parameter' }, { status: 400 });
     }
 
-    const result = await textToSpeechFlow({ text, voice });
+    const result = await textToSpeechFlow({ text, voice, expression });
 
     return NextResponse.json(result);
   } catch (error: any) {
