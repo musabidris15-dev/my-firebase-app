@@ -106,7 +106,9 @@ export default function TTSPage() {
 
     setUiLoading(true);
 
-    if (text.trim().length < 2) {
+    const trimmedText = text.trim();
+
+    if (trimmedText.length < 2) {
         showStatus('ስህተት፦ እባክዎ ድምፅ ለመፍጠር ቢያንስ 2 ፊደላትን ያስገቡ።', 'error');
         setUiLoading(false);
         return;
@@ -118,7 +120,7 @@ export default function TTSPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, voice: selectedVoice }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
       });
 
       const result = await response.json();
@@ -293,3 +295,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
