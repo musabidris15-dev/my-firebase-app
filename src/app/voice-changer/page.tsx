@@ -44,6 +44,15 @@ export default function VoiceChangerPage() {
     }
   };
 
+  const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   const handleApplyEffect = async () => {
     if (!selectedFile) {
       setError('Please upload an audio file first.');
@@ -54,16 +63,34 @@ export default function VoiceChangerPage() {
     setError(null);
     setProcessedAudioUrl(null);
     
-    // NOTE: This is a placeholder for the actual voice changing logic.
-    // In a real application, you would send the audio file and the selected
-    // effect to a backend service that uses an AI model to process the audio.
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const audioDataUri = await fileToDataUri(selectedFile);
+      const response = await fetch('/api/voice-changer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audioDataUri,
+          effect: selectedEffect
+        })
+      });
 
-    // For demonstration, we'll just "return" the original audio.
-    const fileUrl = URL.createObjectURL(selectedFile);
-    setProcessedAudioUrl(fileUrl);
-    
-    setIsLoading(false);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'An unexpected error occurred while changing the voice.');
+      }
+
+      if (result.audioDataUri) {
+        setProcessedAudioUrl(result.audioDataUri);
+      } else {
+        throw new Error('The voice changer did not return any audio.');
+      }
+    } catch(err: any) {
+       console.error("Voice Changer Error:", err);
+       setError(err.message || "Failed to apply voice effect. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
