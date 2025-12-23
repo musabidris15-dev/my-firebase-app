@@ -65,6 +65,11 @@ const expressions = [
     { value: 'Shouting', label: 'Shouting' },
     { value: 'Afraid', label: 'Afraid' },
     { value: 'News Host', label: 'News Host' },
+    { value: 'Robotic', label: 'Robotic' },
+    { value: 'Breathy', label: 'Breathy' },
+    { value: 'Old Radio', label: 'Old Radio' },
+    { value: 'Monster', label: 'Monster' },
+    { value: 'Cheerful', label: 'Cheerful' },
 ];
 
 type Status = {
