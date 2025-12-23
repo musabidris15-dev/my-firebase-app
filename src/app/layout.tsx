@@ -14,7 +14,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic, User } from 'lucide-react';
+import { Bot, Home, Mic, User, AudioLines } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -73,6 +73,14 @@ export default function RootLayout({
                       <Link href="/tts">
                         <Mic />
                         <span>Text-to-Speech</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                     <SidebarMenuButton asChild tooltip="Voice Changer">
+                      <Link href="/voice-changer">
+                        <AudioLines />
+                        <span>Voice Changer</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
