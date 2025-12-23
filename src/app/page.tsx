@@ -13,9 +13,9 @@ export default function HomePage() {
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    Bring Your Words to Life with Geez Voice
+                    Bring Your Words to Life with <span className="font-amharic text-primary">ግዕዝ</span> Voice
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
                     Generate incredibly natural-sounding AI speech in Amharic and English. Perfect for creators, educators, and businesses who need high-quality voice-overs in a fraction of the time.
@@ -23,11 +23,11 @@ export default function HomePage() {
                 </div>
               </div>
               <Image
-                src="https://picsum.photos/seed/promo/600/400"
+                src="https://picsum.photos/seed/ethiopia/600/400"
                 width={600}
                 height={400}
                 alt="Promotional image for Geez Voice"
-                data-ai-hint="voice waveform"
+                data-ai-hint="Ethiopian coffee ceremony"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
               />
             </div>
@@ -83,7 +83,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
               <div className="bg-background p-4 rounded-lg shadow-md">
                 <Image
-                  src="https://picsum.photos/seed/interface1/600/400"
+                  src="https://picsum.photos/seed/interface-amharic/600/400"
                   width={600}
                   height={400}
                   data-ai-hint="text to speech interface"
@@ -94,7 +94,7 @@ export default function HomePage() {
               </div>
               <div className="bg-background p-4 rounded-lg shadow-md">
                  <Image
-                  src="https://picsum.photos/seed/interface2/600/400"
+                  src="https://picsum.photos/seed/ethiopian-highlands/600/400"
                   width={600}
                   height={400}
                   data-ai-hint="voice selection menu"
