@@ -17,6 +17,9 @@ const voiceEffects = [
   { id: 'high-pitch', name: 'High Pitch' },
   { id: 'echo', name: 'Echo Chamber' },
   { id: 'reverb', name: 'Reverb' },
+  { id: 'movie-character', name: 'Movie Character' },
+  { id: 'anime-character', name: 'Anime Character' },
+  { id: 'celebrity', name: 'Celebrity' },
 ];
 
 export default function VoiceChangerPage() {
