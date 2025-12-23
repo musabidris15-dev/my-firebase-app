@@ -70,6 +70,9 @@ const expressions = [
     { value: 'Old Radio', label: 'Old Radio' },
     { value: 'Monster', label: 'Monster' },
     { value: 'Cheerful', label: 'Cheerful' },
+    { value: 'Customer Support', label: 'Customer Support' },
+    { value: 'Professional', label: 'Professional' },
+    { value: 'Podcast Host', label: 'Podcast Host' },
 ];
 
 type Status = {
