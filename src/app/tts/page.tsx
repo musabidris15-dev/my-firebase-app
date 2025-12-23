@@ -43,7 +43,7 @@ const voices = {
         { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },
         { name: 'ካሌብ (Algieba)', value: 'Algieba' },
         { name: 'ሀይሌ (Algenib)', value: 'Algenib' },
-        { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
+        { name:'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
         { name: 'በላይ (Achernar)', value: 'Achernar' },
         { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },
     ]
@@ -96,6 +96,14 @@ export default function TTSPage() {
   };
 
   const handleSpeak = async () => {
+    if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current.src = '';
+    }
+    if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+    }
+
     setUiLoading(true);
 
     if (text.trim().length < 2) {
@@ -161,7 +169,7 @@ export default function TTSPage() {
             <div className="flex items-center gap-3">
                 {icon}
                 <div className='flex-1'>
-                    <AlertTitle className="font-amharic text-lg">{status.type === 'error' ? 'ስህተት' : status.type === 'success' ? 'ተሳክቷል' : 'ሁኔታ'}</AlertTitle>
+                    <AlertTitle className="font-amharic text-lg">{status.type === 'error' ? 'ስህተት' : status.type === 'success' ? 'ተሳክቷל' : 'ሁኔታ'}</AlertTitle>
                     <AlertDescription className='font-amharic'>
                       {status.message}
                     </AlertDescription>
