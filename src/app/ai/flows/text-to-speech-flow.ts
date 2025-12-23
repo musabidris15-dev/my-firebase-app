@@ -63,7 +63,7 @@ export const textToSpeechFlow = ai.defineFlow(
           },
         },
       },
-      prompt: text,
+      prompt: `System: You are an Amharic text-to-speech voice generator. Pronounce the following text accurately.\n\n${text}`,
     });
 
     if (!media || !media.url) {
@@ -72,12 +72,12 @@ export const textToSpeechFlow = ai.defineFlow(
     
     const audioDataUrl = media.url;
     
-    const mimeTypeMatch = audioDataUrl.match(/^data:(audio\/.+);rate=(\d+);base64,/);
+    const mimeTypeMatch = audioDataUrl.match(/^data:(audio\/.+?)(;rate=(\d+))?;base64,/);
     if (!mimeTypeMatch) {
         throw new Error("Could not parse audio data URI from model response.");
     }
     
-    const sampleRate = parseInt(mimeTypeMatch[2], 10);
+    const sampleRate = mimeTypeMatch[3] ? parseInt(mimeTypeMatch[3], 10) : 24000;
     const base64Data = audioDataUrl.substring(mimeTypeMatch[0].length);
 
     const pcmBuffer = Buffer.from(base64Data, 'base64');
