@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Wand, UploadCloud, Loader2, Play } from 'lucide-react';
+import { Wand, UploadCloud, Loader2, Play, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +77,9 @@ export default function VoiceChangerPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
+             throw new Error('You have exceeded your request limit. Please wait a moment and try again.');
+        }
         throw new Error(result.error || 'An unexpected error occurred while changing the voice.');
       }
 
@@ -166,9 +169,17 @@ export default function VoiceChangerPage() {
           {/* Result */}
           {error && (
              <Alert variant="destructive">
+                <AlertCircle className="h-5 w-5" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
+          )}
+
+          {isLoading && !processedAudioUrl && (
+            <div className="flex flex-col items-center justify-center text-muted-foreground space-y-4 pt-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+                <p className="font-medium">Applying voice effect... this may take a moment.</p>
+            </div>
           )}
 
           {processedAudioUrl && (
