@@ -15,38 +15,38 @@ import { cn } from '@/lib/utils';
 // --- Voice Definitions with Ethiopian Names ---
 const voices = {
     female: [
-        { name: 'ሔዋን (Puck)', value: 'Puck' },
-        { name: 'ታሪክ (Kore)', value: 'Kore' },
-        { name: 'ሊያ (Leda)', value: 'Leda' },
-        { name: 'ራሄል (Aoede)', value: 'Aoede' },
-        { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' },
-        { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },
-        { name: 'ቅድስት (Umbriel)', value: 'Umbriel' },
-        { name: 'ዲቦራ (Erinome)', value: 'Erinome' },
-        { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },
-        { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },
-        { name: 'ፀዳል (Schedar)', value: 'Schedar' },
-        { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
-        { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },
         { name: 'አልማዝ (Achird)', value: 'Achird' },
-        { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
-        { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
         { name: 'በላይ (Achernar)', value: 'Achernar' },
+        { name: 'ራሄል (Aoede)', value: 'Aoede' },
+        { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },
+        { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' },
+        { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },
+        { name: 'ዲቦራ (Erinome)', value: 'Erinome' },
+        { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
+        { name: 'ታሪክ (Kore)', value: 'Kore' },
+        { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },
+        { name: 'ሊያ (Leda)', value: 'Leda' },
+        { name: 'ሔዋን (Puck)', value: 'Puck' },
+        { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },
+        { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
+        { name: 'ፀዳል (Schedar)', value: 'Schedar' },
+        { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
+        { name: 'ቅድስት (Umbriel)', value: 'Umbriel' },
     ],
     male: [
-        { name: 'አበበ (Zephyr)', value: 'Zephyr' },
-        { name: 'ጌታቸው (Charon)', value: 'Charon' },
-        { name: 'ተስፋዬ (Zubenelgenubi)', value: 'Zubenelgenubi' },
-        { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },
-        { name: 'በረከት (Fenrir)', value: 'Fenrir' },
-        { name: 'ዳዊት (Orus)', value: 'Orus' },
-        { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' },
-        { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },
         { name: 'ካሌብ (Algieba)', value: 'Algieba' },
         { name: 'ሀይሌ (Algenib)', value: 'Algenib' },
-        { name:'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
+        { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },
+        { name: 'ጌታቸው (Charon)', value: 'Charon' },
+        { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' },
+        { name: 'በረከት (Fenrir)', value: 'Fenrir' },
+        { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },
+        { name: 'ዳዊት (Orus)', value: 'Orus' },
+        { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
         { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },
         { name: 'ሚኪ (Mickey-like)', value: 'Vindemiatrix' },
+        { name: 'አበበ (Zephyr)', value: 'Zephyr' },
+        { name: 'ተስፋዬ (Zubenelgenubi)', value: 'Zubenelgenubi' },
     ]
 };
 
@@ -86,8 +86,10 @@ type PreviewState = {
     isLoading: boolean;
 };
 
+const PREVIEW_TEXT = 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።';
+
 export default function TTSPage() {
-  const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
+  const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
   const [selectedExpression, setSelectedExpression] = useState(expressions[0].value);
   const [isLoading, setIsLoading] = useState(false);
@@ -224,7 +226,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።', voice: voiceValue, expression: 'Default' }),
+            body: JSON.stringify({ text: PREVIEW_TEXT, voice: voiceValue, expression: 'Default' }),
         });
         const result = await response.json();
 
