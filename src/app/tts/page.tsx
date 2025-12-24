@@ -29,7 +29,6 @@ const voices = {
         { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
         { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },
         { name: 'አልማዝ (Achird)', value: 'Achird' },
-        { name: 'ሚኪ (Mickey-like)', value: 'Vindemiatrix' },
         { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
         { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
     ],
@@ -47,6 +46,7 @@ const voices = {
         { name:'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
         { name: 'በላይ (Achernar)', value: 'Achernar' },
         { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },
+        { name: 'ሚኪ (Mickey-like)', value: 'Vindemiatrix' },
     ]
 };
 
