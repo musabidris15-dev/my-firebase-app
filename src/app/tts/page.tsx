@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 
 
-// --- Voice Definitions with Ethiopian Names ---
+// --- Voice Definitions ---
 const voices = {
     female: [
         { name: 'Almaz (Achird)', value: 'Achird' },
@@ -50,9 +50,9 @@ const voices = {
     ]
 };
 
-// Sort voices alphabetically by Ethiopian name
-voices.female.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
-voices.male.sort((a, b) => a.name.localeCompare(b.name, 'am-ET'));
+// Sort voices alphabetically by name
+voices.female.sort((a, b) => a.name.localeCompare(b.name));
+voices.male.sort((a, b) => a.name.localeCompare(b.name));
 
 const allVoices = [...voices.female, ...voices.male];
 
@@ -114,9 +114,11 @@ export default function TTSPage() {
         URL.revokeObjectURL(audioUrl);
       }
       // Cleanup for preview player
-      player.removeEventListener('ended', onEnded);
-      player.pause();
-      player.src = '';
+      if (player) {
+        player.removeEventListener('ended', onEnded);
+        player.pause();
+        player.src = '';
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -169,7 +171,8 @@ export default function TTSPage() {
 
       if (!response.ok) {
          if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
-             throw new Error('You have exceeded your request limit. Please wait a moment and try again.');
+             showStatus('You have exceeded your request limit. Please wait a moment and try again.', 'error');
+             return;
         }
         throw new Error(result.error || 'An unexpected error occurred.');
       }
