@@ -94,29 +94,29 @@ export default function TTSPage() {
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
-  const previewPlayerRef = useRef<HTMLAudioElement>(new Audio());
+  const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Cleanup object URL for main audio
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, [audioUrl]);
-
-  useEffect(() => {
+    previewPlayerRef.current = new Audio();
+    
     const player = previewPlayerRef.current;
     const onEnded = () => setPreview({ voice: preview.voice, isPlaying: false, isLoading: false });
     player.addEventListener('ended', onEnded);
-    return () => {
-        player.removeEventListener('ended', onEnded);
-    }
-  }, [preview.voice]);
 
+    return () => {
+      // Cleanup object URL for main audio
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+      // Cleanup for preview player
+      player.removeEventListener('ended', onEnded);
+      player.pause();
+      player.src = '';
+    };
+  }, []);
 
   const showStatus = (message: string, type: Status['type'] = 'info') => {
     setStatus({ message, type });
@@ -200,6 +200,7 @@ export default function TTSPage() {
     e.stopPropagation();
 
     const player = previewPlayerRef.current;
+    if (!player) return;
 
     // If clicking the currently playing/loading voice
     if (preview.voice === voiceValue) {
