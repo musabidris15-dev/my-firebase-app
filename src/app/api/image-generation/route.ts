@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { prompt } = (await request.json()) as ImageGenerationInput;
+    const { prompt, initialImage } = (await request.json()) as ImageGenerationInput;
 
     if (!prompt) {
       return NextResponse.json({ error: 'Missing prompt parameter' }, { status: 400 });
     }
 
-    const result = await imageGeneration({ prompt });
+    const result = await imageGeneration({ prompt, initialImage });
 
     return NextResponse.json(result);
   } catch (error: any) {
