@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -80,6 +80,12 @@ type Status = {
   type: 'info' | 'error' | 'success' | 'loading' | null;
 };
 
+type PreviewState = {
+    voice: string | null;
+    isPlaying: boolean;
+    isLoading: boolean;
+};
+
 export default function TTSPage() {
   const [text, setText] = useState('ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።');
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
@@ -88,16 +94,29 @@ export default function TTSPage() {
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const previewPlayerRef = useRef<HTMLAudioElement>(new Audio());
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Cleanup object URL
+    // Cleanup object URL for main audio
     return () => {
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
     };
   }, [audioUrl]);
+
+  useEffect(() => {
+    const player = previewPlayerRef.current;
+    const onEnded = () => setPreview({ voice: preview.voice, isPlaying: false, isLoading: false });
+    player.addEventListener('ended', onEnded);
+    return () => {
+        player.removeEventListener('ended', onEnded);
+    }
+  }, [preview.voice]);
+
 
   const showStatus = (message: string, type: Status['type'] = 'info') => {
     setStatus({ message, type });
@@ -176,6 +195,52 @@ export default function TTSPage() {
       }
   }, [audioUrl]);
 
+  const handlePreview = async (e: React.MouseEvent, voiceValue: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const player = previewPlayerRef.current;
+
+    // If clicking the currently playing/loading voice
+    if (preview.voice === voiceValue) {
+        if (preview.isPlaying) {
+            player.pause();
+            setPreview({ voice: voiceValue, isPlaying: false, isLoading: false });
+        } else if (!preview.isLoading) {
+            player.play();
+            setPreview({ voice: voiceValue, isPlaying: true, isLoading: false });
+        }
+        return;
+    }
+
+    // Stop any currently playing preview
+    player.pause();
+    player.src = '';
+    setPreview({ voice: voiceValue, isPlaying: false, isLoading: true });
+    setPreviewError(null);
+
+    try {
+        const response = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: 'ሰላም አለይኩም', voice: voiceValue, expression: 'Default' }),
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Preview failed.');
+        }
+
+        player.src = result.audioDataUri;
+        player.play();
+        setPreview({ voice: voiceValue, isPlaying: true, isLoading: false });
+
+    } catch (err: any) {
+        setPreviewError(`Preview for ${voiceValue} failed.`);
+        setPreview({ voice: null, isPlaying: false, isLoading: false });
+    }
+};
+
   const StatusAlert = () => {
     if (!status.message) return null;
 
@@ -242,44 +307,71 @@ export default function TTSPage() {
                                 <Command>
                                     <CommandInput placeholder="Search voice..." />
                                     <CommandList>
+                                        {previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}
                                         <CommandEmpty>No voice found.</CommandEmpty>
                                         <CommandGroup heading="Female Voices">
                                             {voices.female.map((voice) => (
                                                 <CommandItem
-                                                key={voice.value}
-                                                value={voice.name}
-                                                onSelect={() => {
-                                                    setSelectedVoice(voice.value);
-                                                    setPopoverOpen(false);
-                                                }}
+                                                    key={voice.value}
+                                                    value={voice.name}
+                                                    onSelect={() => {
+                                                        setSelectedVoice(voice.value);
+                                                        setPopoverOpen(false);
+                                                    }}
+                                                    className="flex justify-between items-center"
                                                 >
-                                                <Check
-                                                    className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    selectedVoice === voice.value ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                                {voice.name}
+                                                    <div className="flex items-center">
+                                                        <Check
+                                                            className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            selectedVoice === voice.value ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {voice.name}
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7"
+                                                        onClick={(e) => handlePreview(e, voice.value)}
+                                                        disabled={preview.isLoading && preview.voice === voice.value}
+                                                    >
+                                                        {preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                                         (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                                    </Button>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
                                         <CommandGroup heading="Male Voices">
                                             {voices.male.map((voice) => (
                                                 <CommandItem
-                                                key={voice.value}
-                                                value={voice.name}
-                                                onSelect={() => {
-                                                    setSelectedVoice(voice.value);
-                                                    setPopoverOpen(false);
-                                                }}
+                                                    key={voice.value}
+                                                    value={voice.name}
+                                                    onSelect={() => {
+                                                        setSelectedVoice(voice.value);
+                                                        setPopoverOpen(false);
+                                                    }}
+                                                    className="flex justify-between items-center"
                                                 >
-                                                <Check
-                                                    className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    selectedVoice === voice.value ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                                {voice.name}
+                                                    <div className="flex items-center">
+                                                        <Check
+                                                            className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            selectedVoice === voice.value ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {voice.name}
+                                                    </div>
+                                                     <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7"
+                                                        onClick={(e) => handlePreview(e, voice.value)}
+                                                        disabled={preview.isLoading && preview.voice === voice.value}
+                                                    >
+                                                        {preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                                         (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                                    </Button>
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
