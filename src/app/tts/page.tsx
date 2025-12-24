@@ -224,7 +224,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: 'ሰላም አለይኩም', voice: voiceValue, expression: 'Default' }),
+            body: JSON.stringify({ text: 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።', voice: voiceValue, expression: 'Default' }),
         });
         const result = await response.json();
 
