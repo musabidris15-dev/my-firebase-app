@@ -68,12 +68,12 @@ export const voiceChangerFlow = ai.defineFlow(
     }
     
     const { media } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-preview-tts',
+      model: 'googleai/gemini-2.5-flash-image-preview', // Corrected model
       config: {
         responseModalities: ['AUDIO'],
       },
       prompt: [
-        {text: `Transform the following audio to sound like a ${input.effect}.`},
+        {text: `You are an expert audio engineer. Your task is to transform the provided audio by applying a voice effect. The desired effect is: ${input.effect}. Respond with ONLY the transformed audio. Do not add any conversational text or introductions.`},
         {media: {url: input.audioDataUri}}
       ],
     });
