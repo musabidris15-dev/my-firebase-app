@@ -92,11 +92,11 @@ export default function ProfilePage() {
                                 </CardHeader>
                                 <CardContent className="flex-grow space-y-4">
                                     <div className="text-4xl font-bold">
-                                        $12<span className="text-sm font-normal text-muted-foreground">/month</span>
+                                        $11<span className="text-sm font-normal text-muted-foreground">/month</span>
                                     </div>
                                     <ul className="space-y-2 text-sm">
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />40,000 Characters/mo</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 50 mins of audio</li>
+                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />100,000 Characters/mo</li>
+                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 130 mins of audio</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Standard Voices</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Basic Voice Effects</li>
                                     </ul>
