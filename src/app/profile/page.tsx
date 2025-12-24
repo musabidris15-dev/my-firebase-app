@@ -118,8 +118,8 @@ export default function ProfilePage() {
                                         $30<span className="text-sm font-normal text-muted-foreground">/month</span>
                                     </div>
                                     <ul className="space-y-2 text-sm">
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />150,000 Characters/mo</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 200 mins of audio</li>
+                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />350,000 Characters/mo</li>
+                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 460 mins of audio</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Premium & Custom Voices</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Advanced Voice Effects</li>
                                         <li className="flex items-center"><Zap className="mr-2 h-4 w-4 text-yellow-500" />Priority Support</li>
