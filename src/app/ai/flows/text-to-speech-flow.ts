@@ -55,7 +55,7 @@ export const textToSpeechFlow = ai.defineFlow(
     }
 
     const expressionInstruction = (expression && expression.toLowerCase() !== 'default') 
-      ? ` The speech should be delivered in a ${expression.toLowerCase()} tone.` 
+      ? `(The speech should be delivered in a ${expression.toLowerCase()} tone.)` 
       : '';
 
     const { media } = await ai.generate({
@@ -68,7 +68,7 @@ export const textToSpeechFlow = ai.defineFlow(
           },
         },
       },
-      prompt: `System: You are an Amharic text-to-speech voice generator. Pronounce the following text accurately.${expressionInstruction}\n\n${text}`,
+      prompt: `${text} ${expressionInstruction}`,
     });
 
     if (!media || !media.url) {

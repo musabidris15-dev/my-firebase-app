@@ -15,38 +15,38 @@ import { cn } from '@/lib/utils';
 // --- Voice Definitions with Ethiopian Names ---
 const voices = {
     female: [
-        { name: 'አልማዝ (Achird)', value: 'Achird' },
-        { name: 'ራሄል (Aoede)', value: 'Aoede' },
-        { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },
-        { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' },
-        { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },
-        { name: 'ዲቦራ (Erinome)', value: 'Erinome' },
-        { name: 'ታሪክ (Kore)', value: 'Kore' },
-        { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },
-        { name: 'ሊያ (Leda)', value: 'Leda' },
-        { name: 'ሔዋን (Puck)', value: 'Puck' },
-        { name: 'ዘቢባ (Pulcherrima)', value: 'Pulcherrima' },
-        { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
-        { name: 'ፀዳል (Schedar)', value: 'Schedar' },
-        { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
-        { name: 'ቅድስት (Umbriel)', value: 'Umbriel' },
+        { name: 'Almaz (Achird)', value: 'Achird' },
+        { name: 'Rahel (Aoede)', value: 'Aoede' },
+        { name: 'Biruktait (Autonoe)', value: 'Autonoe' },
+        { name: 'Nardos (Callirrhoe)', value: 'Callirrhoe' },
+        { name: 'Yordanos (Despina)', value: 'Despina' },
+        { name: 'Debora (Erinome)', value: 'Erinome' },
+        { name: 'Tarik (Kore)', value: 'Kore' },
+        { name: 'Tadelech (Laomedeia)', value: 'Laomedeia' },
+        { name: 'Lia (Leda)', value: 'Leda' },
+        { name: 'Hewan (Puck)', value: 'Puck' },
+        { name: 'Zebiba (Pulcherrima)', value: 'Pulcherrima' },
+        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
+        { name: 'Tsedal (Schedar)', value: 'Schedar' },
+        { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
+        { name: 'Kidist (Umbriel)', value: 'Umbriel' },
     ],
     male: [
-        { name: 'ካሌብ (Algieba)', value: 'Algieba' },
-        { name: 'ሀይሌ (Algenib)', value: 'Algenib' },
-        { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },
-        { name: 'በላይ (Achernar)', value: 'Achernar' },
-        { name: 'ጌታቸው (Charon)', value: 'Charon' },
-        { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' },
-        { name: 'በረከት (Fenrir)', value: 'Fenrir' },
-        { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
-        { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },
-        { name: 'ዳዊት (Orus)', value: 'Orus' },
-        { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
-        { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },
-        { name: 'ሚኪ (Mickey-like)', value: 'Vindemiatrix' },
-        { name: 'አበበ (Zephyr)', value: 'Zephyr' },
-        { name: 'ተስፋዬ (Zubenelgenubi)', value: 'Zubenelgenubi' },
+        { name: 'Caleb (Algieba)', value: 'Algieba' },
+        { name: 'Haile (Algenib)', value: 'Algenib' },
+        { name: 'Gideon (Alnilam)', value: 'Alnilam' },
+        { name: 'Belay (Achernar)', value: 'Achernar' },
+        { name: 'Getachew (Charon)', value: 'Charon' },
+        { name: 'Elias (Enceladus)', value: 'Enceladus' },
+        { name: 'Bereket (Fenrir)', value: 'Fenrir' },
+        { name: 'Mulu (Gacrux)', value: 'Gacrux' },
+        { name: 'Fikru (Iapetus)', value: 'Iapetus' },
+        { name: 'Dawit (Orus)', value: 'Orus' },
+        { name: 'Mulugeta (Rasalgethi)', value: 'Rasalgethi' },
+        { name: 'Solomon (Sadaltager)', value: 'Sadaltager' },
+        { name: 'Mickey (Mickey-like)', value: 'Vindemiatrix' },
+        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
+        { name: 'Tesfaye (Zubenelgenubi)', value: 'Zubenelgenubi' },
     ]
 };
 
@@ -86,7 +86,7 @@ type PreviewState = {
     isLoading: boolean;
 };
 
-const PREVIEW_TEXT = 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።';
+const PREVIEW_TEXT = 'Hello! This is a test of the text-to-speech application.';
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -118,6 +118,7 @@ export default function TTSPage() {
       player.pause();
       player.src = '';
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showStatus = (message: string, type: Status['type'] = 'info') => {
@@ -127,7 +128,7 @@ export default function TTSPage() {
   const setUiLoading = (loading: boolean) => {
     setIsLoading(loading);
     if (loading) {
-      showStatus('ድምፅ እየተፈጠረ ነው... እባክዎ ይጠብቁ...', 'loading');
+      showStatus('Generating audio... Please wait...', 'loading');
       setAudioUrl('');
     } else {
         if (status.type === 'loading') {
@@ -150,7 +151,7 @@ export default function TTSPage() {
     const trimmedText = text.trim();
 
     if (trimmedText.length < 2) {
-        showStatus('ስህተት፦ እባክዎ ድምፅ ለመፍጠር ቢያንስ 2 ፊደላትን ያስገቡ።', 'error');
+        showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
         setUiLoading(false);
         return;
     }
@@ -168,25 +169,25 @@ export default function TTSPage() {
 
       if (!response.ok) {
          if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
-             throw new Error('የጥያቄ ገደብ አልፈዋል። እባክዎ ትንሽ ቆይተው እንደገና ይሞክሩ።');
+             throw new Error('You have exceeded your request limit. Please wait a moment and try again.');
         }
         throw new Error(result.error || 'An unexpected error occurred.');
       }
       
       if (result.audioDataUri) {
           setAudioUrl(result.audioDataUri);
-          showStatus('ድምፅ በተሳካ ሁኔታ ተፈጥሯል!', 'success');
+          showStatus('Audio generated successfully!', 'success');
       } else {
           throw new Error(result.error || 'API response did not contain valid audio data.');
       }
     } catch (error: any) {
         console.error('TTS Error:', error);
-        let errorMessage = `ስህተት፦ ${error.message}`;
+        let errorMessage = `Error: ${error.message}`;
         if (error.message.includes("API key not valid")) {
-            errorMessage = "ስህተት፦ የኤፒአይ ቁልፍዎ (API Key) ትክክል አይደለም። እባክዎ በ .env ፋይል ውስጥ ያስገቡት።";
+            errorMessage = "Error: Your API key is not valid. Please set it in the .env file.";
         }
          if (error.message.includes("not valid JSON")) {
-            errorMessage = "ስህተት፦ ከሰርቨሩ ያልተጠበቀ ምላሽ ደርሷል። የኤፒአይ ቁልፍ ትክክል መሆኑን ያረጋግጡ።";
+            errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         }
         showStatus(errorMessage, 'error');
     } finally {
@@ -262,8 +263,8 @@ export default function TTSPage() {
             <div className="flex items-center gap-3">
                 {icon}
                 <div className='flex-1'>
-                    <AlertTitle className="font-amharic text-lg">{status.type === 'error' ? 'ስህተት' : status.type === 'success' ? 'ተሳክቷል' : 'ሁኔታ'}</AlertTitle>
-                    <AlertDescription className='font-amharic'>
+                    <AlertTitle>{status.type === 'error' ? 'Error' : status.type === 'success' ? 'Success' : 'Status'}</AlertTitle>
+                    <AlertDescription>
                       {status.message}
                     </AlertDescription>
                 </div>
@@ -277,16 +278,16 @@ export default function TTSPage() {
         <Card className="shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Text to Speech</CardTitle>
-                <p className="text-muted-foreground mt-2 font-amharic text-lg">የጽሑፍን ወደ ንግግር መለወጫ</p>
+                <p className="text-muted-foreground mt-2 text-lg">Convert text into natural-sounding speech.</p>
             </CardHeader>
             <CardContent className="p-6 md:p-8 space-y-6">
                 <div>
-                    <label htmlFor="text-to-speak" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ጽሑፍ ያስገቡ (በአማርኛ ወይም በእንግሊዝኛ)</label>
+                    <label htmlFor="text-to-speak" className="block text-sm font-medium text-muted-foreground mb-2">Enter text to synthesize</label>
                     <Textarea 
                         id="text-to-speak" 
                         rows={6}
-                        className="text-lg font-amharic"
-                        placeholder="እባክዎ ንግግር ለማድረግ የሚፈልጉትን ጽሑፍ እዚህ ያስገቡ..."
+                        className="text-lg"
+                        placeholder="Please enter the text you want to convert to speech here..."
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                     />
@@ -294,7 +295,7 @@ export default function TTSPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ድምፅ ይምረጡ</label>
+                        <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">Select Voice</label>
                          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button
@@ -388,7 +389,7 @@ export default function TTSPage() {
                     </div>
 
                     <div>
-                        <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2 font-amharic">ስሜት ይምረጡ</label>
+                        <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2">Select Emotion</label>
                         <Select value={selectedExpression} onValueChange={setSelectedExpression}>
                             <SelectTrigger className="w-full text-lg h-auto p-3">
                                 <SelectValue placeholder="Select an expression" />
@@ -415,7 +416,7 @@ export default function TTSPage() {
                     ) : (
                        <Volume2 className="mr-2 h-6 w-6" />
                     )}
-                    <span className="font-amharic">ወደ ድምፅ ቀይር</span>
+                    <span>Generate Audio</span>
                 </Button>
 
                 {audioUrl && (
