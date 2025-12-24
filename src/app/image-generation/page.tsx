@@ -73,6 +73,9 @@ export default function ImageGenerationPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
+             throw new Error('You have exceeded your request limit. Please wait a moment and try again.');
+        }
         throw new Error(result.error || 'An unexpected error occurred while generating the image.');
       }
 
