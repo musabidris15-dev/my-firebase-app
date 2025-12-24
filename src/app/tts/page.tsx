@@ -31,6 +31,7 @@ const voices = {
         { name: 'አልማዝ (Achird)', value: 'Achird' },
         { name: 'ለተብርሃን (Sadachbia)', value: 'Sadachbia' },
         { name: 'ትርሲት (Sulafat)', value: 'Sulafat' },
+        { name: 'በላይ (Achernar)', value: 'Achernar' },
     ],
     male: [
         { name: 'አበበ (Zephyr)', value: 'Zephyr' },
@@ -44,7 +45,6 @@ const voices = {
         { name: 'ካሌብ (Algieba)', value: 'Algieba' },
         { name: 'ሀይሌ (Algenib)', value: 'Algenib' },
         { name:'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
-        { name: 'በላይ (Achernar)', value: 'Achernar' },
         { name: 'ሰለሞን (Sadaltager)', value: 'Sadaltager' },
         { name: 'ሚኪ (Mickey-like)', value: 'Vindemiatrix' },
     ]
@@ -257,7 +257,7 @@ export default function TTSPage() {
             <div className="flex items-center gap-3">
                 {icon}
                 <div className='flex-1'>
-                    <AlertTitle className="font-amharic text-lg">{status.type === 'error' ? 'ስህተት' : status.type === 'success' ? 'ተሳክቷל' : 'ሁኔታ'}</AlertTitle>
+                    <AlertTitle className="font-amharic text-lg">{status.type === 'error' ? 'ስህተት' : status.type === 'success' ? 'ተሳክቷል' : 'ሁኔታ'}</AlertTitle>
                     <AlertDescription className='font-amharic'>
                       {status.message}
                     </AlertDescription>
