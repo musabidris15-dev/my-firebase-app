@@ -16,13 +16,11 @@ import { cn } from '@/lib/utils';
 const voices = {
     female: [
         { name: 'አልማዝ (Achird)', value: 'Achird' },
-        { name: 'በላይ (Achernar)', value: 'Achernar' },
         { name: 'ራሄል (Aoede)', value: 'Aoede' },
         { name: 'ብርቅታይት (Autonoe)', value: 'Autonoe' },
         { name: 'ናርዶስ (Callirrhoe)', value: 'Callirrhoe' },
         { name: 'ዮርዳኖስ (Despina)', value: 'Despina' },
         { name: 'ዲቦራ (Erinome)', value: 'Erinome' },
-        { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
         { name: 'ታሪክ (Kore)', value: 'Kore' },
         { name: 'ታደለች (Laomedeia)', value: 'Laomedeia' },
         { name: 'ሊያ (Leda)', value: 'Leda' },
@@ -37,9 +35,11 @@ const voices = {
         { name: 'ካሌብ (Algieba)', value: 'Algieba' },
         { name: 'ሀይሌ (Algenib)', value: 'Algenib' },
         { name: 'ጌዲዮን (Alnilam)', value: 'Alnilam' },
+        { name: 'በላይ (Achernar)', value: 'Achernar' },
         { name: 'ጌታቸው (Charon)', value: 'Charon' },
         { name: 'ኤልያስ (Enceladus)', value: 'Enceladus' },
         { name: 'በረከት (Fenrir)', value: 'Fenrir' },
+        { name: 'ሙሉ (Gacrux)', value: 'Gacrux' },
         { name: 'ፍቅሩ (Iapetus)', value: 'Iapetus' },
         { name: 'ዳዊት (Orus)', value: 'Orus' },
         { name: 'ሙሉጌታ (Rasalgethi)', value: 'Rasalgethi' },
@@ -167,6 +167,9 @@ export default function TTSPage() {
       const result = await response.json();
 
       if (!response.ok) {
+         if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
+             throw new Error('የጥያቄ ገደብ አልፈዋል። እባክዎ ትንሽ ቆይተው እንደገና ይሞክሩ።');
+        }
         throw new Error(result.error || 'An unexpected error occurred.');
       }
       
