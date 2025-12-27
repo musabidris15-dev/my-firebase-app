@@ -88,7 +88,7 @@ type PreviewState = {
     isLoading: boolean;
 };
 
-const PREVIEW_TEXT = 'ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መተግበሪያዎ።';
+const PREVIEW_TEXT = "ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መለወጫ መተግበሪያዎ።";
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
