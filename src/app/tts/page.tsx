@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Crown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 
 // --- Voice Definitions ---
@@ -30,12 +32,13 @@ const voices = {
         { name: 'Tsedal (Schedar)', value: 'Schedar' },
         { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Kidist (Umbriel)', value: 'Umbriel' },
+        { name: 'Mickey-like Female (Vindemiatrix)', value: 'Vindemiatrix' },
     ],
     male: [
         { name: 'Caleb (Algieba)', value: 'Algieba' },
         { name: 'Haile (Algenib)', value: 'Algenib' },
-        { name: 'Gideon (Alnilam)', value: 'Alnilam' },
         { name: 'Belay (Achernar)', value: 'Achernar' },
+        { name: 'Gideon (Alnilam)', value: 'Alnilam' },
         { name: 'Getachew (Charon)', value: 'Charon' },
         { name: 'Elias (Enceladus)', value: 'Enceladus' },
         { name: 'Bereket (Fenrir)', value: 'Fenrir' },
@@ -44,7 +47,6 @@ const voices = {
         { name: 'Dawit (Orus)', value: 'Orus' },
         { name: 'Mulugeta (Rasalgethi)', value: 'Rasalgethi' },
         { name: 'Solomon (Sadaltager)', value: 'Sadaltager' },
-        { name: 'Mickey (Mickey-like)', value: 'Vindemiatrix' },
         { name: 'Abebe (Zephyr)', value: 'Zephyr' },
         { name: 'Tesfaye (Zubenelgenubi)', value: 'Zubenelgenubi' },
     ]
@@ -86,7 +88,13 @@ type PreviewState = {
     isLoading: boolean;
 };
 
-const PREVIEW_TEXT = 'Hello! This is a test of the text-to-speech application.';
+// Hardcoded for demonstration purposes, replace with actual user data logic
+const userProfile = {
+    plan: 'Free Tier', // or 'Hobbyist', 'Creator'
+};
+
+
+const PREVIEW_TEXT = 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።';
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -100,6 +108,8 @@ export default function TTSPage() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
   const [previewError, setPreviewError] = useState<string | null>(null);
+  
+  const isCreator = userProfile.plan === 'Creator';
 
   useEffect(() => {
     previewPlayerRef.current = new Audio();
@@ -164,7 +174,7 @@ export default function TTSPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: selectedExpression }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: isCreator ? selectedExpression : 'Default' }),
       });
 
       const result = await response.json();
@@ -172,6 +182,7 @@ export default function TTSPage() {
       if (!response.ok) {
          if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
              showStatus('You have exceeded your request limit. Please wait a moment and try again.', 'error');
+             setUiLoading(false);
              return;
         }
         throw new Error(result.error || 'An unexpected error occurred.');
@@ -276,6 +287,52 @@ export default function TTSPage() {
     );
   }
   
+  const ExpressionSelector = () => {
+      const selector = (
+        <div className={!isCreator ? 'cursor-not-allowed' : ''}>
+          <Select 
+            value={isCreator ? selectedExpression : 'Default'}
+            onValueChange={setSelectedExpression}
+            disabled={!isCreator}
+          >
+              <SelectTrigger className="w-full text-lg h-auto p-3">
+                  <SelectValue placeholder="Select an expression" />
+              </SelectTrigger>
+              <SelectContent>
+                  {expressions.map((expression) => (
+                      <SelectItem key={expression.value} value={expression.value}>
+                          {expression.label}
+                      </SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+        </div>
+      );
+
+      if (isCreator) {
+        return selector;
+      }
+
+      return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    {selector}
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p className="flex items-center">
+                        <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+                        <span>Custom expressions are a Creator plan feature.</span>
+                    </p>
+                    <Button asChild size="sm" className="w-full mt-2">
+                        <Link href="/profile">Upgrade Now</Link>
+                    </Button>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      );
+  }
+
   return (
     <div className="container mx-auto max-w-3xl">
         <Card className="shadow-lg">
@@ -393,18 +450,7 @@ export default function TTSPage() {
 
                     <div>
                         <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2">Select Emotion</label>
-                        <Select value={selectedExpression} onValueChange={setSelectedExpression}>
-                            <SelectTrigger className="w-full text-lg h-auto p-3">
-                                <SelectValue placeholder="Select an expression" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {expressions.map((expression) => (
-                                    <SelectItem key={expression.value} value={expression.value}>
-                                        {expression.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <ExpressionSelector />
                     </div>
                 </div>
 
