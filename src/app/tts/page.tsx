@@ -90,11 +90,11 @@ type PreviewState = {
 
 // Hardcoded for demonstration purposes, replace with actual user data logic
 const userProfile = {
-    plan: 'Free Tier', // or 'Hobbyist', 'Creator'
+    plan: 'Creator', // or 'Hobbyist', 'Creator'
 };
 
 
-const PREVIEW_TEXT = 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።';
+const PREVIEW_TEXT = 'Hello! This is a test of the text-to-speech conversion application.';
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
