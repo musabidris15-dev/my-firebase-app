@@ -20,35 +20,35 @@ const voices = {
         { name: 'Almaz (Achird)', value: 'Achird' },
         { name: 'Rahel (Aoede)', value: 'Aoede' },
         { name: 'Biruktait (Autonoe)', value: 'Autonoe' },
+        { name: 'Debora (Erinome)', value: 'Erinome' },
         { name: 'Tarik (Kore)', value: 'Kore' },
         { name: 'Tadelech (Laomedeia)', value: 'Laomedeia' },
         { name: 'Lia (Leda)', value: 'Leda' },
         { name: 'Zebiba (Pulcherrima)', value: 'Pulcherrima' },
+        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
         { name: 'Tsedal (Schedar)', value: 'Schedar' },
+        { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Kidist (Umbriel)', value: 'Umbriel' },
         { name: 'Mickey-like Female (Vindemiatrix)', value: 'Vindemiatrix' },
     ],
     male: [
-        { name: 'Haile (Algenib)', value: 'Algenib' },
+        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
         { name: 'Belay (Achernar)', value: 'Achernar' },
         { name: 'Gideon (Alnilam)', value: 'Alnilam' },
         { name: 'Caleb (Algieba)', value: 'Algieba' },
+        { name: 'Haile (Algenib)', value: 'Algenib' },
         { name: 'Nardos (Callirrhoe)', value: 'Callirrhoe' },
         { name: 'Getachew (Charon)', value: 'Charon' },
-        { name: 'Debora (Erinome)', value: 'Erinome' },
-        { name: 'Elias (Enceladus)', value: 'Enceladus' },
         { name: 'Yordanos (Despina)', value: 'Despina' },
+        { name: 'Elias (Enceladus)', value: 'Enceladus' },
         { name: 'Bereket (Fenrir)', value: 'Fenrir' },
         { name: 'Mulu (Gacrux)', value: 'Gacrux' },
         { name: 'Fikru (Iapetus)', value: 'Iapetus' },
         { name: 'Dawit (Orus)', value: 'Orus' },
         { name: 'Hewan (Puck)', value: 'Puck' },
         { name: 'Mulugeta (Rasalgethi)', value: 'Rasalgethi' },
-        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
         { name: 'Solomon (Sadaltager)', value: 'Sadaltager' },
-        { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Tesfaye (Zubenelgenubi)', value: 'Zubenelgenubi' },
-        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
     ]
 };
 
@@ -88,7 +88,7 @@ type PreviewState = {
     isLoading: boolean;
 };
 
-const PREVIEW_TEXT = 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።';
+const PREVIEW_TEXT = 'ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መተግበሪያዎ።';
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -450,3 +450,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
