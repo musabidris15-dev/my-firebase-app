@@ -20,35 +20,35 @@ const voices = {
         { name: 'Almaz (Achird)', value: 'Achird' },
         { name: 'Rahel (Aoede)', value: 'Aoede' },
         { name: 'Biruktait (Autonoe)', value: 'Autonoe' },
-        { name: 'Nardos (Callirrhoe)', value: 'Callirrhoe' },
-        { name: 'Yordanos (Despina)', value: 'Despina' },
-        { name: 'Debora (Erinome)', value: 'Erinome' },
         { name: 'Tarik (Kore)', value: 'Kore' },
         { name: 'Tadelech (Laomedeia)', value: 'Laomedeia' },
         { name: 'Lia (Leda)', value: 'Leda' },
-        { name: 'Hewan (Puck)', value: 'Puck' },
         { name: 'Zebiba (Pulcherrima)', value: 'Pulcherrima' },
-        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
         { name: 'Tsedal (Schedar)', value: 'Schedar' },
-        { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Kidist (Umbriel)', value: 'Umbriel' },
         { name: 'Mickey-like Female (Vindemiatrix)', value: 'Vindemiatrix' },
     ],
     male: [
-        { name: 'Caleb (Algieba)', value: 'Algieba' },
         { name: 'Haile (Algenib)', value: 'Algenib' },
         { name: 'Belay (Achernar)', value: 'Achernar' },
         { name: 'Gideon (Alnilam)', value: 'Alnilam' },
+        { name: 'Caleb (Algieba)', value: 'Algieba' },
+        { name: 'Nardos (Callirrhoe)', value: 'Callirrhoe' },
         { name: 'Getachew (Charon)', value: 'Charon' },
+        { name: 'Debora (Erinome)', value: 'Erinome' },
         { name: 'Elias (Enceladus)', value: 'Enceladus' },
+        { name: 'Yordanos (Despina)', value: 'Despina' },
         { name: 'Bereket (Fenrir)', value: 'Fenrir' },
         { name: 'Mulu (Gacrux)', value: 'Gacrux' },
         { name: 'Fikru (Iapetus)', value: 'Iapetus' },
         { name: 'Dawit (Orus)', value: 'Orus' },
+        { name: 'Hewan (Puck)', value: 'Puck' },
         { name: 'Mulugeta (Rasalgethi)', value: 'Rasalgethi' },
+        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
         { name: 'Solomon (Sadaltager)', value: 'Sadaltager' },
-        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
+        { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Tesfaye (Zubenelgenubi)', value: 'Zubenelgenubi' },
+        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
     ]
 };
 
@@ -88,13 +88,7 @@ type PreviewState = {
     isLoading: boolean;
 };
 
-// Hardcoded for demonstration purposes, replace with actual user data logic
-const userProfile = {
-    plan: 'Creator', // or 'Hobbyist', 'Creator'
-};
-
-
-const PREVIEW_TEXT = 'Hello! This is a test of the text-to-speech conversion application.';
+const PREVIEW_TEXT = 'ሰላም! ይህ የጽሑፍ ወደ ንግግር መለወጫ መተግበሪያ ሙከራ ነው።';
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -109,7 +103,6 @@ export default function TTSPage() {
   const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
   const [previewError, setPreviewError] = useState<string | null>(null);
   
-  const isCreator = userProfile.plan === 'Creator';
 
   useEffect(() => {
     previewPlayerRef.current = new Audio();
@@ -174,7 +167,7 @@ export default function TTSPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: isCreator ? selectedExpression : 'Default' }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: selectedExpression }),
       });
 
       const result = await response.json();
@@ -288,12 +281,11 @@ export default function TTSPage() {
   }
   
   const ExpressionSelector = () => {
-      const selector = (
-        <div className={!isCreator ? 'cursor-not-allowed' : ''}>
+      return (
+        <div>
           <Select 
-            value={isCreator ? selectedExpression : 'Default'}
+            value={selectedExpression}
             onValueChange={setSelectedExpression}
-            disabled={!isCreator}
           >
               <SelectTrigger className="w-full text-lg h-auto p-3">
                   <SelectValue placeholder="Select an expression" />
@@ -307,29 +299,6 @@ export default function TTSPage() {
               </SelectContent>
           </Select>
         </div>
-      );
-
-      if (isCreator) {
-        return selector;
-      }
-
-      return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    {selector}
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p className="flex items-center">
-                        <Crown className="w-4 h-4 mr-2 text-yellow-500" />
-                        <span>Custom expressions are a Creator plan feature.</span>
-                    </p>
-                    <Button asChild size="sm" className="w-full mt-2">
-                        <Link href="/profile">Upgrade Now</Link>
-                    </Button>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
       );
   }
 
