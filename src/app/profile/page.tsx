@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart } from 'lucide-react';
+import Link from 'next/link';
 
 const userProfile = {
     name: 'Guest User',
@@ -104,9 +105,11 @@ export default function ProfilePage() {
                                 </CardContent>
                                 <CardFooter className="flex-col items-stretch space-y-2">
                                     <Button className="w-full">Choose Hobbyist</Button>
-                                    <Button variant="outline" className="w-full">
+                                    <Button variant="outline" className="w-full" asChild>
+                                      <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
                                         <ShoppingCart className="mr-2 h-4 w-4" />
                                         Pay with Whop
+                                      </Link>
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -133,9 +136,11 @@ export default function ProfilePage() {
                                 </CardContent>
                                 <CardFooter className="flex-col items-stretch space-y-2">
                                     <Button className="w-full">Choose Creator</Button>
-                                    <Button variant="outline" className="w-full">
+                                    <Button variant="outline" className="w-full" asChild>
+                                      <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
                                         <ShoppingCart className="mr-2 h-4 w-4" />
                                         Pay with Whop
+                                      </Link>
                                     </Button>
                                 </CardFooter>
                             </Card>
