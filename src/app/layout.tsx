@@ -14,7 +14,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic, User, AudioLines, UserCircle, Image as ImageIcon } from 'lucide-react';
+import { Bot, Home, Mic, User, AudioLines, UserCircle, Image as ImageIcon, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
