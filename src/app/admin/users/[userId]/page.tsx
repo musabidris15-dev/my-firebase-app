@@ -70,9 +70,9 @@ const MOCK_USER_DETAILS = {
     // Add more users if needed
 };
 
-export default function UserDetailPage({ params }: { params: { userId: string } }) {
+export default function UserDetailPage({ params: { userId } }: { params: { userId: string } }) {
   const [isReferralsOpen, setIsReferralsOpen] = useState(true);
-  const user = MOCK_USER_DETAILS[params.userId as keyof typeof MOCK_USER_DETAILS];
+  const user = MOCK_USER_DETAILS[userId as keyof typeof MOCK_USER_DETAILS];
 
   if (!user) {
     notFound();
