@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -43,15 +43,24 @@ const { totalCredits } = getPlanDetails(userProfile.planId);
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
 const creditUsagePercentage = (userProfile.creditsUsed / totalCredits) * 100;
 const nextRenewalDate = userProfile.lastCreditRenewalDate ? addDays(userProfile.lastCreditRenewalDate, 30) : null;
-const daysUntilPlanExpires = userProfile.subscriptionEndDate ? differenceInDays(userProfile.subscriptionEndDate, now) : null;
-const shouldShowRenewalMessage = userProfile.subscriptionEndDate && isBefore(userProfile.subscriptionEndDate, addDays(now, 30));
-
 
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
     const [billingCycle, setBillingCycle] = useState(userProfile.subscriptionTier || 'monthly');
     const [creatorGlow, setCreatorGlow] = useState(false);
+    const [daysUntilPlanExpires, setDaysUntilPlanExpires] = useState<number | null>(null);
+
     const plansRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (userProfile.subscriptionEndDate) {
+            const days = differenceInDays(userProfile.subscriptionEndDate, new Date());
+            setDaysUntilPlanExpires(days);
+        }
+    }, []);
+
+    const shouldShowRenewalMessage = userProfile.subscriptionEndDate && daysUntilPlanExpires !== null && isBefore(userProfile.subscriptionEndDate, addDays(new Date(), 30));
+
 
     const getReferralBonus = () => {
         switch (userProfile.planId) {
