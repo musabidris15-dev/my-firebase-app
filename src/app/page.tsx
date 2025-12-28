@@ -23,11 +23,11 @@ export default function HomePage() {
                 </div>
               </div>
               <Image
-                src="https://picsum.photos/seed/ethiopia-hero/600/400"
+                src="https://picsum.photos/seed/ethiopian-landscape/600/400"
                 width={600}
                 height={400}
                 alt="Promotional image for Geez Voice"
-                data-ai-hint="Ethiopian woman"
+                data-ai-hint="Ethiopian landscape"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
               />
             </div>
@@ -83,10 +83,10 @@ export default function HomePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
               <div className="bg-background p-4 rounded-lg shadow-md">
                 <Image
-                  src="https://picsum.photos/seed/ethiopian-coffee/600/400"
+                  src="https://picsum.photos/seed/coffee-ceremony/600/400"
                   width={600}
                   height={400}
-                  data-ai-hint="Ethiopian coffee"
+                  data-ai-hint="coffee ceremony"
                   alt="App Interface 1"
                   className="rounded-md object-cover aspect-video"
                 />
@@ -94,10 +94,10 @@ export default function HomePage() {
               </div>
               <div className="bg-background p-4 rounded-lg shadow-md">
                  <Image
-                  src="https://picsum.photos/seed/ethiopian-art/600/400"
+                  src="https://picsum.photos/seed/lalibela-church/600/400"
                   width={600}
                   height={400}
-                  data-ai-hint="Ethiopian artifact"
+                  data-ai-hint="Lalibela church"
                   alt="App Interface 2"
                   className="rounded-md object-cover aspect-video"
                 />
