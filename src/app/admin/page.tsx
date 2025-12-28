@@ -10,13 +10,22 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Gift } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +39,7 @@ const mockUsers = [
     plan: 'Premium',
     status: 'Active',
     joined: '2023-01-15',
+    credits: 15000,
   },
   {
     id: 'usr_2',
@@ -38,6 +48,7 @@ const mockUsers = [
     plan: 'Free Tier',
     status: 'Active',
     joined: '2023-02-20',
+    credits: 500,
   },
   {
     id: 'usr_3',
@@ -46,6 +57,7 @@ const mockUsers = [
     plan: 'Free Tier',
     status: 'Suspended',
     joined: '2023-03-10',
+    credits: 0,
   },
   {
     id: 'usr_4',
@@ -54,6 +66,7 @@ const mockUsers = [
     plan: 'Premium',
     status: 'Active',
     joined: '2023-04-05',
+    credits: 120000,
   },
    {
     id: 'usr_5',
@@ -62,6 +75,7 @@ const mockUsers = [
     plan: 'Free Tier',
     status: 'Active',
     joined: '2023-05-21',
+    credits: 1000,
   },
 ];
 
@@ -92,7 +106,7 @@ export default function AdminPage() {
                         <TableHead>User</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Plan</TableHead>
-                        <TableHead>Date Joined</TableHead>
+                        <TableHead>Credits</TableHead>
                         <TableHead>
                         <span className="sr-only">Actions</span>
                         </TableHead>
@@ -118,24 +132,59 @@ export default function AdminPage() {
                             </Badge>
                         </TableCell>
                         <TableCell>{user.plan}</TableCell>
-                        <TableCell>{user.joined}</TableCell>
+                        <TableCell>{user.credits.toLocaleString()}</TableCell>
                         <TableCell>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit User</DropdownMenuItem>
-                                <DropdownMenuItem>Suspend User</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
-                                Delete User
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Dialog>
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                                    <DialogTrigger asChild>
+                                        <DropdownMenuItem>Edit User</DropdownMenuItem>
+                                    </DialogTrigger>
+                                    <DropdownMenuItem>Suspend User</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600">
+                                    Delete User
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Edit User: {user.name}</DialogTitle>
+                                        <DialogDescription>
+                                            Modify user details and credit balance.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="name" className="text-right">
+                                                Name
+                                            </Label>
+                                            <Input id="name" defaultValue={user.name} className="col-span-3" />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="email" className="text-right">
+                                                Email
+                                            </Label>
+                                            <Input id="email" type="email" defaultValue={user.email} className="col-span-3" />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="credits" className="text-right">
+                                                Credits
+                                            </Label>
+                                            <Input id="credits" type="number" defaultValue={user.credits} className="col-span-3" />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit">Save Changes</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </TableCell>
                         </TableRow>
                     ))}
@@ -175,3 +224,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
