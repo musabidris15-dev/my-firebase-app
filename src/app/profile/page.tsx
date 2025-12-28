@@ -27,7 +27,7 @@ const userProfile = {
     lastCreditRenewalDate: new Date('2024-11-15T10:00:00Z')
 };
 
-const totalCredits = userProfile.creditsUsed + userProfile.creditsRemaining;
+const totalCredits = userProfile.planId === 'creator' ? 350000 : 100000;
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
 const creditUsagePercentage = (userProfile.creditsUsed / totalCredits) * 100;
 const nextRenewalDate = addDays(userProfile.lastCreditRenewalDate, 30);
@@ -141,14 +141,14 @@ export default function ProfilePage() {
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
                                     <p className="text-xl font-bold text-primary capitalize">{userProfile.planId} ({userProfile.subscriptionTier})</p>
                                 </div>
-                                <Button>Upgrade Plan</Button>
+                                {userProfile.planId !== 'creator' && <Button>Upgrade Plan</Button>}
                             </div>
                             
                             <div>
                                 <div className="flex justify-between items-end mb-2">
                                     <h4 className="font-semibold text-lg">Character Credits</h4>
                                     <p className="text-sm text-muted-foreground">
-                                        <span className="font-bold text-foreground">{userProfile.creditsRemaining.toLocaleString()}</span> remaining
+                                        <span className="font-bold text-foreground">{(totalCredits - userProfile.creditsUsed).toLocaleString()}</span> remaining
                                     </p>
                                 </div>
                                 <Progress value={creditUsagePercentage} className="h-3" />
