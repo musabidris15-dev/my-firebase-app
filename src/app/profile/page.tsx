@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { addDays, format, differenceInDays, isBefore } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const now = new Date();
 
@@ -49,6 +50,7 @@ const shouldShowRenewalMessage = userProfile.subscriptionEndDate && isBefore(use
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
     const [billingCycle, setBillingCycle] = useState(userProfile.subscriptionTier || 'monthly');
+    const [creatorGlow, setCreatorGlow] = useState(false);
     const plansRef = useRef<HTMLDivElement>(null);
 
     const getReferralBonus = () => {
@@ -73,6 +75,8 @@ export default function ProfilePage() {
     
     const handleUpgradeClick = () => {
         plansRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setCreatorGlow(true);
+        setTimeout(() => setCreatorGlow(false), 3000); // Glow for 3 seconds
     };
 
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 15 * 12 * 0.8;
@@ -261,7 +265,7 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <>
-                                                <Button className="w-full" asChild>
+                                                <Button className={cn("w-full", creatorGlow && "animate-pulse")} asChild>
                                                   <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
@@ -280,4 +284,3 @@ export default function ProfilePage() {
     );
 }
     
-
