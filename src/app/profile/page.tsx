@@ -1,24 +1,37 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart } from 'lucide-react';
+import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
 
 const userProfile = {
-    name: 'Guest User',
-    email: 'guest@example.com',
-    plan: 'Free Tier',
+    name: 'Creator',
+    email: 'creator@example.com',
+    plan: 'Creator',
     creditsUsed: 2500,
-    creditsRemaining: 7500,
-    totalCredits: 10000,
+    creditsRemaining: 97500,
+    totalCredits: 100000,
 };
+
+const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
 
 const creditUsagePercentage = (userProfile.creditsUsed / userProfile.totalCredits) * 100;
 
 export default function ProfilePage() {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(referralLink).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+        });
+    };
+
     return (
         <div className="container mx-auto max-w-7xl">
             <header className="mb-10">
@@ -27,7 +40,7 @@ export default function ProfilePage() {
             </header>
 
             <div className="grid gap-8 lg:grid-cols-3">
-                {/* Profile Information */}
+                {/* Left Column */}
                 <div className="lg:col-span-1 space-y-8">
                      <Card>
                         <CardHeader>
@@ -46,9 +59,26 @@ export default function ProfilePage() {
                             </div>
                         </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Referral Program</CardTitle>
+                            <CardDescription>Invite others and earn rewards.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">Share your unique link to invite others to the platform. You'll get bonus credits for every new user who signs up!</p>
+                            <div className="flex space-x-2">
+                                <Input value={referralLink} readOnly />
+                                <Button onClick={handleCopy} variant="outline" size="icon" className="shrink-0">
+                                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                    <span className="sr-only">Copy referral link</span>
+                                </Button>
+                            </div>
+                             {copied && <p className="text-xs text-green-600 font-medium text-center">Copied to clipboard!</p>}
+                        </CardContent>
+                    </Card>
                 </div>
                 
-                {/* Subscription and Credits */}
+                {/* Right Column */}
                 <div className="lg:col-span-2 space-y-8">
                     <Card>
                         <CardHeader>
@@ -137,7 +167,7 @@ export default function ProfilePage() {
                                 <CardFooter className="flex-col items-stretch space-y-2">
                                     <Button className="w-full">Choose Creator</Button>
                                     <Button variant="outline" className="w-full" asChild>
-                                      <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
+                                      <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target  ="_blank" rel="noopener noreferrer">
                                         <ShoppingCart className="mr-2 h-4 w-4" />
                                         Pay with Whop
                                       </Link>
