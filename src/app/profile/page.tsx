@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock } from 'lucide-react';
+import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -199,8 +199,6 @@ export default function ProfilePage() {
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />100,000 Characters/mo</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 130 mins of audio</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Standard Voices</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Basic Voice Effects</li>
-                                        <li className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-blue-500" />Image Generation (1k chars/img)</li>
                                     </ul>
                                 </CardContent>
                                 <CardFooter className="flex-col items-stretch space-y-2">
@@ -235,8 +233,6 @@ export default function ProfilePage() {
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />350,000 Characters/mo</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 460 mins of audio</li>
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Premium & Custom Voices</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Advanced Voice Effects</li>
-                                        <li className="flex items-center"><ImageIcon className="mr-2 h-4 w-4 text-blue-500" />Image Generation (1k chars/img)</li>
                                         <li className="flex items-center"><Zap className="mr-2 h-4 w-4 text-yellow-500" />Priority Support</li>
                                     </ul>
                                 </CardContent>
