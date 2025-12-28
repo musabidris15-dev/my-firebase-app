@@ -6,34 +6,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check, Gift } from 'lucide-react';
+import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { addDays, format, differenceInDays, isBefore } from 'date-fns';
+
+const now = new Date();
 
 const userProfile = {
     name: 'Creator',
     email: 'creator@example.com',
-    plan: 'Creator',
+    planId: 'creator',
+    subscriptionTier: 'yearly',
+    subscriptionStartDate: new Date('2023-12-15T10:00:00Z'),
+    subscriptionEndDate: new Date('2024-12-15T10:00:00Z'),
     creditsUsed: 2500,
     creditsRemaining: 347500,
-    totalCredits: 350000,
+    lastCreditRenewalDate: new Date('2024-11-15T10:00:00Z')
 };
 
+const totalCredits = userProfile.creditsUsed + userProfile.creditsRemaining;
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
+const creditUsagePercentage = (userProfile.creditsUsed / totalCredits) * 100;
+const nextRenewalDate = addDays(userProfile.lastCreditRenewalDate, 30);
+const daysUntilPlanExpires = differenceInDays(userProfile.subscriptionEndDate, now);
+const shouldShowRenewalMessage = isBefore(userProfile.subscriptionEndDate, addDays(now, 30));
 
-const creditUsagePercentage = (userProfile.creditsUsed / userProfile.totalCredits) * 100;
 
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
-    const [billingCycle, setBillingCycle] = useState('monthly');
+    const [billingCycle, setBillingCycle] = useState(userProfile.subscriptionTier || 'monthly');
 
     const getReferralBonus = () => {
-        switch (userProfile.plan) {
-            case 'Creator':
+        switch (userProfile.planId) {
+            case 'creator':
                 return '15%';
-            case 'Hobbyist':
+            case 'hobbyist':
                 return '5%';
             default:
                 return null;
@@ -90,7 +100,7 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                              {referralBonus ? (
                                 <p className="text-sm text-muted-foreground">
-                                    As a <span className="font-semibold text-primary">{userProfile.plan}</span> member, you'll earn a <span className="font-semibold">{referralBonus}</span> credit bonus for every new paid subscriber who signs up using your link.
+                                    As a <span className="font-semibold text-primary capitalize">{userProfile.planId}</span> member, you'll earn a <span className="font-semibold">{referralBonus}</span> credit bonus for every new paid subscriber who signs up using your link.
                                 </p>
                             ) : (
                                 <p className="text-sm text-muted-foreground">
@@ -117,10 +127,19 @@ export default function ProfilePage() {
                             <CardDescription>Your current plan and usage details.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                             {shouldShowRenewalMessage && (
+                                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-4">
+                                    <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                                    <div>
+                                        <h4 className="font-semibold text-yellow-800 dark:text-yellow-300">Your Plan is Expiring Soon</h4>
+                                        <p className="text-sm text-yellow-700 dark:text-yellow-400">Your yearly subscription expires in {daysUntilPlanExpires} days. Please renew to continue enjoying your benefits.</p>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
-                                    <p className="text-xl font-bold text-primary">{userProfile.plan}</p>
+                                    <p className="text-xl font-bold text-primary capitalize">{userProfile.planId} ({userProfile.subscriptionTier})</p>
                                 </div>
                                 <Button>Upgrade Plan</Button>
                             </div>
@@ -133,9 +152,15 @@ export default function ProfilePage() {
                                     </p>
                                 </div>
                                 <Progress value={creditUsagePercentage} className="h-3" />
-                                <p className="text-xs text-muted-foreground mt-2 text-right">
-                                    {userProfile.creditsUsed.toLocaleString()} of {userProfile.totalCredits.toLocaleString()} characters used
-                                </p>
+                                <div className="flex justify-between items-start text-xs text-muted-foreground mt-2">
+                                     <div className="flex items-center gap-1.5">
+                                        <CalendarClock className="h-3 w-3" />
+                                        <span>Credits renew on {format(nextRenewalDate, 'MMM d, yyyy')}</span>
+                                    </div>
+                                    <span>
+                                        {userProfile.creditsUsed.toLocaleString()} of {totalCredits.toLocaleString()} characters used
+                                    </span>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -226,4 +251,4 @@ export default function ProfilePage() {
         </div>
     );
 }
-
+    

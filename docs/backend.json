@@ -15,6 +15,39 @@
           "description": "Email address of the user.",
           "format": "email"
         },
+        "planId": {
+          "type": "string",
+          "description": "The user's current subscription plan.",
+          "enum": ["free", "hobbyist", "creator"]
+        },
+        "subscriptionTier": {
+            "type": "string",
+            "description": "The billing cycle for the subscription.",
+            "enum": ["monthly", "yearly"]
+        },
+        "subscriptionStartDate": {
+            "type": "string",
+            "description": "The start date of the current subscription period.",
+            "format": "date-time"
+        },
+        "subscriptionEndDate": {
+            "type": "string",
+            "description": "The end date of the current subscription period.",
+            "format": "date-time"
+        },
+        "creditsUsed": {
+            "type": "number",
+            "description": "The number of characters used in the current billing cycle."
+        },
+        "creditsRemaining": {
+            "type": "number",
+            "description": "The number of characters remaining in the current billing cycle."
+        },
+        "lastCreditRenewalDate": {
+            "type": "string",
+            "description": "The last date the user's credits were renewed.",
+            "format": "date-time"
+        },
         "referralCode": {
           "type": "string",
           "description": "The unique referral code assigned to the user."
@@ -32,6 +65,7 @@
       "required": [
         "id",
         "email",
+        "planId",
         "referralCode",
         "creationDate"
       ]
@@ -176,6 +210,7 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars and, indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars, and indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections."
   }
 }
+    
