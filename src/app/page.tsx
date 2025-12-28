@@ -23,7 +23,7 @@ export default function HomePage() {
                 </div>
               </div>
               <Image
-                src="https://storage.googleapis.com/aifire.appspot.com/user-uploads/L3VzZXIvYjY4YWI5NzUtYzQ4Ni00MmE3LWI4YTItN2YyNjY5NGE1ZTA3L2Nhat8wZTc2OTFmZS03MTAwLTQ2NDEtYWZmZC1hZDNjYjM5MGRjMjk.png"
+                src="https://picsum.photos/seed/hero/600/400"
                 width={600}
                 height={400}
                 alt="Promotional image for Geez Voice"
@@ -94,7 +94,7 @@ export default function HomePage() {
               </div>
               <div className="bg-background p-4 rounded-lg shadow-md">
                  <Image
-                  src="https://storage.googleapis.com/aifire.appspot.com/user-uploads/L3VzZXIvYjY4YWI5NzUtYzQ4Ni00MmE3LWI4YTItN2YyNjY5NGE1ZTA3L2Nhat9hMDM2NjQ5OC0zNTZkLTRhMmEtYmQ2Yi1jNWEzY2I5NzNiNmQ.jpeg"
+                  src="https://picsum.photos/seed/gadgets/600/400"
                   width={600}
                   height={400}
                   data-ai-hint="electronic gadgets"
