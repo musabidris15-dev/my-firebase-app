@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the AvatarTalk application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "referralCode": {
+          "type": "string",
+          "description": "The unique referral code assigned to the user."
+        },
+        "referredBy": {
+          "type": "string",
+          "description": "Reference to the User that referred this user. (Relationship: User 1:N User)"
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "referralCode",
+        "creationDate"
+      ]
+    },
+    "Avatar": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Avatar",
+      "type": "object",
+      "description": "Represents a user's avatar in the AvatarTalk application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Avatar entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User that owns this avatar. (Relationship: User 1:N Avatar)"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL of the photo used for the avatar.",
+          "format": "uri"
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time when the avatar was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "photoUrl",
+        "creationDate"
+      ]
+    },
+    "GeneratedVideo": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GeneratedVideo",
+      "type": "object",
+      "description": "Represents a generated video using the AvatarTalk application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the GeneratedVideo entity."
+        },
+        "avatarId": {
+          "type": "string",
+          "description": "Reference to the Avatar used to generate this video. (Relationship: Avatar 1:N GeneratedVideo)"
+        },
+        "audioUrl": {
+          "type": "string",
+          "description": "URL of the audio used to generate the video.",
+          "format": "uri"
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "URL of the generated video.",
+          "format": "uri"
+        },
+        "generationDate": {
+          "type": "string",
+          "description": "The date and time when the video was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "avatarId",
+        "audioUrl",
+        "videoUrl",
+        "generationDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Access is controlled by the user's ID. Includes 'referralCode' and 'referredBy' for the referral program.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/avatars/{avatarId}",
+        "definition": {
+          "entityName": "Avatar",
+          "schema": {
+            "$ref": "#/backend/entities/Avatar"
+          },
+          "description": "Stores avatars owned by a specific user. Access is restricted to the owning user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "avatarId",
+              "description": "The unique ID of the avatar."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}",
+        "definition": {
+          "entityName": "GeneratedVideo",
+          "schema": {
+            "$ref": "#/backend/entities/GeneratedVideo"
+          },
+          "description": "Stores generated videos associated with a specific avatar. Access is restricted to the user who owns the avatar.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "avatarId",
+              "description": "The unique ID of the avatar."
+            },
+            {
+              "name": "generatedVideoId",
+              "description": "The unique ID of the generated video."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars and, indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections."
+  }
+}

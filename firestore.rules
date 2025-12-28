@@ -1,0 +1,144 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All data, including user profiles,
+ * avatars, and generated videos, is considered private and is only accessible by the authenticated user who owns it.
+ * There is no public or shared data.
+ *
+ * Data Structure: The data is organized hierarchically. All user-generated content is nested under the
+ * /users/{userId} path. Avatars are in a subcollection at /users/{userId}/avatars/{avatarId}, and generated
+ * videos are further nested at /users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}. This
+ * structure makes ownership-based security rules simple and performant.
+ *
+ * Key Security Decisions:
+ * - User Enumeration is explicitly prevented by disallowing `list` operations on the top-level `/users` collection.
+ * - All subcollections (`avatars`, `generatedVideos`) can only be read, listed, or written to by the user
+ *   specified in the path's `{userId}` wildcard.
+ * - The default security posture is deny-all. Access is only granted through specific `allow` rules.
+ *
+ * Denormalization for Authorization: The hierarchical data structure naturally provides all necessary
+ * authorization context in the document path (e.g., `/users/{userId}`). This avoids the need for costly `get()`
+ * calls to other documents to verify ownership, resulting in faster and more scalable security rules.
+ *
+ * Structural Segregation: This pattern is not applicable as the application does not have a concept of
+ * public vs. private data within the same collection. All data is inherently private to its owner.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for improved readability and reusability.
+
+    /**
+     * Checks if the request is from an authenticated user.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document. Used for update and delete operations
+     * to prevent modifying or deleting documents that don't exist.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // Prototyping Validation: Functions to enforce relational integrity without
+    // enforcing a strict data schema.
+
+    /**
+     * Validates that the user document being created has its internal 'id'
+     * field correctly set to match the document's path ID.
+     */
+    function hasValidUserCreateData(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates that the avatar document being created has its internal 'userId'
+     * field correctly set to match the user from the path.
+     */
+    function hasValidAvatarCreateData(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * Ensures the 'userId' field on an avatar is immutable during an update.
+     */
+    function hasValidAvatarUpdateData() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * Validates that the video document being created has its internal 'avatarId'
+     * field correctly set to match the avatar from the path.
+     */
+    function hasValidVideoCreateData(avatarId) {
+      return request.resource.data.avatarId == avatarId;
+    }
+
+    /**
+     * Ensures the 'avatarId' field on a video is immutable during an update.
+     */
+    function hasValidVideoUpdateData() {
+      return request.resource.data.avatarId == resource.data.avatarId;
+    }
+
+    /**
+     * @description Controls access to a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own user document: auth.uid == 'user123', path == '/users/user123'.
+     * @allow (get) An authenticated user reading their own profile: auth.uid == 'user123', path == '/users/user123'.
+     * @deny (list) Any user attempting to list all user documents to prevent user enumeration.
+     * @deny (update) A user trying to update another user's profile: auth.uid == 'user456', path == '/users/user123'.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserCreateData(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Controls access to avatars, which are owned by a specific user.
+       * @path /users/{userId}/avatars/{avatarId}
+       * @allow (create) An authenticated user creating an avatar for themselves: auth.uid == 'user123', path == '/users/user123/avatars/avatarABC'.
+       * @allow (list) An authenticated user listing their own avatars: auth.uid == 'user123', path == '/users/user123/avatars'.
+       * @deny (get) A user trying to get another user's avatar: auth.uid == 'user456', path == '/users/user123/avatars/avatarABC'.
+       * @deny (create) A user trying to create an avatar for another user: auth.uid == 'user456', path == '/users/user123/avatars/avatarXYZ'.
+       * @principle Enforces document ownership for all operations within a user's private subcollection.
+       */
+      match /avatars/{avatarId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasValidAvatarCreateData(userId);
+        allow update: if isExistingOwner(userId) && hasValidAvatarUpdateData();
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Controls access to generated videos, which belong to a specific avatar owned by a user.
+         * @path /users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}
+         * @allow (create) An authenticated user creating a video for an avatar they own: auth.uid == 'user123', path == '/users/user123/avatars/avatarABC/generatedVideos/videoXYZ'.
+         * @allow (list) An authenticated user listing videos for an avatar they own: auth.uid == 'user123', path == '/users/user123/avatars/avatarABC/generatedVideos'.
+         * @deny (get) A user trying to access a video belonging to another user's avatar: auth.uid == 'user456', path == '/users/user123/avatars/avatarABC/generatedVideos/videoXYZ'.
+         * @principle Enforces transitive ownership; access to a nested document is granted based on ownership of the parent document.
+         */
+        match /generatedVideos/{generatedVideoId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && hasValidVideoCreateData(avatarId);
+          allow update: if isExistingOwner(userId) && hasValidVideoUpdateData();
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+    }
+  }
+}
