@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 const userProfile = {
     name: 'Creator',
@@ -24,6 +27,7 @@ const creditUsagePercentage = (userProfile.creditsUsed / userProfile.totalCredit
 
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
+    const [billingCycle, setBillingCycle] = useState('monthly');
 
     const getReferralBonus = () => {
         switch (userProfile.plan) {
@@ -44,6 +48,9 @@ export default function ProfilePage() {
             setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
         });
     };
+    
+    const hobbyistPrice = billingCycle === 'monthly' ? 15 : 15 * 12 * 0.8;
+    const creatorPrice = billingCycle === 'monthly' ? 39 : 39 * 12 * 0.8;
 
     return (
         <div className="container mx-auto max-w-7xl">
@@ -136,8 +143,22 @@ export default function ProfilePage() {
                     {/* Pricing Plans */}
                     <Card>
                          <CardHeader>
-                            <CardTitle>Explore Plans</CardTitle>
-                            <CardDescription>Choose a plan that fits your creative needs.</CardDescription>
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div>
+                                    <CardTitle>Explore Plans</CardTitle>
+                                    <CardDescription>Choose a plan that fits your creative needs.</CardDescription>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Label htmlFor="billing-cycle" className={billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}>Monthly</Label>
+                                    <Switch
+                                        id="billing-cycle"
+                                        checked={billingCycle === 'yearly'}
+                                        onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+                                    />
+                                    <Label htmlFor="billing-cycle" className={billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}>Yearly</Label>
+                                    <div className="text-xs font-bold uppercase text-green-600 bg-green-500/10 px-2 py-1 rounded-full">20% Off</div>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
                             <Card className="flex flex-col">
@@ -147,7 +168,7 @@ export default function ProfilePage() {
                                 </CardHeader>
                                 <CardContent className="flex-grow space-y-4">
                                     <div className="text-4xl font-bold">
-                                        $11<span className="text-sm font-normal text-muted-foreground">/month</span>
+                                        ${hobbyistPrice.toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                                     </div>
                                     <ul className="space-y-2 text-sm">
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />100,000 Characters/mo</li>
@@ -177,7 +198,7 @@ export default function ProfilePage() {
                                 </CardHeader>
                                <CardContent className="flex-grow space-y-4">
                                     <div className="text-4xl font-bold">
-                                        $30<span className="text-sm font-normal text-muted-foreground">/month</span>
+                                        ${creatorPrice.toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                                     </div>
                                     <ul className="space-y-2 text-sm">
                                         <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />350,000 Characters/mo</li>
@@ -205,3 +226,4 @@ export default function ProfilePage() {
         </div>
     );
 }
+
