@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -50,7 +51,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useState, useMemo } from 'react';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const MOCK_USER_DETAILS = {
@@ -136,6 +137,40 @@ const MOCK_USER_DETAILS = {
         ]
     }
   },
+    usr_4: {
+    id: 'usr_4',
+    name: 'Kenenisa Bekele',
+    email: 'kenenisa.bekele@example.com',
+    plan: 'Creator',
+    tier: 'Monthly',
+    status: 'Active',
+    role: 'User',
+    signupDate: '2023-04-05',
+    lastLoginDate: '2023-07-29',
+    loginProvider: 'Email',
+    lastKnownIp: '192.168.1.104',
+    credits: 350000,
+    totalCredits: 350000,
+    nextBillingDate: '2023-08-05',
+    lifetimeValue: 234,
+    churnStatus: 'None',
+    creditHistory: [
+      { date: '2023-07-05', description: 'Monthly Renewal', amount: 350000, type: 'gained' },
+    ],
+    referredUsers: [],
+    ttsUsage: {
+        lifetimeCharacters: 25000,
+        lastGenerated: '2023-07-29 01:00 PM',
+        voiceTierUsage: {
+            standard: 10,
+            premium: 90,
+        },
+        totalFilesGenerated: 5,
+        generationHistory: [
+             { timestamp: '2023-07-29 01:00 PM', charCount: 5000, voice: 'Algenib (Premium)', status: 'Success' },
+        ]
+    }
+  },
 };
 
 const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}) => {
@@ -164,7 +199,8 @@ const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}
 
 
 export default function UserDetailPage({ params }: { params: { userId: string } }) {
-  const { userId } = useParams();
+  const router = useRouter();
+  const { userId } = params;
   const [isReferralsOpen, setIsReferralsOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const user = useMemo(() => MOCK_USER_DETAILS[userId as keyof typeof MOCK_USER_DETAILS], [userId]);
@@ -361,13 +397,15 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                                     </TableHeader>
                                     <TableBody>
                                         {user.referredUsers.map((refUser) => (
-                                            <Link key={refUser.id} href={`/admin/users/${refUser.id}`} passHref>
-                                                <TableRow className="cursor-pointer">
-                                                    <TableCell className="font-medium">{refUser.name}</TableCell>
-                                                    <TableCell>{refUser.joined}</TableCell>
-                                                    <TableCell>{refUser.plan}</TableCell>
-                                                </TableRow>
-                                            </Link>
+                                            <TableRow 
+                                                key={refUser.id} 
+                                                className="cursor-pointer"
+                                                onClick={() => router.push(`/admin/users/${refUser.id}`)}
+                                            >
+                                                <TableCell className="font-medium">{refUser.name}</TableCell>
+                                                <TableCell>{refUser.joined}</TableCell>
+                                                <TableCell>{refUser.plan}</TableCell>
+                                            </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -383,3 +421,5 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     </div>
   );
 }
+    
+    
