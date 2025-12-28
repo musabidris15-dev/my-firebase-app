@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare, Search } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -124,6 +124,19 @@ export default function AdminPage() {
     setEditingUser(null);
   }
 
+  const handleDownloadUsers = () => {
+    const jsonString = JSON.stringify(users, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `users-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="container mx-auto max-w-7xl">
       <header className="mb-10">
@@ -150,6 +163,10 @@ export default function AdminPage() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
+                             <Button size="sm" variant="outline" onClick={handleDownloadUsers} className="whitespace-nowrap">
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                            </Button>
                             <Button size="sm" className="whitespace-nowrap">
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 Add User
