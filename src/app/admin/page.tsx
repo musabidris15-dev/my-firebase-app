@@ -34,7 +34,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 
-const mockUsers = [
+type User = {
+    id: string;
+    name: string;
+    email: string;
+    plan: string;
+    tier: string | null;
+    status: string;
+    joined: string;
+    credits: number;
+};
+
+const initialUsers: User[] = [
   {
     id: 'usr_1',
     name: 'Abebe Bikila',
@@ -89,20 +100,29 @@ const mockUsers = [
 
 export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredUsers, setFilteredUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>(initialUsers);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   useEffect(() => {
     const lowercasedTerm = searchTerm.toLowerCase();
     if (lowercasedTerm === '') {
-        setFilteredUsers(mockUsers);
+        setFilteredUsers(users);
     } else {
-        const results = mockUsers.filter(user =>
+        const results = users.filter(user =>
             user.name.toLowerCase().includes(lowercasedTerm) ||
             user.email.toLowerCase().includes(lowercasedTerm)
         );
         setFilteredUsers(results);
     }
-  }, [searchTerm]);
+  }, [searchTerm, users]);
+
+  const handleSaveChanges = () => {
+    if (!editingUser) return;
+
+    setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+    setEditingUser(null);
+  }
 
   return (
     <div className="container mx-auto max-w-7xl">
@@ -175,7 +195,7 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell>{user.credits.toLocaleString()}</TableCell>
                         <TableCell>
-                            <Dialog>
+                            <Dialog open={editingUser?.id === user.id} onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}>
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="h-8 w-8 p-0">
@@ -188,7 +208,7 @@ export default function AdminPage() {
                                         <Link href={`/admin/users/${user.id}`}>View Details</Link>
                                     </DropdownMenuItem>
                                     <DialogTrigger asChild>
-                                        <DropdownMenuItem>Edit User</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setEditingUser(user)}>Edit User</DropdownMenuItem>
                                     </DialogTrigger>
                                     <DropdownMenuItem>Suspend User</DropdownMenuItem>
                                     <DropdownMenuItem className="text-red-600">
@@ -196,37 +216,60 @@ export default function AdminPage() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                                 </DropdownMenu>
+                                {editingUser && (
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Edit User: {user.name}</DialogTitle>
+                                        <DialogTitle>Edit User: {editingUser.name}</DialogTitle>
                                         <DialogDescription>
-                                            Modify user details and credit balance.
+                                            Modify user details, plan, and credit balance.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-4">
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="name" className="text-right">
-                                                Name
-                                            </Label>
-                                            <Input id="name" defaultValue={user.name} className="col-span-3" />
+                                            <Label htmlFor="name" className="text-right">Name</Label>
+                                            <Input id="name" value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="col-span-3" />
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="email" className="text-right">
-                                                Email
-                                            </Label>
-                                            <Input id="email" type="email" defaultValue={user.email} className="col-span-3" />
+                                            <Label htmlFor="email" className="text-right">Email</Label>
+                                            <Input id="email" type="email" value={editingUser.email} onChange={(e) => setEditingUser({...editingUser, email: e.target.value})} className="col-span-3" />
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="credits" className="text-right">
-                                                Credits
-                                            </Label>
-                                            <Input id="credits" type="number" defaultValue={user.credits} className="col-span-3" />
+                                            <Label htmlFor="plan" className="text-right">Plan</Label>
+                                            <Select value={editingUser.plan} onValueChange={(value) => setEditingUser({...editingUser, plan: value, tier: value === 'Free Tier' ? null : editingUser.tier || 'Monthly'})}>
+                                                <SelectTrigger className="col-span-3">
+                                                    <SelectValue placeholder="Select a plan" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Free Tier">Free Tier</SelectItem>
+                                                    <SelectItem value="Hobbyist">Hobbyist</SelectItem>
+                                                    <SelectItem value="Creator">Creator</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {editingUser.plan !== 'Free Tier' && (
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="tier" className="text-right">Tier</Label>
+                                                <Select value={editingUser.tier || 'Monthly'} onValueChange={(value) => setEditingUser({...editingUser, tier: value})}>
+                                                    <SelectTrigger className="col-span-3">
+                                                        <SelectValue placeholder="Select a tier" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Monthly">Monthly</SelectItem>
+                                                        <SelectItem value="Yearly">Yearly</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="credits" className="text-right">Credits</Label>
+                                            <Input id="credits" type="number" value={editingUser.credits} onChange={(e) => setEditingUser({...editingUser, credits: Number(e.target.value)})} className="col-span-3" />
                                         </div>
                                     </div>
                                     <DialogFooter>
-                                        <Button type="submit">Save Changes</Button>
+                                        <Button onClick={handleSaveChanges}>Save Changes</Button>
                                     </DialogFooter>
                                 </DialogContent>
+                                )}
                             </Dialog>
                         </TableCell>
                         </TableRow>
