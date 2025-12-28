@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const mockUsers = [
   {
@@ -208,7 +209,7 @@ export default function AdminPage() {
                         <MessageSquare className="h-5 w-5 text-primary" />
                         Send Notification
                     </CardTitle>
-                    <CardDescription>Broadcast a message to all users.</CardDescription>
+                    <CardDescription>Send a message to a specific group of users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -219,11 +220,25 @@ export default function AdminPage() {
                         <Label htmlFor="notification-message">Message</Label>
                         <Textarea id="notification-message" placeholder="Describe the announcement or update..." rows={4} />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="notification-recipient">Recipient Group</Label>
+                         <Select defaultValue="all">
+                            <SelectTrigger id="notification-recipient">
+                                <SelectValue placeholder="Select a recipient group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Users</SelectItem>
+                                <SelectItem value="free">Free Tier Users</SelectItem>
+                                <SelectItem value="hobbyist">Hobbyist Users</SelectItem>
+                                <SelectItem value="creator">Creator Users</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardContent>
                 <CardFooter>
                     <Button className="w-full">
                         <Send className="mr-2 h-4 w-4" />
-                        Send to All Users
+                        Send Notification
                     </Button>
                 </CardFooter>
             </Card>
