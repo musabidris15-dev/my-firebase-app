@@ -14,7 +14,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic, User, UserCircle, Bell, ShoppingCart } from 'lucide-react';
+import { Bot, Home, Mic, User, UserCircle, Bell, ShoppingCart, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -142,6 +142,12 @@ export default function RootLayout({
                         <UserCircle className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/admin" className='cursor-pointer'>
+                            <Shield className="mr-2 h-4 w-4" />
+                            <span>Admin</span>
+                        </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Billing</DropdownMenuItem>
                     <DropdownMenuItem>Settings</DropdownMenuItem>
