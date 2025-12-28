@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -10,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +88,22 @@ const mockUsers = [
 ];
 
 export default function AdminPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState(mockUsers);
+
+  useEffect(() => {
+    const lowercasedTerm = searchTerm.toLowerCase();
+    if (lowercasedTerm === '') {
+        setFilteredUsers(mockUsers);
+    } else {
+        const results = mockUsers.filter(user =>
+            user.name.toLowerCase().includes(lowercasedTerm) ||
+            user.email.toLowerCase().includes(lowercasedTerm)
+        );
+        setFilteredUsers(results);
+    }
+  }, [searchTerm]);
+
   return (
     <div className="container mx-auto max-w-7xl">
       <header className="mb-10">
@@ -99,12 +116,26 @@ export default function AdminPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Users</CardTitle>
-                <Button size="sm">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Add User
-                </Button>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <CardTitle>Users</CardTitle>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-auto">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    type="search"
+                                    placeholder="Search by name or email..."
+                                    className="pl-8 sm:w-[250px] lg:w-[300px]"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <Button size="sm" className="whitespace-nowrap">
+                                <UserPlus className="mr-2 h-4 w-4" />
+                                Add User
+                            </Button>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                 <Table>
@@ -120,7 +151,7 @@ export default function AdminPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {mockUsers.map((user) => (
+                    {filteredUsers.length > 0 ? filteredUsers.map((user) => (
                         <TableRow key={user.id}>
                         <TableCell>
                             <div className="font-medium">{user.name}</div>
@@ -199,7 +230,13 @@ export default function AdminPage() {
                             </Dialog>
                         </TableCell>
                         </TableRow>
-                    ))}
+                    )) : (
+                        <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                                No users found.
+                            </TableCell>
+                        </TableRow>
+                    )}
                     </TableBody>
                 </Table>
                 </CardContent>
