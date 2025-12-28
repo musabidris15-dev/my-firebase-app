@@ -76,6 +76,7 @@ export default function RootLayout({
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  {/*
                   <SidebarMenuItem>
                      <SidebarMenuButton asChild tooltip="Voice Changer">
                       <Link href="/voice-changer">
@@ -92,6 +93,7 @@ export default function RootLayout({
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  */}
                 </SidebarMenu>
               </SidebarContent>
               <SidebarFooter>
