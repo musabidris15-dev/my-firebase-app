@@ -361,11 +361,13 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
                                     </TableHeader>
                                     <TableBody>
                                         {user.referredUsers.map((refUser) => (
-                                            <TableRow key={refUser.id}>
-                                                <TableCell className="font-medium">{refUser.name}</TableCell>
-                                                <TableCell>{refUser.joined}</TableCell>
-                                                <TableCell>{refUser.plan}</TableCell>
-                                            </TableRow>
+                                            <Link key={refUser.id} href={`/admin/users/${refUser.id}`} passHref>
+                                                <TableRow className="cursor-pointer">
+                                                    <TableCell className="font-medium">{refUser.name}</TableCell>
+                                                    <TableCell>{refUser.joined}</TableCell>
+                                                    <TableCell>{refUser.plan}</TableCell>
+                                                </TableRow>
+                                            </Link>
                                         ))}
                                     </TableBody>
                                 </Table>
