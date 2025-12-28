@@ -16,15 +16,15 @@ import { addDays, format, differenceInDays, isBefore } from 'date-fns';
 const now = new Date();
 
 const userProfile = {
-    name: 'Free User',
-    email: 'free.user@example.com',
-    planId: 'free',
-    subscriptionTier: null,
-    subscriptionStartDate: null,
-    subscriptionEndDate: null,
-    creditsUsed: 500,
-    creditsRemaining: 500,
-    lastCreditRenewalDate: null
+    name: 'Hobbyist User',
+    email: 'hobbyist.user@example.com',
+    planId: 'hobbyist',
+    subscriptionTier: 'monthly',
+    subscriptionStartDate: new Date(now.getFullYear(), now.getMonth(), 15),
+    subscriptionEndDate: addDays(new Date(now.getFullYear(), now.getMonth(), 15), 30),
+    creditsUsed: 25000,
+    creditsRemaining: 75000,
+    lastCreditRenewalDate: new Date(now.getFullYear(), now.getMonth(), 15)
 };
 
 const getPlanDetails = (planId: string) => {
@@ -207,7 +207,7 @@ export default function ProfilePage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="grid md:grid-cols-2 gap-6">
-                                <Card className={`flex flex-col ${userProfile.planId === 'hobbyist' ? 'border-muted' : ''}`}>
+                                <Card className={`flex flex-col ${userProfile.planId === 'hobbyist' ? 'border-primary' : ''}`}>
                                     <CardHeader>
                                         <CardTitle>Hobbyist</CardTitle>
                                         <CardDescription>Perfect for personal projects and getting started.</CardDescription>
@@ -227,12 +227,11 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <>
-                                                <Button className="w-full">Choose Hobbyist</Button>
-                                                <Button variant="outline" className="w-full" asChild>
-                                                  <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
-                                                    <ShoppingCart className="mr-2 h-4 w-4" />
-                                                    Pay with Whop
-                                                  </Link>
+                                                <Button className="w-full" asChild>
+                                                    <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
+                                                        <ShoppingCart className="mr-2 h-4 w-4" />
+                                                        Pay with Whop
+                                                    </Link>
                                                 </Button>
                                             </>
                                         )}
@@ -262,11 +261,10 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <>
-                                                <Button className="w-full">{userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Choose Creator'}</Button>
-                                                <Button variant="outline" className="w-full" asChild>
+                                                <Button className="w-full" asChild>
                                                   <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
-                                                    Pay with Whop
+                                                    {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
                                                   </Link>
                                                 </Button>
                                             </>
@@ -282,3 +280,4 @@ export default function ProfilePage() {
     );
 }
     
+
