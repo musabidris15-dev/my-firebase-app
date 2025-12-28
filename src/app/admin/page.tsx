@@ -36,25 +36,28 @@ const mockUsers = [
     id: 'usr_1',
     name: 'Abebe Bikila',
     email: 'abebe.bikila@example.com',
-    plan: 'Premium',
+    plan: 'Creator',
+    tier: 'Yearly',
     status: 'Active',
     joined: '2023-01-15',
-    credits: 15000,
+    credits: 120000,
   },
   {
     id: 'usr_2',
     name: 'Tirunesh Dibaba',
     email: 'tirunesh.dibaba@example.com',
-    plan: 'Free Tier',
+    plan: 'Hobbyist',
+    tier: 'Monthly',
     status: 'Active',
     joined: '2023-02-20',
-    credits: 500,
+    credits: 15000,
   },
   {
     id: 'usr_3',
     name: 'Haile Gebrselassie',
     email: 'haile.g@example.com',
     plan: 'Free Tier',
+    tier: null,
     status: 'Suspended',
     joined: '2023-03-10',
     credits: 0,
@@ -63,16 +66,18 @@ const mockUsers = [
     id: 'usr_4',
     name: 'Kenenisa Bekele',
     email: 'kenenisa.bekele@example.com',
-    plan: 'Premium',
+    plan: 'Creator',
+    tier: 'Monthly',
     status: 'Active',
     joined: '2023-04-05',
-    credits: 120000,
+    credits: 350000,
   },
    {
     id: 'usr_5',
     name: 'Meseret Defar',
     email: 'meseret.defar@example.com',
     plan: 'Free Tier',
+    tier: null,
     status: 'Active',
     joined: '2023-05-21',
     credits: 1000,
@@ -131,7 +136,10 @@ export default function AdminPage() {
                             {user.status}
                             </Badge>
                         </TableCell>
-                        <TableCell>{user.plan}</TableCell>
+                        <TableCell>
+                            {user.plan}
+                            {user.tier && <span className="text-muted-foreground"> ({user.tier})</span>}
+                        </TableCell>
                         <TableCell>{user.credits.toLocaleString()}</TableCell>
                         <TableCell>
                             <Dialog>
@@ -224,5 +232,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
