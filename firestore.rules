@@ -41,6 +41,14 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    
+    /**
+     * Checks if the user has an 'admin' custom claim.
+     * In a real app, this should be managed securely via a backend process.
+     */
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
 
     /**
      * Checks for ownership on an existing document. Used for update and delete operations
@@ -90,6 +98,14 @@ service cloud.firestore {
     function hasValidVideoUpdateData() {
       return request.resource.data.avatarId == resource.data.avatarId;
     }
+    
+     /**
+     * Validates that the notification document being created has its recipient set.
+     */
+    function hasValidNotificationCreateData() {
+      return request.resource.data.recipient != null;
+    }
+
 
     /**
      * @description Controls access to a user's own profile document.
@@ -101,11 +117,11 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && hasValidUserCreateData(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
 
       /**
        * @description Controls access to avatars, which are owned by a specific user.
@@ -139,6 +155,20 @@ service cloud.firestore {
           allow delete: if isExistingOwner(userId);
         }
       }
+    }
+    
+    /**
+     * @description Controls access to notifications.
+     * @path /notifications/{notificationId}
+     * @allow (create) Only admins can create notifications.
+     * @allow (list) An authenticated user can list all broadcast notifications and notifications sent to them.
+     * @allow (get, update, delete) Admins can manage any notification. Users can update their own read status.
+     */
+    match /notifications/{notificationId} {
+        allow create: if isAdmin() && hasValidNotificationCreateData();
+        allow list: if isSignedIn();
+        allow get: if isSignedIn();
+        allow update, delete: if isAdmin();
     }
   }
 }

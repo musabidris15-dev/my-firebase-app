@@ -139,6 +139,21 @@
         "videoUrl",
         "generationDate"
       ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a message sent from an admin to a user or all users.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the notification." },
+        "recipient": { "type": "string", "description": "The ID of the recipient user, or 'all' for a broadcast message." },
+        "title": { "type": "string", "description": "The title of the notification." },
+        "message": { "type": "string", "description": "The content of the notification message." },
+        "read": { "type": "boolean", "description": "Whether the user has read the notification. This applies to user-specific notifications." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The date and time the notification was created." }
+      },
+      "required": ["id", "recipient", "title", "message", "createdAt"]
     }
   },
   "auth": {
@@ -208,9 +223,21 @@
             }
           ]
         }
+      },
+       {
+        "path": "/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for users. Can be broadcast ('all') or user-specific.",
+          "params": [
+            { "name": "notificationId", "description": "The unique ID of the notification." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars, and indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars, and indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections.\n\n**Notifications Collection:** A top-level 'notifications' collection is added to store messages. This allows admins to easily send broadcast messages to all users (by setting 'recipient' to 'all') or target specific users. Users can read broadcast messages and any messages where they are the recipient, but cannot write to the collection. This centralizes announcements and alerts."
   }
 }
-    

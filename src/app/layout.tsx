@@ -14,11 +14,21 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic, User, AudioLines, UserCircle, Image as ImageIcon, ShoppingCart } from 'lucide-react';
+import { Bot, Home, Mic, User, UserCircle, Bell, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+
+const mockNotifications = [
+    { id: 1, title: 'Welcome to Geez Voice!', message: 'Thanks for signing up. Explore our features and start creating.', read: false, date: '2 hours ago' },
+    { id: 2, title: 'New Voices Added', message: 'We have added 5 new Amharic voices to our library. Check them out!', read: false, date: '1 day ago' },
+    { id: 3, title: 'Maintenance Scheduled', message: 'We will be undergoing scheduled maintenance on Sunday at 2 AM.', read: true, date: '3 days ago' },
+];
+
+const unreadCount = mockNotifications.filter(n => !n.read).length;
+
 
 export default function RootLayout({
   children,
@@ -142,7 +152,47 @@ export default function RootLayout({
               </SidebarFooter>
             </Sidebar>
             <SidebarInset>
-              <Header />
+              <Header>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="relative">
+                            <Bell className="h-5 w-5" />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-0 right-0 flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            )}
+                            <span className="sr-only">Notifications</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                        <DropdownMenuLabel>
+                            <div className="flex justify-between items-center">
+                                <span>Notifications</span>
+                                {unreadCount > 0 && <Badge variant="destructive">{unreadCount} New</Badge>}
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <div className="max-h-80 overflow-y-auto">
+                            {mockNotifications.map(notification => (
+                                <DropdownMenuItem key={notification.id} className="flex-col items-start gap-1 p-2 cursor-pointer">
+                                    <div className="flex justify-between w-full">
+                                        <p className={`font-semibold ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>{notification.title}</p>
+                                        {!notification.read && <span className="h-2 w-2 rounded-full bg-primary ml-2"></span>}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{notification.message}</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-1">{notification.date}</p>
+                                </DropdownMenuItem>
+                            ))}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="justify-center">
+                            Mark all as read
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+              </Header>
               <main className="flex-grow p-4 md:p-6 lg:p-8">{children}</main>
               <footer className="py-6 text-center text-sm text-muted-foreground">
                 <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
