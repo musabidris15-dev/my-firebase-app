@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Crown } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Crown, Wallet } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -89,6 +89,8 @@ type PreviewState = {
 };
 
 const PREVIEW_TEXT = "ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መለወጫ መተግበሪያዎ።";
+const MOCK_USER_CREDITS = 1000;
+
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -97,6 +99,7 @@ export default function TTSPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
+  const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -151,16 +154,23 @@ export default function TTSPage() {
         URL.revokeObjectURL(audioUrl);
     }
 
-    setUiLoading(true);
-
     const trimmedText = text.trim();
+    const characterCount = trimmedText.length;
 
-    if (trimmedText.length < 2) {
+    if (characterCount < 2) {
         showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
-        setUiLoading(false);
+        return;
+    }
+
+    if (characterCount > userCredits) {
+        showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userCredits.toLocaleString()}. Please upgrade your plan.`, 'error');
         return;
     }
     
+    setUiLoading(true);
+    setUserCredits(prev => prev - characterCount);
+
+
     try {
       const response = await fetch('/api/tts', {
         method: 'POST',
@@ -175,15 +185,14 @@ export default function TTSPage() {
       if (!response.ok) {
          if (response.status === 429 || (result.error && result.error.includes("Too Many Requests"))) {
              showStatus('You have exceeded your request limit. Please wait a moment and try again.', 'error');
-             setUiLoading(false);
-             return;
+             throw new Error('Rate limit exceeded');
         }
         throw new Error(result.error || 'An unexpected error occurred.');
       }
       
       if (result.audioDataUri) {
           setAudioUrl(result.audioDataUri);
-          showStatus('Audio generated successfully!', 'success');
+          showStatus(`Audio generated successfully! ${characterCount.toLocaleString()} credits were used.`, 'success');
       } else {
           throw new Error(result.error || 'API response did not contain valid audio data.');
       }
@@ -197,6 +206,8 @@ export default function TTSPage() {
             errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         }
         showStatus(errorMessage, 'error');
+        // Refund credits on failure
+        setUserCredits(prev => prev + characterCount);
     } finally {
         setUiLoading(false);
     }
@@ -272,7 +283,16 @@ export default function TTSPage() {
                 <div className='flex-1'>
                     <AlertTitle>{status.type === 'error' ? 'Error' : status.type === 'success' ? 'Success' : 'Status'}</AlertTitle>
                     <AlertDescription>
-                      {status.message}
+                      {status.message.includes('Insufficient credits') ? (
+                          <>
+                              {status.message.split(' Please upgrade your plan.')[0]}.
+                              <Button variant="link" asChild className="p-0 h-auto ml-1">
+                                  <Link href="/profile">Please upgrade your plan.</Link>
+                              </Button>
+                          </>
+                      ) : (
+                          status.message
+                      )}
                     </AlertDescription>
                 </div>
             </div>
@@ -302,6 +322,8 @@ export default function TTSPage() {
       );
   }
 
+  const characterCount = text.length;
+
   return (
     <div className="container mx-auto max-w-3xl">
         <Card className="shadow-lg">
@@ -320,6 +342,9 @@ export default function TTSPage() {
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                     />
+                    <div className="text-right text-sm text-muted-foreground mt-2">
+                        {characterCount.toLocaleString()} characters
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -434,7 +459,7 @@ export default function TTSPage() {
                     ) : (
                        <Volume2 className="mr-2 h-6 w-6" />
                     )}
-                    <span>Generate Audio</span>
+                    <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                 </Button>
 
                 {audioUrl && (
@@ -446,9 +471,11 @@ export default function TTSPage() {
 
                 <StatusAlert />
             </CardContent>
+             <CardFooter className="flex justify-center items-center text-sm text-muted-foreground p-4 border-t">
+                <Wallet className="h-4 w-4 mr-2" />
+                Remaining Credits: {userCredits.toLocaleString()}
+            </CardFooter>
         </Card>
     </div>
   );
 }
-
-    
