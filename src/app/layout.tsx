@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -14,12 +15,13 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic, User, UserCircle, Bell, ShoppingCart, Shield } from 'lucide-react';
+import { Bot, Home, Mic, User, UserCircle, Bell, ShoppingCart, Shield, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 const mockNotifications = [
     { id: 1, title: 'Welcome to Geez Voice!', message: 'Thanks for signing up. Explore our features and start creating.', read: false, date: '2 hours ago' },
@@ -29,6 +31,15 @@ const mockNotifications = [
 
 const unreadCount = mockNotifications.filter(n => !n.read).length;
 
+const userProfile = {
+    name: 'Hobbyist User',
+    email: 'hobbyist.user@example.com',
+    planId: 'hobbyist',
+    creditsRemaining: 15000,
+    totalCredits: 100000,
+};
+
+const creditUsagePercentage = (userProfile.totalCredits - userProfile.creditsRemaining) / userProfile.totalCredits * 100;
 
 export default function RootLayout({
   children,
@@ -120,22 +131,33 @@ export default function RootLayout({
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col space-y-1 items-start">
-                        <p className="text-sm font-medium leading-none">Guest</p>
+                        <p className="text-sm font-medium leading-none">{userProfile.name}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          guest@example.com
+                          {userProfile.email}
                         </p>
                       </div>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 mb-2 ml-2" align="end" forceMount>
+                  <DropdownMenuContent className="w-64 mb-2 ml-2" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">Guest</p>
+                        <p className="text-sm font-medium leading-none">{userProfile.name}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          guest@example.com
+                          {userProfile.email}
                         </p>
                       </div>
                     </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                     <div className='px-2 py-2 text-sm'>
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="font-medium">Credits</span>
+                            <span className="text-muted-foreground">{userProfile.creditsRemaining.toLocaleString()} / {userProfile.totalCredits.toLocaleString()}</span>
+                        </div>
+                        <Progress value={creditUsagePercentage} className="h-2" />
+                        <Link href="/profile" className='text-xs text-primary hover:underline text-center block mt-2'>
+                           Manage Subscription
+                        </Link>
+                    </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/profile" className='cursor-pointer'>
