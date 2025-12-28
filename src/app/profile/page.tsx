@@ -186,7 +186,7 @@ export default function ProfilePage() {
                             </div>
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
-                            <Card className="flex flex-col">
+                            <Card className={`flex flex-col ${userProfile.planId === 'hobbyist' ? 'border-muted' : ''}`}>
                                 <CardHeader>
                                     <CardTitle>Hobbyist</CardTitle>
                                     <CardDescription>Perfect for personal projects and getting started.</CardDescription>
@@ -204,16 +204,22 @@ export default function ProfilePage() {
                                     </ul>
                                 </CardContent>
                                 <CardFooter className="flex-col items-stretch space-y-2">
-                                    <Button className="w-full">Choose Hobbyist</Button>
-                                    <Button variant="outline" className="w-full" asChild>
-                                      <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
-                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                        Pay with Whop
-                                      </Link>
-                                    </Button>
+                                    {userProfile.planId === 'hobbyist' ? (
+                                        <Button className="w-full" disabled>Current Plan</Button>
+                                    ) : (
+                                        <>
+                                            <Button className="w-full">Choose Hobbyist</Button>
+                                            <Button variant="outline" className="w-full" asChild>
+                                              <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
+                                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                                Pay with Whop
+                                              </Link>
+                                            </Button>
+                                        </>
+                                    )}
                                 </CardFooter>
                             </Card>
-                            <Card className="border-primary flex flex-col">
+                            <Card className={`flex flex-col ${userProfile.planId === 'creator' ? 'border-primary' : ''}`}>
                                <CardHeader>
                                     <div className="flex justify-between items-center">
                                        <CardTitle>Creator</CardTitle>
@@ -235,13 +241,19 @@ export default function ProfilePage() {
                                     </ul>
                                 </CardContent>
                                 <CardFooter className="flex-col items-stretch space-y-2">
-                                    <Button className="w-full">Choose Creator</Button>
-                                    <Button variant="outline" className="w-full" asChild>
-                                      <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target  ="_blank" rel="noopener noreferrer">
-                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                        Pay with Whop
-                                      </Link>
-                                    </Button>
+                                     {userProfile.planId === 'creator' ? (
+                                        <Button className="w-full" disabled>Current Plan</Button>
+                                    ) : (
+                                        <>
+                                            <Button className="w-full">{userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Choose Creator'}</Button>
+                                            <Button variant="outline" className="w-full" asChild>
+                                              <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
+                                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                                Pay with Whop
+                                              </Link>
+                                            </Button>
+                                        </>
+                                    )}
                                 </CardFooter>
                             </Card>
                         </CardContent>
