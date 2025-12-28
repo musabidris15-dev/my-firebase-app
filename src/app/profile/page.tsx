@@ -17,15 +17,15 @@ import { cn } from '@/lib/utils';
 const now = new Date();
 
 const userProfile = {
-    name: 'Free User',
-    email: 'free.user@example.com',
-    planId: 'free',
-    subscriptionTier: null,
-    subscriptionStartDate: null,
-    subscriptionEndDate: null,
-    creditsUsed: 500,
-    creditsRemaining: 500,
-    lastCreditRenewalDate: null
+    name: 'Hobbyist User',
+    email: 'hobbyist.user@example.com',
+    planId: 'hobbyist',
+    subscriptionTier: 'monthly',
+    subscriptionStartDate: new Date('2023-07-01T00:00:00Z'),
+    subscriptionEndDate: new Date('2024-07-01T00:00:00Z'),
+    creditsUsed: 85000,
+    creditsRemaining: 15000,
+    lastCreditRenewalDate: new Date('2023-07-01T00:00:00Z'),
 };
 
 const getPlanDetails = (planId: string) => {
@@ -41,7 +41,7 @@ const getPlanDetails = (planId: string) => {
 
 const { totalCredits } = getPlanDetails(userProfile.planId);
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
-const creditUsagePercentage = (userProfile.creditsUsed / totalCredits) * 100;
+const creditUsagePercentage = (userProfile.creditsRemaining / totalCredits) * 100;
 const nextRenewalDate = userProfile.lastCreditRenewalDate ? addDays(userProfile.lastCreditRenewalDate, 30) : null;
 
 export default function ProfilePage() {
@@ -177,7 +177,7 @@ export default function ProfilePage() {
                                 <div className="flex justify-between items-end mb-2">
                                     <h4 className="font-semibold text-lg">Character Credits</h4>
                                     <p className="text-sm text-muted-foreground">
-                                        <span className="font-bold text-foreground">{(totalCredits - userProfile.creditsUsed).toLocaleString()}</span> remaining
+                                        <span className="font-bold text-foreground">{userProfile.creditsRemaining.toLocaleString()}</span> remaining
                                     </p>
                                 </div>
                                 <Progress value={creditUsagePercentage} className="h-3" />

@@ -39,7 +39,8 @@ const userProfile = {
     totalCredits: 100000,
 };
 
-const creditUsagePercentage = (userProfile.totalCredits - userProfile.creditsRemaining) / userProfile.totalCredits * 100;
+const creditUsagePercentage = (userProfile.creditsRemaining / userProfile.totalCredits) * 100;
+
 
 export default function RootLayout({
   children,
