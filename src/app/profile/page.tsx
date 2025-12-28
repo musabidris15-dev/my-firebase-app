@@ -16,23 +16,34 @@ import { addDays, format, differenceInDays, isBefore } from 'date-fns';
 const now = new Date();
 
 const userProfile = {
-    name: 'Creator',
-    email: 'creator@example.com',
-    planId: 'creator',
-    subscriptionTier: 'yearly',
-    subscriptionStartDate: new Date('2023-12-15T10:00:00Z'),
-    subscriptionEndDate: new Date('2024-12-15T10:00:00Z'),
-    creditsUsed: 2500,
-    creditsRemaining: 347500,
-    lastCreditRenewalDate: new Date('2024-11-15T10:00:00Z')
+    name: 'Free User',
+    email: 'free.user@example.com',
+    planId: 'free',
+    subscriptionTier: null,
+    subscriptionStartDate: null,
+    subscriptionEndDate: null,
+    creditsUsed: 500,
+    creditsRemaining: 500,
+    lastCreditRenewalDate: null
 };
 
-const totalCredits = userProfile.planId === 'creator' ? 350000 : 100000;
+const getPlanDetails = (planId: string) => {
+    switch(planId) {
+        case 'creator':
+            return { totalCredits: 350000 };
+        case 'hobbyist':
+            return { totalCredits: 100000 };
+        default:
+            return { totalCredits: 1000 };
+    }
+}
+
+const { totalCredits } = getPlanDetails(userProfile.planId);
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
 const creditUsagePercentage = (userProfile.creditsUsed / totalCredits) * 100;
-const nextRenewalDate = addDays(userProfile.lastCreditRenewalDate, 30);
-const daysUntilPlanExpires = differenceInDays(userProfile.subscriptionEndDate, now);
-const shouldShowRenewalMessage = isBefore(userProfile.subscriptionEndDate, addDays(now, 30));
+const nextRenewalDate = userProfile.lastCreditRenewalDate ? addDays(userProfile.lastCreditRenewalDate, 30) : null;
+const daysUntilPlanExpires = userProfile.subscriptionEndDate ? differenceInDays(userProfile.subscriptionEndDate, now) : null;
+const shouldShowRenewalMessage = userProfile.subscriptionEndDate && isBefore(userProfile.subscriptionEndDate, addDays(now, 30));
 
 
 export default function ProfilePage() {
@@ -127,7 +138,7 @@ export default function ProfilePage() {
                             <CardDescription>Your current plan and usage details.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                             {shouldShowRenewalMessage && (
+                             {shouldShowRenewalMessage && daysUntilPlanExpires !== null && (
                                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-4">
                                     <AlertTriangle className="h-6 w-6 text-yellow-600" />
                                     <div>
@@ -139,7 +150,7 @@ export default function ProfilePage() {
                             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
-                                    <p className="text-xl font-bold text-primary capitalize">{userProfile.planId} ({userProfile.subscriptionTier})</p>
+                                    <p className="text-xl font-bold text-primary capitalize">{userProfile.planId}{userProfile.subscriptionTier ? ` (${userProfile.subscriptionTier})` : ''}</p>
                                 </div>
                                 {userProfile.planId !== 'creator' && <Button>Upgrade Plan</Button>}
                             </div>
@@ -154,8 +165,12 @@ export default function ProfilePage() {
                                 <Progress value={creditUsagePercentage} className="h-3" />
                                 <div className="flex justify-between items-start text-xs text-muted-foreground mt-2">
                                      <div className="flex items-center gap-1.5">
-                                        <CalendarClock className="h-3 w-3" />
-                                        <span>Credits renew on {format(nextRenewalDate, 'MMM d, yyyy')}</span>
+                                        {nextRenewalDate && (
+                                            <>
+                                                <CalendarClock className="h-3 w-3" />
+                                                <span>Credits renew on {format(nextRenewalDate, 'MMM d, yyyy')}</span>
+                                            </>
+                                        )}
                                     </div>
                                     <span>
                                         {userProfile.creditsUsed.toLocaleString()} of {totalCredits.toLocaleString()} characters used
