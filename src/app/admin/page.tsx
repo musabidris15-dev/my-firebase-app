@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare, Gift } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 
 const mockUsers = [
   {
@@ -152,7 +153,9 @@ export default function AdminPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>View Details</DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/admin/users/${user.id}`}>View Details</Link>
+                                    </DropdownMenuItem>
                                     <DialogTrigger asChild>
                                         <DropdownMenuItem>Edit User</DropdownMenuItem>
                                     </DialogTrigger>
