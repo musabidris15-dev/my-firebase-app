@@ -15,8 +15,9 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Bot, Home, Mic, User, UserCircle, Bell, ShoppingCart, Shield, Wallet } from 'lucide-react';
+import { Home, Mic, User, UserCircle, Bell, ShoppingCart, Shield, Wallet } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -75,7 +76,7 @@ export default function RootLayout({
               <SidebarContent>
                 <div className="flex h-14 items-center px-4">
                    <Link href="/" className="flex items-center space-x-2">
-                    <Bot className="h-6 w-6 text-primary" />
+                    <Image src="/logo.png" alt="Geez Voice Logo" width={24} height={24} className="h-6 w-6" />
                     <span className="font-bold">
                       Geez Voice
                     </span>
