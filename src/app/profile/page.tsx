@@ -17,8 +17,8 @@ const userProfile = {
     email: 'creator@example.com',
     plan: 'Creator',
     creditsUsed: 2500,
-    creditsRemaining: 97500,
-    totalCredits: 100000,
+    creditsRemaining: 347500,
+    totalCredits: 350000,
 };
 
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
