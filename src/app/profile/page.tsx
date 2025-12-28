@@ -17,15 +17,15 @@ import { cn } from '@/lib/utils';
 const now = new Date();
 
 const userProfile = {
-    name: 'Hobbyist User',
-    email: 'hobbyist.user@example.com',
-    planId: 'hobbyist',
-    subscriptionTier: 'monthly',
-    subscriptionStartDate: new Date(now.getFullYear(), now.getMonth(), 15),
-    subscriptionEndDate: addDays(new Date(now.getFullYear(), now.getMonth(), 15), 30),
-    creditsUsed: 25000,
-    creditsRemaining: 75000,
-    lastCreditRenewalDate: new Date(now.getFullYear(), now.getMonth(), 15)
+    name: 'Free User',
+    email: 'free.user@example.com',
+    planId: 'free',
+    subscriptionTier: null,
+    subscriptionStartDate: null,
+    subscriptionEndDate: null,
+    creditsUsed: 500,
+    creditsRemaining: 500,
+    lastCreditRenewalDate: null
 };
 
 const getPlanDetails = (planId: string) => {
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if (userProfile.subscriptionEndDate) {
             const days = differenceInDays(userProfile.subscriptionEndDate, new Date());
-            setDaysUntilPlanExpires(days);
+            setDaysUntilPlanExpires(days > 0 ? days : 0);
         }
     }, []);
 
@@ -183,12 +183,12 @@ export default function ProfilePage() {
                                 <Progress value={creditUsagePercentage} className="h-3" />
                                 <div className="flex justify-between items-start text-xs text-muted-foreground mt-2">
                                      <div className="flex items-center gap-1.5">
-                                        {nextRenewalDate && (
+                                        {nextRenewalDate ? (
                                             <>
                                                 <CalendarClock className="h-3 w-3" />
                                                 <span>Credits renew on {format(nextRenewalDate, 'MMM d, yyyy')}</span>
                                             </>
-                                        )}
+                                        ) : <span>One-time credits</span>}
                                     </div>
                                     <span>
                                         {userProfile.creditsUsed.toLocaleString()} of {totalCredits.toLocaleString()} characters used
@@ -274,7 +274,7 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <>
-                                                <Button className={cn("w-full", creatorGlow && "animate-pulse")} asChild>
+                                                <Button className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")} asChild>
                                                   <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
