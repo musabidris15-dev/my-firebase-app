@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -49,6 +49,7 @@ const shouldShowRenewalMessage = userProfile.subscriptionEndDate && isBefore(use
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
     const [billingCycle, setBillingCycle] = useState(userProfile.subscriptionTier || 'monthly');
+    const plansRef = useRef<HTMLDivElement>(null);
 
     const getReferralBonus = () => {
         switch (userProfile.planId) {
@@ -70,6 +71,10 @@ export default function ProfilePage() {
         });
     };
     
+    const handleUpgradeClick = () => {
+        plansRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 15 * 12 * 0.8;
     const creatorPrice = billingCycle === 'monthly' ? 39 : 39 * 12 * 0.8;
 
@@ -152,7 +157,7 @@ export default function ProfilePage() {
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
                                     <p className="text-xl font-bold text-primary capitalize">{userProfile.planId}{userProfile.subscriptionTier ? ` (${userProfile.subscriptionTier})` : ''}</p>
                                 </div>
-                                {userProfile.planId !== 'creator' && <Button>Upgrade Plan</Button>}
+                                {userProfile.planId !== 'creator' && <Button onClick={handleUpgradeClick}>Upgrade Plan</Button>}
                             </div>
                             
                             <div>
@@ -181,94 +186,96 @@ export default function ProfilePage() {
                     </Card>
                     
                     {/* Pricing Plans */}
-                    <Card>
-                         <CardHeader>
-                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                                <div>
-                                    <CardTitle>Explore Plans</CardTitle>
-                                    <CardDescription>Choose a plan that fits your creative needs.</CardDescription>
+                    <div ref={plansRef}>
+                        <Card>
+                             <CardHeader>
+                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                    <div>
+                                        <CardTitle>Explore Plans</CardTitle>
+                                        <CardDescription>Choose a plan that fits your creative needs.</CardDescription>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Label htmlFor="billing-cycle" className={billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}>Monthly</Label>
+                                        <Switch
+                                            id="billing-cycle"
+                                            checked={billingCycle === 'yearly'}
+                                            onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+                                        />
+                                        <Label htmlFor="billing-cycle" className={billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}>Yearly</Label>
+                                        <div className="text-xs font-bold uppercase text-green-600 bg-green-500/10 px-2 py-1 rounded-full">20% Off</div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                    <Label htmlFor="billing-cycle" className={billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}>Monthly</Label>
-                                    <Switch
-                                        id="billing-cycle"
-                                        checked={billingCycle === 'yearly'}
-                                        onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
-                                    />
-                                    <Label htmlFor="billing-cycle" className={billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}>Yearly</Label>
-                                    <div className="text-xs font-bold uppercase text-green-600 bg-green-500/10 px-2 py-1 rounded-full">20% Off</div>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6">
-                            <Card className={`flex flex-col ${userProfile.planId === 'hobbyist' ? 'border-muted' : ''}`}>
-                                <CardHeader>
-                                    <CardTitle>Hobbyist</CardTitle>
-                                    <CardDescription>Perfect for personal projects and getting started.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-grow space-y-4">
-                                    <div className="text-4xl font-bold">
-                                        ${hobbyistPrice.toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
-                                    </div>
-                                    <ul className="space-y-2 text-sm">
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />100,000 Characters/mo</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 130 mins of audio</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Standard Voices</li>
-                                    </ul>
-                                </CardContent>
-                                <CardFooter className="flex-col items-stretch space-y-2">
-                                    {userProfile.planId === 'hobbyist' ? (
-                                        <Button className="w-full" disabled>Current Plan</Button>
-                                    ) : (
-                                        <>
-                                            <Button className="w-full">Choose Hobbyist</Button>
-                                            <Button variant="outline" className="w-full" asChild>
-                                              <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
-                                                <ShoppingCart className="mr-2 h-4 w-4" />
-                                                Pay with Whop
-                                              </Link>
-                                            </Button>
-                                        </>
-                                    )}
-                                </CardFooter>
-                            </Card>
-                            <Card className={`flex flex-col ${userProfile.planId === 'creator' ? 'border-primary' : ''}`}>
-                               <CardHeader>
-                                    <div className="flex justify-between items-center">
-                                       <CardTitle>Creator</CardTitle>
-                                       <div className="text-xs font-bold uppercase text-primary bg-primary/10 px-2 py-1 rounded-full">Most Popular</div>
-                                    </div>
-                                    <CardDescription>For content creators and professionals.</CardDescription>
-                                </CardHeader>
-                               <CardContent className="flex-grow space-y-4">
-                                    <div className="text-4xl font-bold">
-                                        ${creatorPrice.toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
-                                    </div>
-                                    <ul className="space-y-2 text-sm">
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />350,000 Characters/mo</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 460 mins of audio</li>
-                                        <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Premium & Custom Voices</li>
-                                        <li className="flex items-center"><Zap className="mr-2 h-4 w-4 text-yellow-500" />Priority Support</li>
-                                    </ul>
-                                </CardContent>
-                                <CardFooter className="flex-col items-stretch space-y-2">
-                                     {userProfile.planId === 'creator' ? (
-                                        <Button className="w-full" disabled>Current Plan</Button>
-                                    ) : (
-                                        <>
-                                            <Button className="w-full">{userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Choose Creator'}</Button>
-                                            <Button variant="outline" className="w-full" asChild>
-                                              <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
-                                                <ShoppingCart className="mr-2 h-4 w-4" />
-                                                Pay with Whop
-                                              </Link>
-                                            </Button>
-                                        </>
-                                    )}
-                                </CardFooter>
-                            </Card>
-                        </CardContent>
-                    </Card>
+                            </CardHeader>
+                            <CardContent className="grid md:grid-cols-2 gap-6">
+                                <Card className={`flex flex-col ${userProfile.planId === 'hobbyist' ? 'border-muted' : ''}`}>
+                                    <CardHeader>
+                                        <CardTitle>Hobbyist</CardTitle>
+                                        <CardDescription>Perfect for personal projects and getting started.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex-grow space-y-4">
+                                        <div className="text-4xl font-bold">
+                                            ${hobbyistPrice.toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
+                                        </div>
+                                        <ul className="space-y-2 text-sm">
+                                            <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />100,000 Characters/mo</li>
+                                            <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 130 mins of audio</li>
+                                            <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Standard Voices</li>
+                                        </ul>
+                                    </CardContent>
+                                    <CardFooter className="flex-col items-stretch space-y-2">
+                                        {userProfile.planId === 'hobbyist' ? (
+                                            <Button className="w-full" disabled>Current Plan</Button>
+                                        ) : (
+                                            <>
+                                                <Button className="w-full">Choose Hobbyist</Button>
+                                                <Button variant="outline" className="w-full" asChild>
+                                                  <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
+                                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                                    Pay with Whop
+                                                  </Link>
+                                                </Button>
+                                            </>
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                                <Card className={`flex flex-col ${userProfile.planId === 'creator' ? 'border-primary' : ''}`}>
+                                   <CardHeader>
+                                        <div className="flex justify-between items-center">
+                                           <CardTitle>Creator</CardTitle>
+                                           <div className="text-xs font-bold uppercase text-primary bg-primary/10 px-2 py-1 rounded-full">Most Popular</div>
+                                        </div>
+                                        <CardDescription>For content creators and professionals.</CardDescription>
+                                    </CardHeader>
+                                   <CardContent className="flex-grow space-y-4">
+                                        <div className="text-4xl font-bold">
+                                            ${creatorPrice.toLocaleString()}<span className="text-sm font-normal text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
+                                        </div>
+                                        <ul className="space-y-2 text-sm">
+                                            <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />350,000 Characters/mo</li>
+                                            <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Up to 460 mins of audio</li>
+                                            <li className="flex items-center"><CheckCircle className="mr-2 h-4 w-4 text-green-500" />Premium & Custom Voices</li>
+                                            <li className="flex items-center"><Zap className="mr-2 h-4 w-4 text-yellow-500" />Priority Support</li>
+                                        </ul>
+                                    </CardContent>
+                                    <CardFooter className="flex-col items-stretch space-y-2">
+                                         {userProfile.planId === 'creator' ? (
+                                            <Button className="w-full" disabled>Current Plan</Button>
+                                        ) : (
+                                            <>
+                                                <Button className="w-full">{userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Choose Creator'}</Button>
+                                                <Button variant="outline" className="w-full" asChild>
+                                                  <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
+                                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                                    Pay with Whop
+                                                  </Link>
+                                                </Button>
+                                            </>
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
         </div>
