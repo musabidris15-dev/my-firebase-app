@@ -23,11 +23,11 @@ export default function HomePage() {
                 </div>
               </div>
               <Image
-                src="https://picsum.photos/seed/gojo/600/400"
+                src="https://storage.googleapis.com/aifire.appspot.com/user-uploads/L3VzZXIvYjY4YWI5NzUtYzQ4Ni00MmE3LWI4YTItN2YyNjY5NGE1ZTA3L2Nhat8wZTc2OTFmZS03MTAwLTQ2NDEtYWZmZC1hZDNjYjM5MGRjMjk.png"
                 width={600}
                 height={400}
                 alt="Promotional image for Geez Voice"
-                data-ai-hint="Ethiopian gojo bet"
+                data-ai-hint="Ethiopian highlands"
                 className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
               />
             </div>
