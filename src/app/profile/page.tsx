@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check } from 'lucide-react';
+import { CheckCircle, Zap, Image as ImageIcon, ShoppingCart, Copy, Check, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 
@@ -24,6 +24,19 @@ const creditUsagePercentage = (userProfile.creditsUsed / userProfile.totalCredit
 
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
+
+    const getReferralBonus = () => {
+        switch (userProfile.plan) {
+            case 'Creator':
+                return '15%';
+            case 'Hobbyist':
+                return '5%';
+            default:
+                return null;
+        }
+    };
+
+    const referralBonus = getReferralBonus();
 
     const handleCopy = () => {
         navigator.clipboard.writeText(referralLink).then(() => {
@@ -61,14 +74,25 @@ export default function ProfilePage() {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Referral Program</CardTitle>
-                            <CardDescription>Invite others and earn rewards.</CardDescription>
+                            <CardTitle className="flex items-center gap-2">
+                                <Gift className="h-5 w-5 text-primary" />
+                                Referral Program
+                            </CardTitle>
+                            <CardDescription>Invite others and earn free credits.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-sm text-muted-foreground">Share your unique link to invite others to the platform. You'll get bonus credits for every new user who signs up!</p>
+                             {referralBonus ? (
+                                <p className="text-sm text-muted-foreground">
+                                    As a <span className="font-semibold text-primary">{userProfile.plan}</span> member, you'll earn a <span className="font-semibold">{referralBonus}</span> credit bonus for every new paid subscriber who signs up using your link.
+                                </p>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                   Upgrade to a paid plan to earn referral bonuses when you invite new users.
+                                </p>
+                            )}
                             <div className="flex space-x-2">
                                 <Input value={referralLink} readOnly />
-                                <Button onClick={handleCopy} variant="outline" size="icon" className="shrink-0">
+                                <Button onClick={handleCopy} variant="outline" size="icon" className="shrink-0" disabled={!referralBonus}>
                                     {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                     <span className="sr-only">Copy referral link</span>
                                 </Button>
