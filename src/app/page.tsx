@@ -94,10 +94,10 @@ export default function HomePage() {
               </div>
               <div className="bg-background p-4 rounded-lg shadow-md">
                  <Image
-                  src="https://picsum.photos/seed/ethiopian-highlands/600/400"
+                  src="https://storage.googleapis.com/aifire.appspot.com/user-uploads/L3VzZXIvYjY4YWI5NzUtYzQ4Ni00MmE3LWI4YTItN2YyNjY5NGE1ZTA3L2Nhat9hMDM2NjQ5OC0zNTZkLTRhMmEtYmQ2Yi1jNWEzY2I5NzNiNmQ.jpeg"
                   width={600}
                   height={400}
-                  data-ai-hint="voice selection menu"
+                  data-ai-hint="electronic gadgets"
                   alt="App Interface 2"
                   className="rounded-md object-cover aspect-video"
                 />
