@@ -89,56 +89,51 @@ service cloud.firestore {
     }
     
      /**
-     * Validates that the notification document being created has its recipient set.
+     * Validates the required fields for a notification document upon creation.
      */
     function hasValidNotificationCreateData() {
-      return request.resource.data.recipient != null && request.resource.data.title is string && request.resource.data.message is string;
+      let data = request.resource.data;
+      return data.recipient != null &&
+             data.title is string && data.title.size() > 0 &&
+             data.message is string && data.message.size() > 0;
     }
 
 
     /**
      * @description Controls access to a user's own profile document.
      * @path /users/{userId}
-     * @allow (create) An authenticated user creating their own user document: auth.uid == 'user123', path == '/users/user123'.
-     * @allow (get) An authenticated user reading their own profile: auth.uid == 'user123', path == '/users/user123'.
-     * @deny (list) Any user attempting to list all user documents to prevent user enumeration. Admins are exempt.
-     * @deny (update) A user trying to update another user's profile: auth.uid == 'user456', path == '/users/user123'.
+     * @allow (get) An authenticated user reading their own profile or an admin reading any profile.
+     * @allow (list) Only admins can list all users to prevent user enumeration.
+     * @allow (create) An authenticated user creating their own user document, or an admin creating any.
+     * @allow (update, delete) An authenticated user modifying their own profile, or an admin modifying any.
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get, update, delete: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if (isOwner(userId) && hasValidUserCreateData(userId)) || isAdmin();
-      allow update, delete: if isOwner(userId) || isAdmin();
 
       /**
        * @description Controls access to avatars, which are owned by a specific user.
        * @path /users/{userId}/avatars/{avatarId}
-       * @allow (create) An authenticated user creating an avatar for themselves: auth.uid == 'user123', path == '/users/user123/avatars/avatarABC'.
-       * @allow (list) An authenticated user listing their own avatars: auth.uid == 'user123', path == '/users/user123/avatars'.
-       * @deny (get) A user trying to get another user's avatar: auth.uid == 'user456', path == '/users/user123/avatars/avatarABC'.
-       * @deny (create) A user trying to create an avatar for another user: auth.uid == 'user456', path == '/users/user123/avatars/avatarXYZ'.
+       * @allow (read, write) Full access is granted only to the user who owns the parent user document or to an admin.
        * @principle Enforces document ownership for all operations within a user's private subcollection.
        */
       match /avatars/{avatarId} {
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow read, delete: if isOwner(userId) || isAdmin();
         allow create: if (isOwner(userId) && hasValidAvatarCreateData(userId)) || isAdmin();
         allow update: if (isOwner(userId) && hasValidAvatarUpdateData()) || isAdmin();
-        allow delete: if isOwner(userId) || isAdmin();
 
         /**
          * @description Controls access to generated videos, which belong to a specific avatar owned by a user.
          * @path /users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}
-         * @allow (create) An authenticated user creating a video for an avatar they own: auth.uid == 'user123', path == '/users/user123/avatars/avatarABC/generatedVideos/videoXYZ'.
-         * @allow (list) An authenticated user listing videos for an avatar they own: auth.uid == 'user123', path == '/users/user123/avatars/avatarABC/generatedVideos'.
-         * @deny (get) A user trying to access a video belonging to another user's avatar: auth.uid == 'user456', path == '/users/user123/avatars/avatarABC/generatedVideos/videoXYZ'.
+         * @allow (read, write) Full access is granted only to the user who owns the top-level user document or to an admin.
          * @principle Enforces transitive ownership; access to a nested document is granted based on ownership of the parent document.
          */
         match /generatedVideos/{generatedVideoId} {
-          allow get, list: if isOwner(userId) || isAdmin();
+          allow read, delete: if isOwner(userId) || isAdmin();
           allow create: if (isOwner(userId) && hasValidVideoCreateData(avatarId)) || isAdmin();
           allow update: if (isOwner(userId) && hasValidVideoUpdateData()) || isAdmin();
-          allow delete: if isOwner(userId) || isAdmin();
         }
       }
     }
@@ -146,14 +141,14 @@ service cloud.firestore {
     /**
      * @description Controls access to notifications.
      * @path /notifications/{notificationId}
-     * @allow (create) Only admins can create notifications.
-     * @allow (get) An authenticated user can read broadcast notifications or notifications sent to them.
-     * @allow (update, delete) Admins can manage any notification.
+     * @allow (create) Only admins can create valid notifications.
+     * @allow (read) An authenticated user can read broadcast notifications ('all') or notifications sent to them. This also covers list queries.
+     * @allow (update, delete) Only admins can manage notifications.
+     * @principle Ensures users only see relevant notifications and only admins can manage them.
      */
     match /notifications/{notificationId} {
         allow create: if isAdmin() && hasValidNotificationCreateData();
-        allow get: if isSignedIn() && (resource.data.recipient == 'all' || resource.data.recipient == request.auth.uid);
-        allow list: if isSignedIn(); // Allow listing for queries, client must filter.
+        allow read: if isSignedIn() && (resource.data.recipient == 'all' || resource.data.recipient == request.auth.uid);
         allow update, delete: if isAdmin();
     }
   }

@@ -100,9 +100,15 @@ const initialUsers: User[] = [
 
 export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // This will only run on the client
+    setUsers(initialUsers);
+    setFilteredUsers(initialUsers);
+  }, []);
 
   useEffect(() => {
     const lowercasedTerm = searchTerm.toLowerCase();
