@@ -113,6 +113,14 @@ export default function ProfilePage() {
     };
 
     const handlePurchase = async (planKey: PlanKey) => {
+        if (!firebaseApp) {
+            toast({
+                variant: 'destructive',
+                title: "Error",
+                description: "Firebase is not initialized. Please refresh the page.",
+            });
+            return;
+        }
         setIsLoading(planKey);
         try {
             const functions = getFunctions(firebaseApp);
@@ -358,5 +366,7 @@ export default function ProfilePage() {
             </div>
         </div>
     );
+
+    
 
     
