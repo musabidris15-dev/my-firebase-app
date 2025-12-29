@@ -108,9 +108,8 @@ export default function ProfilePage() {
     };
     
     const handleUpgradeClick = () => {
-        plansRef.current?.scrollIntoView({ behavior: 'smooth' });
-        setCreatorGlow(true);
-        setTimeout(() => setCreatorGlow(false), 3000);
+        const planKey: PlanKey = billingCycle === 'monthly' ? 'creator_monthly' : 'creator_yearly';
+        handlePurchase(planKey);
     };
 
     const handlePurchase = async (planKey: PlanKey) => {
@@ -359,4 +358,5 @@ export default function ProfilePage() {
             </div>
         </div>
     );
-}
+
+    
