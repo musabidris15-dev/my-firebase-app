@@ -1,22 +1,16 @@
 /**
  * Core Philosophy: This ruleset enforces a strict user-ownership model. All data, including user profiles,
- * avatars, and generated videos, is considered private and is only accessible by the authenticated user who owns it.
+ * avatars, generated videos, and TTS requests are considered private and only accessible by the authenticated user who owns it.
  * There is no public or shared data.
  *
- * Data Structure: The data is organized hierarchically. All user-generated content is nested under the
- * /users/{userId} path. Avatars are in a subcollection at /users/{userId}/avatars/{avatarId}, and generated
- * videos are further nested at /users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}. This
- * structure makes ownership-based security rules simple and performant.
+ * Data Structure: The data is organized hierarchically where applicable. User-generated content is tied to the
+ * /users/{userId} path. This structure makes ownership-based security rules simple and performant.
  *
  * Key Security Decisions:
  * - User Enumeration is explicitly prevented by disallowing `list` operations on the top-level `/users` collection, except for admins.
- * - All subcollections (`avatars`, `generatedVideos`) can only be read, listed, or written to by the user
- *   specified in the path's `{userId}` wildcard.
+ * - All user-specific data can only be read or written to by the owning user.
  * - The default security posture is deny-all. Access is only granted through specific `allow` rules.
- *
- * Denormalization for Authorization: The hierarchical data structure naturally provides all necessary
- * authorization context in the document path (e.g., `/users/{userId}`). This avoids the need for costly `get()`
- * calls to other documents to verify ownership, resulting in faster and more scalable security rules.
+ * - Input validation is enforced, such as character limits on TTS requests, to prevent abuse.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -47,8 +41,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Prototyping Validation: Functions to enforce relational integrity without
-    // enforcing a strict data schema.
+    // Prototyping Validation: Functions to enforce relational integrity and business logic.
 
     /**
      * Validates that the user document being created has its internal 'id'
@@ -57,38 +50,8 @@ service cloud.firestore {
     function hasValidUserCreateData(userId) {
       return request.resource.data.id == userId;
     }
-
-    /**
-     * Validates that the avatar document being created has its internal 'userId'
-     * field correctly set to match the user from the path.
-     */
-    function hasValidAvatarCreateData(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * Ensures the 'userId' field on an avatar is immutable during an update.
-     */
-    function hasValidAvatarUpdateData() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    /**
-     * Validates that the video document being created has its internal 'avatarId'
-     * field correctly set to match the avatar from the path.
-     */
-    function hasValidVideoCreateData(avatarId) {
-      return request.resource.data.avatarId == avatarId;
-    }
-
-    /**
-     * Ensures the 'avatarId' field on a video is immutable during an update.
-     */
-    function hasValidVideoUpdateData() {
-      return request.resource.data.avatarId == resource.data.avatarId;
-    }
     
-     /**
+    /**
      * Validates the required fields for a notification document upon creation.
      */
     function hasValidNotificationCreateData() {
@@ -98,58 +61,54 @@ service cloud.firestore {
              data.message is string && data.message.size() > 0;
     }
 
+    /**
+     * Validates a new TTS request document.
+     * CRITICAL: Enforces character limit on the input text to prevent billing abuse.
+     */
+    function hasValidTtsRequestCreateData(userId) {
+        let data = request.resource.data;
+        return data.userId == userId &&
+               data.text is string &&
+               data.text.size() > 0 &&
+               data.text.size() <= 500 && // Max 500 characters
+               data.createdAt == request.time;
+    }
+
 
     /**
      * @description Controls access to a user's own profile document.
      * @path /users/{userId}
-     * @allow (get) An authenticated user reading their own profile or an admin reading any profile.
-     * @allow (list) Only admins can list all users to prevent user enumeration.
-     * @allow (create) An authenticated user creating their own user document, or an admin creating any.
-     * @allow (update, delete) An authenticated user modifying their own profile, or an admin modifying any.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
       allow get, update, delete: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if (isOwner(userId) && hasValidUserCreateData(userId)) || isAdmin();
-
-      /**
-       * @description Controls access to avatars, which are owned by a specific user.
-       * @path /users/{userId}/avatars/{avatarId}
-       * @allow (read, write) Full access is granted only to the user who owns the parent user document or to an admin.
-       * @principle Enforces document ownership for all operations within a user's private subcollection.
-       */
-      match /avatars/{avatarId} {
-        allow read, delete: if isOwner(userId) || isAdmin();
-        allow create: if (isOwner(userId) && hasValidAvatarCreateData(userId)) || isAdmin();
-        allow update: if (isOwner(userId) && hasValidAvatarUpdateData()) || isAdmin();
-
-        /**
-         * @description Controls access to generated videos, which belong to a specific avatar owned by a user.
-         * @path /users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}
-         * @allow (read, write) Full access is granted only to the user who owns the top-level user document or to an admin.
-         * @principle Enforces transitive ownership; access to a nested document is granted based on ownership of the parent document.
-         */
-        match /generatedVideos/{generatedVideoId} {
-          allow read, delete: if isOwner(userId) || isAdmin();
-          allow create: if (isOwner(userId) && hasValidVideoCreateData(avatarId)) || isAdmin();
-          allow update: if (isOwner(userId) && hasValidVideoUpdateData()) || isAdmin();
-        }
-      }
     }
     
     /**
      * @description Controls access to notifications.
      * @path /notifications/{notificationId}
-     * @allow (create) Only admins can create valid notifications.
-     * @allow (read) An authenticated user can read broadcast notifications ('all') or notifications sent to them. This also covers list queries.
-     * @allow (update, delete) Only admins can manage notifications.
-     * @principle Ensures users only see relevant notifications and only admins can manage them.
      */
     match /notifications/{notificationId} {
         allow create: if isAdmin() && hasValidNotificationCreateData();
         allow read: if isSignedIn() && (resource.data.recipient == 'all' || resource.data.recipient == request.auth.uid);
         allow update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Controls access to Text-to-Speech (TTS) requests.
+     * @path /ttsRequests/{requestId}
+     * @allow (read) A user can only read their own TTS request records.
+     * @allow (list) A user can only list their own TTS requests, not anyone else's.
+     * @allow (create) A user can create a TTS request if it meets validation criteria (e.g., character limit).
+     * @allow (update, delete) No one can update or delete TTS records to maintain a clear audit trail.
+     * @principle Enforces ownership and abuse prevention through input validation.
+     */
+    match /ttsRequests/{requestId} {
+      allow read: if isOwner(resource.data.userId);
+      allow list: if isOwner(request.query.filters.userId); // Ensures users can only query their own requests.
+      allow create: if isOwner(request.resource.data.userId) && hasValidTtsRequestCreateData(request.resource.data.userId);
+      allow update, delete: if false; // Disallow modification to preserve history.
     }
   }
 }

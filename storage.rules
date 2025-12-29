@@ -1,0 +1,43 @@
+//
+// These rules are designed to protect your audio files in Firebase Storage.
+// They enforce strict ownership and content validation to prevent abuse and data theft.
+//
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // By default, deny all reads and writes.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // The 'audio' folder is where all generated TTS files are stored.
+    // Files are organized into subfolders named after the user's ID (UID).
+    // Example path: /audio/someUserId/generated-file-123.mp3
+    match /audio/{userId}/{fileName} {
+
+      // CREATE (Upload) Rule
+      //
+      // 1. `request.auth != null`: User must be authenticated.
+      // 2. `request.auth.uid == userId`: A user can only upload to their OWN folder.
+      // 3. `resource == null`: This prevents overwriting existing files. `resource` is the file *before* the request. If it's null, the file doesn't exist yet.
+      // 4. `request.resource.contentType.matches('audio/.*')`: Part 2: Strictly allows only audio file types.
+      // 5. `request.resource.size < 5 * 1024 * 1024`: Example: Limit file size to 5MB.
+      allow create: if request.auth != null &&
+                       request.auth.uid == userId &&
+                       resource == null &&
+                       request.resource.contentType.matches('audio/.*') &&
+                       request.resource.size < 5 * 1024 * 1024;
+
+      // READ (Download) Rule
+      //
+      // Part 2: A user can only read/download a file if their UID matches the folder name.
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // UPDATE and DELETE are implicitly denied because `allow write` is not specified
+      // and the default is to deny. This prevents users from modifying or deleting files.
+      allow update, delete: if false;
+    }
+  }
+}

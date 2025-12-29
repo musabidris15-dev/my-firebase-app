@@ -1,11 +1,5 @@
 /**
- * @fileOverview Firebase Cloud Functions for integrating with Whop Payments.
- *
- * This file contains two main functions:
- * 1. `createWhopCheckoutSession`: A callable function that creates a checkout session
- *    with Whop and returns a URL for the client to redirect to.
- * 2. `handleWhopWebhook`: An HTTP function that listens for webhooks from Whop,
- *    specifically for the 'membership.created' event, to grant premium access to users.
+ * @fileOverview Firebase Cloud Functions for integrating with Whop Payments and a secure TTS service.
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/on-call");
@@ -34,26 +28,16 @@ const WHOP_PLANS = {
 
 /**
  * Creates a Whop checkout session for an authenticated user.
- *
- * This function must be called by an authenticated Firebase user. It passes the
- * user's Firebase UID to Whop in the metadata to link the payment to the user's account.
- *
- * @param {object} request - The request object from the client.
- * @param {string} request.data.planKey - The key of the plan to purchase (e.g., 'hobbyist_monthly').
- * @returns {Promise<{url: string}>} A promise that resolves with the checkout URL from Whop.
- * @throws {HttpsError} Throws 'unauthenticated' if the user is not logged in.
- * @throws {HttpsError} Throws 'invalid-argument' if 'planKey' is missing or invalid.
- * @throws {HttpsError} Throws 'internal' for any other errors during the process.
  */
 exports.createWhopCheckoutSession = onCall(async (request) => {
-    // 1. Security: Ensure the user is authenticated.
+    // Security: Ensure the user is authenticated.
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
     }
     const uid = request.auth.uid;
     const { planKey } = request.data;
 
-    // 2. Input Validation: Ensure planKey is provided and valid.
+    // Input Validation: Ensure planKey is provided and valid.
     if (!planKey || !WHOP_PLANS[planKey]) {
         throw new HttpsError("invalid-argument", "The function must be called with a valid 'planKey'.");
     }
@@ -62,13 +46,11 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
     logger.info(`Creating Whop checkout session for user: ${uid}, plan: ${planId} (key: ${planKey})`);
 
     try {
-        // 3. Action: Make a POST request to the Whop API.
         const response = await axios.post(
             'https://api.whop.com/v2/checkout_sessions',
             {
                 plan_id: planId,
                 metadata: {
-                    // 4. Metadata Requirement: Pass the Firebase UID.
                     firebase_uid: uid,
                 },
             },
@@ -90,7 +72,6 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
         
         logger.info(`Successfully created checkout session for UID: ${uid}. URL: ${checkoutUrl}`);
         
-        // 5. Return: Send the URL back to the client.
         return { url: checkoutUrl };
 
     } catch (error) {
@@ -105,12 +86,6 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
 
 /**
  * Handles incoming webhooks from Whop to update user subscriptions.
- *
- * This function listens for the 'membership.created' event and updates the
- * user's document in Firestore to grant premium access.
- *
- * @param {object} req - The HTTP request object.
- * @param {object} res - The HTTP response object.
  */
 exports.handleWhopWebhook = onRequest(async (req, res) => {
     if (req.method !== 'POST') {
@@ -121,11 +96,9 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
     
     const event = req.body;
     
-    // 1. Action: Listen for the 'membership.created' event.
     if (event.type === 'membership.created') {
         const membership = event.data.object;
         
-        // 2. Logic: Extract firebase_uid from metadata.
         const firebaseUid = membership.metadata ? membership.metadata.firebase_uid : null;
         const whopSubscriptionId = membership.id;
 
@@ -133,12 +106,11 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
             logger.info(`Processing 'membership.created' for Firebase UID: ${firebaseUid}, Whop Sub ID: ${whopSubscriptionId}`);
             
             try {
-                // 3. Database: Update the user's document in Firestore.
                 const userRef = db.collection('users').doc(firebaseUid);
                 await userRef.update({
                     isPremium: true,
                     whopSubscriptionId: whopSubscriptionId,
-                    planId: membership.plan.id, // Store plan ID for future reference
+                    planId: membership.plan.id, 
                 });
 
                 logger.info(`Successfully granted premium access to user: ${firebaseUid}`);
@@ -158,4 +130,59 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
         logger.info(`Received a Whop webhook event of type '${event.type}', which is not handled.`, { eventType: event.type });
         res.status(200).send({ message: `Event type '${event.type}' received but not handled.` });
     }
+});
+
+
+/**
+ * Securely generates TTS audio, with rate limiting and App Check enforcement.
+ */
+exports.generateTtsAudio = onCall({
+  // Part 4: Enforce App Check on the function.
+  // This is a crucial step. It ensures that only your authentic app instance
+  // can call this function, blocking unauthorized scripts, bots, or Postman requests.
+  enforceAppCheck: true,
+}, async (request) => {
+    
+    // Part 3.1: Check for authenticated user context.
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be logged in to generate audio.");
+    }
+    const uid = request.auth.uid;
+    const text = request.data.text;
+
+    if (!text || typeof text !== 'string' || text.length > 500) {
+        throw new HttpsError("invalid-argument", "Invalid text input. Must be a string under 500 characters.");
+    }
+
+    // Part 3.2: Implement Rate Limiting.
+    const now = admin.firestore.Timestamp.now();
+    const oneMinuteAgo = admin.firestore.Timestamp.fromMillis(now.toMillis() - 60000);
+
+    const requestsRef = db.collection('ttsRequests');
+    const recentRequestsQuery = requestsRef
+        .where('userId', '==', uid)
+        .where('createdAt', '>=', oneMinuteAgo);
+    
+    const recentRequestsSnapshot = await recentRequestsQuery.get();
+
+    if (recentRequestsSnapshot.size >= 5) {
+        throw new HttpsError("resource-exhausted", "You are making too many requests. Please try again in a minute.");
+    }
+
+    // --- Placeholder for your actual TTS API call ---
+    // Example: const audioData = await callYourTtsProvider(text);
+    // For this example, we'll simulate a successful generation.
+    logger.info(`User ${uid} is generating audio for text: "${text.substring(0, 30)}..."`);
+    const mockAudioUrl = `https://storage.googleapis.com/your-bucket-name/audio/${uid}/${Date.now()}.mp3`;
+    // --- End of placeholder ---
+
+    // Log the successful request to Firestore for future rate limit checks.
+    await requestsRef.add({
+        userId: uid,
+        text: text,
+        audioUrl: mockAudioUrl, // Store the URL to the generated audio
+        createdAt: now,
+    });
+
+    return { success: true, audioUrl: mockAudioUrl };
 });
