@@ -176,6 +176,15 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const [isClient, setIsClient] = React.useState(false)
+
+    React.useEffect(() => {
+        setIsClient(true)
+    }, [])
+
+    if (!isClient) {
+        return null; // or a placeholder/skeleton
+    }
 
     if (collapsible === "none") {
       return (
