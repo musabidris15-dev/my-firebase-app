@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock, Users } from 'lucide-react';
-import Link from 'next/link';
+import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock, Users, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { addDays, format, differenceInDays, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const now = new Date();
 
@@ -44,11 +45,15 @@ const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerC
 const creditUsagePercentage = (userProfile.creditsRemaining / totalCredits) * 100;
 const nextRenewalDate = userProfile.lastCreditRenewalDate ? addDays(userProfile.lastCreditRenewalDate, 30) : null;
 
+type PlanKey = 'hobbyist_monthly' | 'hobbyist_yearly' | 'creator_monthly' | 'creator_yearly';
+
 export default function ProfilePage() {
     const [copied, setCopied] = useState(false);
     const [billingCycle, setBillingCycle] = useState(userProfile.subscriptionTier || 'monthly');
     const [creatorGlow, setCreatorGlow] = useState(false);
     const [daysUntilPlanExpires, setDaysUntilPlanExpires] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState<PlanKey | null>(null);
+    const { toast } = useToast();
 
     const plansRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +91,32 @@ export default function ProfilePage() {
         plansRef.current?.scrollIntoView({ behavior: 'smooth' });
         setCreatorGlow(true);
         setTimeout(() => setCreatorGlow(false), 3000); // Glow for 3 seconds
+    };
+
+    const handlePurchase = async (planKey: PlanKey) => {
+        setIsLoading(planKey);
+        try {
+            const functions = getFunctions();
+            const createSession = httpsCallable(functions, 'createWhopCheckoutSession');
+            const result = await createSession({ planKey });
+            
+            const data = result.data as { url?: string };
+
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error('No checkout URL returned from server.');
+            }
+        } catch (error: any) {
+            console.error("Purchase Error:", error);
+            toast({
+                variant: 'destructive',
+                title: "Uh oh! Something went wrong.",
+                description: error.message || "Could not create a checkout session. Please try again.",
+            });
+        } finally {
+            setIsLoading(null);
+        }
     };
 
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 15 * 12 * 0.8;
@@ -240,14 +271,14 @@ export default function ProfilePage() {
                                         {userProfile.planId === 'hobbyist' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
-                                            <>
-                                                <Button className="w-full" asChild>
-                                                    <Link href="https://whop.com/checkout/PLACEHOLDER_HOBBYIST_PLAN_ID" target="_blank" rel="noopener noreferrer">
-                                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                                        Pay with Whop
-                                                    </Link>
-                                                </Button>
-                                            </>
+                                             <Button 
+                                                className="w-full"
+                                                onClick={() => handlePurchase(billingCycle === 'monthly' ? 'hobbyist_monthly' : 'hobbyist_yearly')}
+                                                disabled={isLoading !== null}
+                                            >
+                                                {isLoading === `hobbyist_${billingCycle}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+                                                Pay with Whop
+                                            </Button>
                                         )}
                                     </CardFooter>
                                 </Card>
@@ -275,14 +306,14 @@ export default function ProfilePage() {
                                          {userProfile.planId === 'creator' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
-                                            <>
-                                                <Button className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")} asChild>
-                                                  <Link href="https://whop.com/checkout/PLACEHOLDER_CREATOR_PLAN_ID" target="_blank" rel="noopener noreferrer">
-                                                    <ShoppingCart className="mr-2 h-4 w-4" />
-                                                    {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
-                                                  </Link>
-                                                </Button>
-                                            </>
+                                            <Button 
+                                                className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")}
+                                                onClick={() => handlePurchase(billingCycle === 'monthly' ? 'creator_monthly' : 'creator_yearly')}
+                                                disabled={isLoading !== null}
+                                            >
+                                                {isLoading === `creator_${billingCycle}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+                                                {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
+                                            </Button>
                                         )}
                                     </CardFooter>
                                 </Card>

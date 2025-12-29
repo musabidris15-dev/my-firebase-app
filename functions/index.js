@@ -8,7 +8,7 @@
  *    specifically for the 'membership.created' event, to grant premium access to users.
  */
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/on-call");
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const axios = require("axios");
@@ -24,6 +24,14 @@ if (!WHOP_API_KEY) {
     logger.error("WHOP_API_KEY environment variable not set. Functions will not work correctly.");
 }
 
+// Whop Plan IDs
+const WHOP_PLANS = {
+    hobbyist_monthly: 'plan_gumriTEj5ozKe',
+    hobbyist_yearly: 'plan_cGxf08gK0OBVC',
+    creator_monthly: 'plan_6VPgm0sLSThCZ',
+    creator_yearly: 'plan_Xh8nEVACfO2aS',
+};
+
 /**
  * Creates a Whop checkout session for an authenticated user.
  *
@@ -31,10 +39,10 @@ if (!WHOP_API_KEY) {
  * user's Firebase UID to Whop in the metadata to link the payment to the user's account.
  *
  * @param {object} request - The request object from the client.
- * @param {string} request.data.planId - The ID of the Whop plan to purchase.
+ * @param {string} request.data.planKey - The key of the plan to purchase (e.g., 'hobbyist_monthly').
  * @returns {Promise<{url: string}>} A promise that resolves with the checkout URL from Whop.
  * @throws {HttpsError} Throws 'unauthenticated' if the user is not logged in.
- * @throws {HttpsError} Throws 'invalid-argument' if 'planId' is missing.
+ * @throws {HttpsError} Throws 'invalid-argument' if 'planKey' is missing or invalid.
  * @throws {HttpsError} Throws 'internal' for any other errors during the process.
  */
 exports.createWhopCheckoutSession = onCall(async (request) => {
@@ -43,14 +51,15 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
         throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
     }
     const uid = request.auth.uid;
-    const { planId } = request.data;
+    const { planKey } = request.data;
 
-    // 2. Input Validation: Ensure planId is provided.
-    if (!planId) {
-        throw new HttpsError("invalid-argument", "The function must be called with a 'planId'.");
+    // 2. Input Validation: Ensure planKey is provided and valid.
+    if (!planKey || !WHOP_PLANS[planKey]) {
+        throw new HttpsError("invalid-argument", "The function must be called with a valid 'planKey'.");
     }
 
-    logger.info(`Creating Whop checkout session for user: ${uid}, plan: ${planId}`);
+    const planId = WHOP_PLANS[planKey];
+    logger.info(`Creating Whop checkout session for user: ${uid}, plan: ${planId} (key: ${planKey})`);
 
     try {
         // 3. Action: Make a POST request to the Whop API.
