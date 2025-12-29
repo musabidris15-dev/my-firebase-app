@@ -14,6 +14,7 @@ import { addDays, format, differenceInDays, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useFirebaseApp } from '@/firebase';
 
 const now = new Date();
 
@@ -54,6 +55,7 @@ export default function ProfilePage() {
     const [daysUntilPlanExpires, setDaysUntilPlanExpires] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState<PlanKey | null>(null);
     const { toast } = useToast();
+    const firebaseApp = useFirebaseApp();
 
     const plansRef = useRef<HTMLDivElement>(null);
 
@@ -96,7 +98,7 @@ export default function ProfilePage() {
     const handlePurchase = async (planKey: PlanKey) => {
         setIsLoading(planKey);
         try {
-            const functions = getFunctions();
+            const functions = getFunctions(firebaseApp);
             const createSession = httpsCallable(functions, 'createWhopCheckoutSession');
             const result = await createSession({ planKey });
             
