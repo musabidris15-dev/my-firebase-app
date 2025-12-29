@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -5,7 +6,6 @@ import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
-import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,8 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const MOBILE_BREAKPOINT = 768
+
 
 type SidebarContext = {
   state: "expanded" | "collapsed"
@@ -67,7 +69,19 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        const checkDevice = () => {
+        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+        };
+        checkDevice();
+        window.addEventListener('resize', checkDevice);
+        return () => {
+        window.removeEventListener('resize', checkDevice);
+        };
+    }, []);
+
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // This is the internal state of the sidebar.
@@ -183,7 +197,7 @@ const Sidebar = React.forwardRef<
     }, [])
 
     if (!isClient) {
-        return null; // or a placeholder/skeleton
+        return <div className="w-0 md:w-[--sidebar-width-icon] transition-all duration-200"></div>; // or a placeholder/skeleton
     }
 
     if (collapsible === "none") {

@@ -16,48 +16,59 @@ import { useToast } from '@/hooks/use-toast';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirebaseApp } from '@/firebase';
 
-const initialUserProfile = {
-    name: 'Hobbyist User',
-    email: 'hobbyist.user@example.com',
-    planId: 'hobbyist',
-    subscriptionTier: 'monthly',
-    creditsUsed: 85000,
-    creditsRemaining: 15000,
+type UserProfile = {
+    name: string;
+    email: string;
+    planId: string;
+    subscriptionTier: string;
+    creditsUsed: number;
+    creditsRemaining: number;
 };
 
-const getPlanDetails = (planId: string) => {
-    switch(planId) {
-        case 'creator':
-            return { totalCredits: 350000 };
-        case 'hobbyist':
-            return { totalCredits: 100000 };
-        default:
-            return { totalCredits: 1000 };
-    }
-}
-
-const { totalCredits } = getPlanDetails(initialUserProfile.planId);
-const referralLink = `https://geezvoice.app/join?ref=${initialUserProfile.name.toLowerCase().replace(' ', '-')}`;
-const creditUsagePercentage = (initialUserProfile.creditsRemaining / totalCredits) * 100;
-
+type PlanDetails = {
+    totalCredits: number;
+};
 
 type PlanKey = 'hobbyist_monthly' | 'hobbyist_yearly' | 'creator_monthly' | 'creator_yearly';
 
 export default function ProfilePage() {
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [planDetails, setPlanDetails] = useState<PlanDetails | null>(null);
     const [copied, setCopied] = useState(false);
-    const [billingCycle, setBillingCycle] = useState(initialUserProfile.subscriptionTier || 'monthly');
+    const [billingCycle, setBillingCycle] = useState('monthly');
     const [creatorGlow, setCreatorGlow] = useState(false);
     const [daysUntilPlanExpires, setDaysUntilPlanExpires] = useState<number | null>(null);
-    const [nextRenewalDate, setNextRenewalDate] = useState<Date | null>(null);
+    const [nextRenewalDate, setNextRenewalDate] = useState<string | null>(null);
     const [shouldShowRenewalMessage, setShouldShowRenewalMessage] = useState(false);
     const [isLoading, setIsLoading] = useState<PlanKey | null>(null);
     const { toast } = useToast();
     const firebaseApp = useFirebaseApp();
-
     const plansRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Defer all date-sensitive calculations to the client
+        // --- All data is now loaded on the client side ---
+        const initialProfile: UserProfile = {
+            name: 'Hobbyist User',
+            email: 'hobbyist.user@example.com',
+            planId: 'hobbyist',
+            subscriptionTier: 'monthly',
+            creditsUsed: 85000,
+            creditsRemaining: 15000,
+        };
+
+        const getPlanDetails = (planId: string): PlanDetails => {
+            switch(planId) {
+                case 'creator': return { totalCredits: 350000 };
+                case 'hobbyist': return { totalCredits: 100000 };
+                default: return { totalCredits: 1000 };
+            }
+        };
+        
+        setUserProfile(initialProfile);
+        setPlanDetails(getPlanDetails(initialProfile.planId));
+        setBillingCycle(initialProfile.subscriptionTier);
+
+        // Date-sensitive calculations
         const today = new Date();
         const subscriptionEndDate = new Date('2024-07-01T00:00:00Z');
         const lastCreditRenewalDate = new Date('2023-07-01T00:00:00Z');
@@ -70,35 +81,36 @@ export default function ProfilePage() {
         }
 
         if (lastCreditRenewalDate) {
-            setNextRenewalDate(addDays(lastCreditRenewalDate, 30));
+            setNextRenewalDate(format(addDays(lastCreditRenewalDate, 30), 'MMM d, yyyy'));
         }
     }, []);
 
+    const referralLink = userProfile ? `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}` : '';
+    const creditUsagePercentage = (userProfile && planDetails) ? (userProfile.creditsRemaining / planDetails.totalCredits) * 100 : 0;
 
     const getReferralBonus = () => {
-        switch (initialUserProfile.planId) {
-            case 'creator':
-                return '15%';
-            case 'hobbyist':
-                return '5%';
-            default:
-                return null;
+        if (!userProfile) return null;
+        switch (userProfile.planId) {
+            case 'creator': return '15%';
+            case 'hobbyist': return '5%';
+            default: return null;
         }
     };
 
     const referralBonus = getReferralBonus();
 
     const handleCopy = () => {
+        if (!referralLink) return;
         navigator.clipboard.writeText(referralLink).then(() => {
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+            setTimeout(() => setCopied(false), 2000);
         });
     };
     
     const handleUpgradeClick = () => {
         plansRef.current?.scrollIntoView({ behavior: 'smooth' });
         setCreatorGlow(true);
-        setTimeout(() => setCreatorGlow(false), 3000); // Glow for 3 seconds
+        setTimeout(() => setCreatorGlow(false), 3000);
     };
 
     const handlePurchase = async (planKey: PlanKey) => {
@@ -130,6 +142,21 @@ export default function ProfilePage() {
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 15 * 12 * 0.8;
     const creatorPrice = billingCycle === 'monthly' ? 39 : 39 * 12 * 0.8;
 
+    if (!userProfile || !planDetails) {
+        // Render a loading state or skeleton
+        return (
+            <div className="container mx-auto max-w-7xl">
+                 <header className="mb-10">
+                    <h1 className="text-4xl font-bold tracking-tight">Account & Subscription</h1>
+                    <p className="text-lg text-muted-foreground mt-2">Manage your account settings, subscription plan, and credit usage.</p>
+                </header>
+                <div className="flex justify-center items-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="container mx-auto max-w-7xl">
             <header className="mb-10">
@@ -148,12 +175,12 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-muted-foreground">Name</p>
-                                <p className="font-semibold">{initialUserProfile.name}</p>
+                                <p className="font-semibold">{userProfile.name}</p>
                             </div>
                             <Separator />
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-muted-foreground">Email Address</p>
-                                <p className="font-semibold">{initialUserProfile.email}</p>
+                                <p className="font-semibold">{userProfile.email}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -168,7 +195,7 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                              {referralBonus ? (
                                 <p className="text-sm text-muted-foreground">
-                                    As a <span className="font-semibold text-primary capitalize">{initialUserProfile.planId}</span> member, you'll earn a <span className="font-semibold">{referralBonus}</span> credit bonus for every new paid subscriber who signs up using your link.
+                                    As a <span className="font-semibold text-primary capitalize">{userProfile.planId}</span> member, you'll earn a <span className="font-semibold">{referralBonus}</span> credit bonus for every new paid subscriber who signs up using your link.
                                 </p>
                             ) : (
                                 <p className="text-sm text-muted-foreground">
@@ -207,16 +234,16 @@ export default function ProfilePage() {
                             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
-                                    <p className="text-xl font-bold text-primary capitalize">{initialUserProfile.planId}{initialUserProfile.subscriptionTier ? ` (${initialUserProfile.subscriptionTier})` : ''}</p>
+                                    <p className="text-xl font-bold text-primary capitalize">{userProfile.planId}{userProfile.subscriptionTier ? ` (${userProfile.subscriptionTier})` : ''}</p>
                                 </div>
-                                {initialUserProfile.planId !== 'creator' && <Button onClick={handleUpgradeClick}>Upgrade Plan</Button>}
+                                {userProfile.planId !== 'creator' && <Button onClick={handleUpgradeClick}>Upgrade Plan</Button>}
                             </div>
                             
                             <div>
                                 <div className="flex justify-between items-end mb-2">
                                     <h4 className="font-semibold text-lg">Character Credits</h4>
                                     <p className="text-sm text-muted-foreground">
-                                        <span className="font-bold text-foreground">{initialUserProfile.creditsRemaining.toLocaleString()}</span> remaining
+                                        <span className="font-bold text-foreground">{userProfile.creditsRemaining.toLocaleString()}</span> remaining
                                     </p>
                                 </div>
                                 <Progress value={creditUsagePercentage} className="h-3" />
@@ -225,12 +252,12 @@ export default function ProfilePage() {
                                         {nextRenewalDate ? (
                                             <>
                                                 <CalendarClock className="h-3 w-3" />
-                                                <span>Credits renew on {format(nextRenewalDate, 'MMM d, yyyy')}</span>
+                                                <span>Credits renew on {nextRenewalDate}</span>
                                             </>
                                         ) : <span>One-time credits</span>}
                                     </div>
                                     <span>
-                                        {initialUserProfile.creditsUsed.toLocaleString()} of {totalCredits.toLocaleString()} characters used
+                                        {userProfile.creditsUsed.toLocaleString()} of {planDetails.totalCredits.toLocaleString()} characters used
                                     </span>
                                 </div>
                             </div>
@@ -259,7 +286,7 @@ export default function ProfilePage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="grid md:grid-cols-2 gap-6">
-                                <Card className={`flex flex-col ${initialUserProfile.planId === 'hobbyist' ? 'border-primary' : ''}`}>
+                                <Card className={`flex flex-col ${userProfile.planId === 'hobbyist' ? 'border-primary' : ''}`}>
                                     <CardHeader>
                                         <CardTitle>Hobbyist</CardTitle>
                                         <CardDescription>Perfect for personal projects and getting started.</CardDescription>
@@ -276,7 +303,7 @@ export default function ProfilePage() {
                                         </ul>
                                     </CardContent>
                                     <CardFooter className="flex-col items-stretch space-y-2">
-                                        {initialUserProfile.planId === 'hobbyist' ? (
+                                        {userProfile.planId === 'hobbyist' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                              <Button 
@@ -290,7 +317,7 @@ export default function ProfilePage() {
                                         )}
                                     </CardFooter>
                                 </Card>
-                                <Card className={`flex flex-col ${initialUserProfile.planId === 'creator' ? 'border-primary' : ''}`}>
+                                <Card className={`flex flex-col ${userProfile.planId === 'creator' ? 'border-primary' : ''}`}>
                                    <CardHeader>
                                         <div className="flex justify-between items-center">
                                            <CardTitle>Creator</CardTitle>
@@ -311,7 +338,7 @@ export default function ProfilePage() {
                                         </ul>
                                     </CardContent>
                                     <CardFooter className="flex-col items-stretch space-y-2">
-                                         {initialUserProfile.planId === 'creator' ? (
+                                         {userProfile.planId === 'creator' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <Button 
@@ -320,7 +347,7 @@ export default function ProfilePage() {
                                                 disabled={isLoading !== null}
                                             >
                                                 {isLoading === `creator_${billingCycle}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                                                {initialUserProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
+                                                {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
                                             </Button>
                                         )}
                                     </CardFooter>
@@ -333,9 +360,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-    
-
-    
-
-
-    
