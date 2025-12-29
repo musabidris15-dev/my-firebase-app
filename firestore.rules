@@ -9,7 +9,7 @@
  * structure makes ownership-based security rules simple and performant.
  *
  * Key Security Decisions:
- * - User Enumeration is explicitly prevented by disallowing `list` operations on the top-level `/users` collection.
+ * - User Enumeration is explicitly prevented by disallowing `list` operations on the top-level `/users` collection, except for admins.
  * - All subcollections (`avatars`, `generatedVideos`) can only be read, listed, or written to by the user
  *   specified in the path's `{userId}` wildcard.
  * - The default security posture is deny-all. Access is only granted through specific `allow` rules.
@@ -17,9 +17,6 @@
  * Denormalization for Authorization: The hierarchical data structure naturally provides all necessary
  * authorization context in the document path (e.g., `/users/{userId}`). This avoids the need for costly `get()`
  * calls to other documents to verify ownership, resulting in faster and more scalable security rules.
- *
- * Structural Segregation: This pattern is not applicable as the application does not have a concept of
- * public vs. private data within the same collection. All data is inherently private to its owner.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -48,14 +45,6 @@ service cloud.firestore {
      */
     function isAdmin() {
       return isSignedIn() && request.auth.token.admin == true;
-    }
-
-    /**
-     * Checks for ownership on an existing document. Used for update and delete operations
-     * to prevent modifying or deleting documents that don't exist.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
     }
 
     // Prototyping Validation: Functions to enforce relational integrity without
@@ -103,7 +92,7 @@ service cloud.firestore {
      * Validates that the notification document being created has its recipient set.
      */
     function hasValidNotificationCreateData() {
-      return request.resource.data.recipient != null;
+      return request.resource.data.recipient != null && request.resource.data.title is string && request.resource.data.message is string;
     }
 
 
@@ -112,16 +101,15 @@ service cloud.firestore {
      * @path /users/{userId}
      * @allow (create) An authenticated user creating their own user document: auth.uid == 'user123', path == '/users/user123'.
      * @allow (get) An authenticated user reading their own profile: auth.uid == 'user123', path == '/users/user123'.
-     * @deny (list) Any user attempting to list all user documents to prevent user enumeration.
+     * @deny (list) Any user attempting to list all user documents to prevent user enumeration. Admins are exempt.
      * @deny (update) A user trying to update another user's profile: auth.uid == 'user456', path == '/users/user123'.
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId) && hasValidUserCreateData(userId);
-      allow update: if isExistingOwner(userId) || isAdmin();
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow create: if (isOwner(userId) && hasValidUserCreateData(userId)) || isAdmin();
+      allow update, delete: if isOwner(userId) || isAdmin();
 
       /**
        * @description Controls access to avatars, which are owned by a specific user.
@@ -133,11 +121,10 @@ service cloud.firestore {
        * @principle Enforces document ownership for all operations within a user's private subcollection.
        */
       match /avatars/{avatarId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidAvatarCreateData(userId);
-        allow update: if isExistingOwner(userId) && hasValidAvatarUpdateData();
-        allow delete: if isExistingOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create: if (isOwner(userId) && hasValidAvatarCreateData(userId)) || isAdmin();
+        allow update: if (isOwner(userId) && hasValidAvatarUpdateData()) || isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
 
         /**
          * @description Controls access to generated videos, which belong to a specific avatar owned by a user.
@@ -148,11 +135,10 @@ service cloud.firestore {
          * @principle Enforces transitive ownership; access to a nested document is granted based on ownership of the parent document.
          */
         match /generatedVideos/{generatedVideoId} {
-          allow get: if isOwner(userId);
-          allow list: if isOwner(userId);
-          allow create: if isOwner(userId) && hasValidVideoCreateData(avatarId);
-          allow update: if isExistingOwner(userId) && hasValidVideoUpdateData();
-          allow delete: if isExistingOwner(userId);
+          allow get, list: if isOwner(userId) || isAdmin();
+          allow create: if (isOwner(userId) && hasValidVideoCreateData(avatarId)) || isAdmin();
+          allow update: if (isOwner(userId) && hasValidVideoUpdateData()) || isAdmin();
+          allow delete: if isOwner(userId) || isAdmin();
         }
       }
     }
@@ -161,13 +147,13 @@ service cloud.firestore {
      * @description Controls access to notifications.
      * @path /notifications/{notificationId}
      * @allow (create) Only admins can create notifications.
-     * @allow (list) An authenticated user can list all broadcast notifications and notifications sent to them.
-     * @allow (get, update, delete) Admins can manage any notification. Users can update their own read status.
+     * @allow (get) An authenticated user can read broadcast notifications or notifications sent to them.
+     * @allow (update, delete) Admins can manage any notification.
      */
     match /notifications/{notificationId} {
         allow create: if isAdmin() && hasValidNotificationCreateData();
-        allow list: if isSignedIn();
-        allow get: if isSignedIn();
+        allow get: if isSignedIn() && (resource.data.recipient == 'all' || resource.data.recipient == request.auth.uid);
+        allow list: if isSignedIn(); // Allow listing for queries, client must filter.
         allow update, delete: if isAdmin();
     }
   }
