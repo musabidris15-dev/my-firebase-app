@@ -52,28 +52,25 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // This effect runs only on the client.
     setIsClient(true);
-    
-    // Sign in anonymously if not already signed in.
-    if (!isUserLoading && !user) {
-      signInAnonymously(auth);
-    }
-    
-    // Once user state is determined, load mock data.
     if (!isUserLoading) {
       if (user) {
-        // If a real user exists (even anonymous), create a profile for them.
         setUserProfile({
           name: user.isAnonymous ? 'Anonymous Guest' : user.email || 'User',
           email: user.isAnonymous ? `guest_${user.uid.substring(0, 6)}@example.com` : user.email!,
-          planId: 'hobbyist', // Default to hobbyist for display
+          planId: 'hobbyist', 
           creditsRemaining: 15000,
           totalCredits: 100000,
         });
       } else {
-        // Fallback to default mock profile if something went wrong.
-        setUserProfile(mockUserProfile);
+        // No user logged in, use default mock data for a logged-out state
+         setUserProfile({
+            name: 'Guest User',
+            email: 'guest@example.com',
+            planId: 'free',
+            creditsRemaining: 0,
+            totalCredits: 1000,
+        });
       }
       setNotifications(initialNotifications);
     }
