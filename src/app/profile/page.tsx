@@ -16,8 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirebaseApp } from '@/firebase';
 
-const now = new Date();
-
 const userProfile = {
     name: 'Hobbyist User',
     email: 'hobbyist.user@example.com',
@@ -44,7 +42,7 @@ const getPlanDetails = (planId: string) => {
 const { totalCredits } = getPlanDetails(userProfile.planId);
 const referralLink = `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}`;
 const creditUsagePercentage = (userProfile.creditsRemaining / totalCredits) * 100;
-const nextRenewalDate = userProfile.lastCreditRenewalDate ? addDays(userProfile.lastCreditRenewalDate, 30) : null;
+
 
 type PlanKey = 'hobbyist_monthly' | 'hobbyist_yearly' | 'creator_monthly' | 'creator_yearly';
 
@@ -53,6 +51,8 @@ export default function ProfilePage() {
     const [billingCycle, setBillingCycle] = useState(userProfile.subscriptionTier || 'monthly');
     const [creatorGlow, setCreatorGlow] = useState(false);
     const [daysUntilPlanExpires, setDaysUntilPlanExpires] = useState<number | null>(null);
+    const [nextRenewalDate, setNextRenewalDate] = useState<Date | null>(null);
+    const [shouldShowRenewalMessage, setShouldShowRenewalMessage] = useState(false);
     const [isLoading, setIsLoading] = useState<PlanKey | null>(null);
     const { toast } = useToast();
     const firebaseApp = useFirebaseApp();
@@ -60,13 +60,20 @@ export default function ProfilePage() {
     const plansRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        // Defer all date-sensitive calculations to the client
+        const today = new Date();
+        
         if (userProfile.subscriptionEndDate) {
-            const days = differenceInDays(userProfile.subscriptionEndDate, new Date());
+            const days = differenceInDays(userProfile.subscriptionEndDate, today);
+            const expiresSoon = isBefore(userProfile.subscriptionEndDate, addDays(today, 30));
             setDaysUntilPlanExpires(days > 0 ? days : 0);
+            setShouldShowRenewalMessage(expiresSoon && days > 0);
+        }
+
+        if (userProfile.lastCreditRenewalDate) {
+            setNextRenewalDate(addDays(userProfile.lastCreditRenewalDate, 30));
         }
     }, []);
-
-    const shouldShowRenewalMessage = userProfile.subscriptionEndDate && daysUntilPlanExpires !== null && isBefore(userProfile.subscriptionEndDate, addDays(new Date(), 30));
 
 
     const getReferralBonus = () => {
@@ -328,5 +335,8 @@ export default function ProfilePage() {
     );
 }
     
+
+    
+
 
     
