@@ -20,7 +20,7 @@ type UserProfile = {
     name: string;
     email: string;
     planId: string;
-    subscriptionTier: string;
+    subscriptionTier: string | null;
     creditsUsed: number;
     creditsRemaining: number;
 };
@@ -48,40 +48,41 @@ export default function ProfilePage() {
     useEffect(() => {
         // --- All data is now loaded on the client side ---
         const initialProfile: UserProfile = {
-            name: 'Hobbyist User',
-            email: 'hobbyist.user@example.com',
-            planId: 'hobbyist',
-            subscriptionTier: 'monthly',
-            creditsUsed: 85000,
-            creditsRemaining: 15000,
+            name: 'Free User',
+            email: 'free.user@example.com',
+            planId: 'free',
+            subscriptionTier: null,
+            creditsUsed: 0,
+            creditsRemaining: 1000,
         };
 
-        const getPlanDetails = (planId: string): PlanDetails => {
-            switch(planId) {
-                case 'creator': return { totalCredits: 350000 };
-                case 'hobbyist': return { totalCredits: 100000 };
-                default: return { totalCredits: 1000 };
-            }
+        const initialPlanDetails: PlanDetails = {
+            totalCredits: 1000
         };
         
         setUserProfile(initialProfile);
-        setPlanDetails(getPlanDetails(initialProfile.planId));
-        setBillingCycle(initialProfile.subscriptionTier);
+        setPlanDetails(initialPlanDetails);
+        setBillingCycle(initialProfile.subscriptionTier || 'monthly');
 
         // Date-sensitive calculations
         const today = new Date();
-        const subscriptionEndDate = new Date('2024-07-01T00:00:00Z');
-        const lastCreditRenewalDate = new Date('2023-07-01T00:00:00Z');
+        const subscriptionEndDate = null; // Free users don't have an end date
+        const lastCreditRenewalDate = null; // Free users don't have renewals
         
         if (subscriptionEndDate) {
             const days = differenceInDays(subscriptionEndDate, today);
             const expiresSoon = isBefore(subscriptionEndDate, addDays(today, 30));
             setDaysUntilPlanExpires(days > 0 ? days : 0);
             setShouldShowRenewalMessage(expiresSoon && days > 0);
+        } else {
+            setDaysUntilPlanExpires(null);
+            setShouldShowRenewalMessage(false);
         }
 
         if (lastCreditRenewalDate) {
             setNextRenewalDate(format(addDays(lastCreditRenewalDate, 30), 'MMM d, yyyy'));
+        } else {
+            setNextRenewalDate(null);
         }
     }, []);
 
@@ -241,7 +242,7 @@ export default function ProfilePage() {
                             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
-                                    <p className="text-xl font-bold text-primary capitalize">{userProfile.planId}{userProfile.subscriptionTier ? ` (${userProfile.subscriptionTier})` : ''}</p>
+                                    <p className="text-xl font-bold text-primary capitalize">{userProfile.planId === 'free' ? 'Free Tier' : userProfile.planId}{userProfile.subscriptionTier ? ` (${userProfile.subscriptionTier})` : ''}</p>
                                 </div>
                                 {userProfile.planId !== 'creator' && <Button onClick={handleUpgradeClick}>Upgrade Plan</Button>}
                             </div>
@@ -366,6 +367,8 @@ export default function ProfilePage() {
             </div>
         </div>
     );
+
+    
 
     
 
