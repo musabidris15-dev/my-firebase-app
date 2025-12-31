@@ -246,7 +246,6 @@ export default function TTSPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(result.audioDataUri); // Clean up object URL after download
       showStatus(`Download started! ${DOWNLOAD_COST} credits were used.`, 'success');
 
     } catch (error: any) {
