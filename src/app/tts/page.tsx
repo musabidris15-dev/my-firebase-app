@@ -382,39 +382,43 @@ export default function TTSPage() {
                     <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                 </Button>
 
-                {audioUrl && (
-                  <div className='space-y-6 pt-4 border-t'>
-                     <Card>
-                      <CardHeader>
-                        <CardTitle className='flex items-center gap-2'><Wand2 className='h-5 w-5 text-primary' />4. Customize Audio</CardTitle>
-                      </CardHeader>
-                      <CardContent className='space-y-6'>
-                        <div className="grid gap-4">
-                          <div className='space-y-2'>
-                            <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
-                            <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} />
-                          </div>
-                          <div className='space-y-2'>
-                            <Label htmlFor="echo">Echo ({customization.echo})</Label>
-                            <Slider id="echo" min={0} max={10} step={1} value={[customization.echo]} onValueChange={([val]) => setCustomization(c => ({...c, echo: val}))} />
-                          </div>
-                           <div className='space-y-2'>
-                            <Label htmlFor="reverb">Reverb ({customization.reverb})</Label>
-                            <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} />
-                          </div>
+                <div className='space-y-6 pt-4 border-t'>
+                   <Card className={!audioUrl ? 'bg-muted/50' : ''}>
+                    <CardHeader>
+                      <CardTitle className={cn('flex items-center gap-2', !audioUrl && 'text-muted-foreground')}>
+                        <Wand2 className={cn('h-5 w-5', audioUrl ? 'text-primary' : '')} />
+                        4. Customize Audio
+                      </CardTitle>
+                      {!audioUrl && <p className="text-sm text-muted-foreground pt-2">Generate an audio clip first to enable these controls.</p>}
+                    </CardHeader>
+                    <CardContent className='space-y-6'>
+                      <div className="grid gap-4">
+                        <div className='space-y-2'>
+                          <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
+                          <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} disabled={!audioUrl} />
                         </div>
+                        <div className='space-y-2'>
+                          <Label htmlFor="echo">Echo ({customization.echo})</Label>
+                          <Slider id="echo" min={0} max={10} step={1} value={[customization.echo]} onValueChange={([val]) => setCustomization(c => ({...c, echo: val}))} disabled={!audioUrl} />
+                        </div>
+                         <div className='space-y-2'>
+                          <Label htmlFor="reverb">Reverb ({customization.reverb})</Label>
+                          <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} disabled={!audioUrl} />
+                        </div>
+                      </div>
 
-                        <div className="flex flex-col sm:flex-row gap-4">
-                           <Button onClick={handlePreviewCustomization} disabled={isCustomizing || !audioUrl} className="w-full">
-                              {isCustomizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                              Preview Changes
-                          </Button>
-                          <Button onClick={handleDownload} disabled={isDownloading || !audioUrl} className="w-full">
-                              {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                              Download ({DOWNLOAD_COST.toLocaleString()} credits)
-                          </Button>
-                        </div>
-                        
+                      <div className="flex flex-col sm:flex-row gap-4">
+                         <Button onClick={handlePreviewCustomization} disabled={!audioUrl || isCustomizing} className="w-full">
+                            {isCustomizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Preview Changes
+                        </Button>
+                        <Button onClick={handleDownload} disabled={!audioUrl || isDownloading} className="w-full">
+                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download ({DOWNLOAD_COST.toLocaleString()} credits)
+                        </Button>
+                      </div>
+                      
+                      {audioUrl && (
                         <div className='space-y-4'>
                           <div>
                             <Label className="text-xs text-muted-foreground">Original Audio</Label>
@@ -427,10 +431,10 @@ export default function TTSPage() {
                             </div>
                           )}
                         </div>
-                      </CardContent>
-                     </Card>
-                  </div>
-                )}
+                      )}
+                    </CardContent>
+                   </Card>
+                </div>
                 
                 <StatusAlert />
             </CardContent>
@@ -442,3 +446,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
