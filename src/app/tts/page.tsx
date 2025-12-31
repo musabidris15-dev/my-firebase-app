@@ -9,11 +9,11 @@ import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, C
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // --- Voice Definitions ---
 const voices = {
@@ -72,14 +72,13 @@ type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'lo
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
 type CustomizationState = { pitch: number; echo: number; reverb: number; };
 
-const PREVIEW_TEXT = "ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መለወጫ መተግበሪያዎ። This is an example of a [happy](happy) expression.";
+const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
 const DOWNLOAD_COST = 500;
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
-  const [selectedExpression, setSelectedExpression] = useState(expressions[0].value);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
@@ -92,6 +91,7 @@ export default function TTSPage() {
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const customizedAudioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -150,7 +150,7 @@ export default function TTSPage() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: selectedExpression }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
       });
       const result = await response.json();
 
@@ -276,7 +276,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue, expression: 'Default' }),
+            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Preview failed.');
@@ -287,6 +287,26 @@ export default function TTSPage() {
         setPreviewError(`Preview for ${voiceValue} failed.`);
         setPreview({ voice: null, isPlaying: false, isLoading: false });
     }
+  };
+
+  const insertEmotionTag = (emotion: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const tag = `[${emotion}]`;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentText = textarea.value;
+
+    const newText = currentText.substring(0, start) + tag + ' ' + currentText.substring(end);
+    
+    setText(newText);
+    textarea.focus();
+    
+    // Move cursor after the inserted tag and space
+    setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + tag.length + 1;
+    }, 0);
   };
 
   const StatusAlert = () => {
@@ -317,36 +337,44 @@ export default function TTSPage() {
                 <p className="text-muted-foreground mt-2 text-lg">Convert text, add expressions, and apply audio effects.</p>
             </CardHeader>
             <CardContent className="p-6 md:p-8 space-y-6">
-                <div>
-                    <label htmlFor="text-to-speak" className="block text-sm font-medium text-muted-foreground mb-2">1. Enter text and expressions</label>
-                    <Textarea id="text-to-speak" rows={6} className="text-lg" placeholder="Use [phrase](emotion) for expressions..." value={text} onChange={(e) => setText(e.target.value)} />
+                <div className="space-y-2">
+                    <Label htmlFor="text-to-speak" className="text-sm font-medium text-muted-foreground">1. Enter your script</Label>
+                    <Textarea ref={textareaRef} id="text-to-speak" rows={6} className="text-lg" placeholder="Use emotion tags like [Happy] to set the tone..." value={text} onChange={(e) => setText(e.target.value)} />
                     <div className="text-right text-sm text-muted-foreground mt-2">{characterCount.toLocaleString()} characters</div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">2. Select a voice</label>
-                        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between text-lg h-auto p-3">
-                                {selectedVoice ? allVoices.find((voice) => voice.value === selectedVoice)?.name : "Select a voice..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+
+                <div className='space-y-2'>
+                    <Label className="text-sm font-medium text-muted-foreground">2. Add emotions to your script</Label>
+                    <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                        <div className="flex w-max space-x-2 p-2">
+                            {expressions.map(expression => (
+                                <Button key={expression.value} variant="outline" size="sm" onClick={() => insertEmotionTag(expression.label)}>
+                                    {expression.label}
                                 </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command><CommandInput placeholder="Search voice..." />
-                                    <CommandList>{previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}<CommandEmpty>No voice found.</CommandEmpty>
-                                        <CommandGroup heading="Female Voices">{voices.female.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
-                                        <CommandGroup heading="Male Voices">{voices.male.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                    <div>
-                        <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2">3. Set default emotion</label>
-                        <Select value={selectedExpression} onValueChange={setSelectedExpression}><SelectTrigger className="w-full text-lg h-auto p-3"><SelectValue placeholder="Select an expression" /></SelectTrigger><SelectContent>{expressions.map((expression) => (<SelectItem key={expression.value} value={expression.value}>{expression.label}</SelectItem>))}</SelectContent></Select>
-                    </div>
+                            ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                </div>
+                
+                <div>
+                    <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">3. Select a voice</Label>
+                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between text-lg h-auto p-3">
+                            {selectedVoice ? allVoices.find((voice) => voice.value === selectedVoice)?.name : "Select a voice..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command><CommandInput placeholder="Search voice..." />
+                                <CommandList>{previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}<CommandEmpty>No voice found.</CommandEmpty>
+                                    <CommandGroup heading="Female Voices">{voices.female.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
+                                    <CommandGroup heading="Male Voices">{voices.male.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 </div>
 
                 <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
@@ -358,7 +386,7 @@ export default function TTSPage() {
                   <div className='space-y-6 pt-4 border-t'>
                      <Card>
                       <CardHeader>
-                        <CardTitle className='flex items-center gap-2'><Wand2 className='h-5 w-5 text-primary' />Customize Audio</CardTitle>
+                        <CardTitle className='flex items-center gap-2'><Wand2 className='h-5 w-5 text-primary' />4. Customize Audio</CardTitle>
                       </CardHeader>
                       <CardContent className='space-y-6'>
                         <div className="grid gap-4">
@@ -414,5 +442,3 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    

@@ -7,9 +7,8 @@ import wav from 'wav';
 import { GenerateRequest } from 'genkit/generate';
 
 const TextToSpeechInputSchema = z.object({
-  text: z.string().describe('The text to convert to speech. Can include phrases like [text](expression) to specify emotions.'),
+  text: z.string().describe('The text to convert to speech. Can include tags like [expression] to specify emotions.'),
   voice: z.string().describe('The voice to use for the speech.'),
-  expression: z.string().optional().describe('The default emotional expression for the speech.'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
@@ -50,37 +49,46 @@ type TextSegment = {
     expression: string;
 };
 
-function parseText(text: string, defaultExpression: string): TextSegment[] {
+function parseTextWithEmotions(text: string): TextSegment[] {
     const segments: TextSegment[] = [];
-    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const regex = /\[([a-zA-Z\s]+)\]/g;
     let lastIndex = 0;
-    let match;
+    let currentEmotion = 'Default';
 
+    // Set default emotion if not specified at the beginning
+    if (!text.trim().startsWith('[')) {
+        text = '[Default] ' + text;
+    }
+    
+    let match;
     while ((match = regex.exec(text)) !== null) {
-        // Add text before the match
+        // Add text segment before the current match
         if (match.index > lastIndex) {
-            segments.push({
-                text: text.substring(lastIndex, match.index),
-                expression: defaultExpression,
-            });
+            const textSegment = text.substring(lastIndex, match.index).trim();
+            if (textSegment) {
+                segments.push({
+                    text: textSegment,
+                    expression: currentEmotion,
+                });
+            }
         }
-        // Add the matched text with its expression
-        segments.push({
-            text: match[1],
-            expression: match[2],
-        });
+        // Update current emotion
+        currentEmotion = match[1];
         lastIndex = regex.lastIndex;
     }
 
-    // Add any remaining text after the last match
+    // Add remaining text segment after the last match
     if (lastIndex < text.length) {
-        segments.push({
-            text: text.substring(lastIndex),
-            expression: defaultExpression,
-        });
+        const textSegment = text.substring(lastIndex).trim();
+        if (textSegment) {
+            segments.push({
+                text: textSegment,
+                expression: currentEmotion,
+            });
+        }
     }
-
-    return segments.filter(segment => segment.text.trim().length > 0);
+    
+    return segments;
 }
 
 
@@ -90,13 +98,12 @@ export const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text, voice, expression }) => {
+  async ({ text, voice }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
     
-    const defaultExpression = (expression && expression.toLowerCase() !== 'default') ? expression : '';
-    const segments = parseText(text, defaultExpression);
+    const segments = parseTextWithEmotions(text);
 
     const audioGenerationPromises = segments.map(async (segment) => {
         const expressionInstruction = (segment.expression && segment.expression.toLowerCase() !== 'default')
