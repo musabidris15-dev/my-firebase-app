@@ -15,7 +15,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Home, Mic, User, UserCircle, Bell, Shield } from 'lucide-react';
+import { Home, Mic, User, UserCircle, Bell, Shield, AudioLines, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -27,28 +27,12 @@ import { FirebaseClientProvider, useAuth, useUser } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 
-const initialNotifications = [
-    { id: 1, title: 'Welcome to Geez Voice!', message: 'Thanks for signing up. Explore our features and start creating.', read: false, date: '2 hours ago' },
-    { id: 2, title: 'New Voices Added', message: 'We have added 5 new Amharic voices to our library. Check them out!', read: false, date: '1 day ago' },
-    { id: 3, title: 'Maintenance Scheduled', message: 'We will be undergoing scheduled maintenance on Sunday at 2 AM.', read: true, date: '3 days ago' },
-];
-
-const mockUserProfile = {
-    name: 'Hobbyist User',
-    email: 'hobbyist.user@example.com',
-    planId: 'hobbyist',
-    creditsRemaining: 15000,
-    totalCredits: 100000,
-};
-
-type UserProfile = typeof mockUserProfile;
-type Notification = typeof initialNotifications[0];
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -63,7 +47,6 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           totalCredits: 100000,
         });
       } else {
-        // No user logged in, use default mock data for a logged-out state
          setUserProfile({
             name: 'Guest User',
             email: 'guest@example.com',
@@ -72,7 +55,11 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
             totalCredits: 1000,
         });
       }
-      setNotifications(initialNotifications);
+      setNotifications([
+          { id: 1, title: 'Welcome to Geez Voice!', message: 'Thanks for signing up. Explore our features and start creating.', read: false, date: '2 hours ago' },
+          { id: 2, title: 'New Voices Added', message: 'We have added 5 new Amharic voices to our library. Check them out!', read: false, date: '1 day ago' },
+          { id: 3, title: 'Maintenance Scheduled', message: 'We will be undergoing scheduled maintenance on Sunday at 2 AM.', read: true, date: '3 days ago' },
+      ]);
     }
   }, [isUserLoading, user, auth]);
 
@@ -108,7 +95,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {/*
+            
             <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Voice Changer">
                 <Link href="/voice-changer">
@@ -125,7 +112,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            */}
+            
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
