@@ -1,19 +1,20 @@
+
 'use server';
 
 import { ai } from '@/app/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
 
-const VoiceChangerInputSchema = z.object({
+const AudioEffectsInputSchema = z.object({
   audioDataUri: z.string().describe("The user's audio to be transformed, as a data URI."),
   effect: z.string().describe('The voice effect to apply (e.g., "robot", "celebrity").'),
 });
-export type VoiceChangerInput = z.infer<typeof VoiceChangerInputSchema>;
+export type AudioEffectsInput = z.infer<typeof AudioEffectsInputSchema>;
 
-const VoiceChangerOutputSchema = z.object({
+const AudioEffectsOutputSchema = z.object({
   audioDataUri: z.string().describe('The transformed audio as a WAV data URI.'),
 });
-export type VoiceChangerOutput = z.infer<typeof VoiceChangerOutputSchema>;
+export type AudioEffectsOutput = z.infer<typeof AudioEffectsOutputSchema>;
 
 async function toWav(
   pcmData: Buffer,
@@ -42,25 +43,11 @@ async function toWav(
   });
 }
 
-const changeVoicePrompt = ai.definePrompt({
-    name: 'voiceChangerPrompt',
-    input: { schema: VoiceChangerInputSchema },
-    prompt: `You are an expert audio engineer. Your task is to transform the provided audio by applying a voice effect.
-    
-The desired effect is: {{{effect}}}
-
-You will receive an audio file. Process it and respond with ONLY the transformed audio. Do not add any conversational text or introductions.
-    
-Audio to transform: {{media url=audioDataUri}}
-`,
-});
-
-
-export const voiceChangerFlow = ai.defineFlow(
+export const audioEffectsFlow = ai.defineFlow(
   {
-    name: 'voiceChangerFlow',
-    inputSchema: VoiceChangerInputSchema,
-    outputSchema: VoiceChangerOutputSchema,
+    name: 'audioEffectsFlow',
+    inputSchema: AudioEffectsInputSchema,
+    outputSchema: AudioEffectsOutputSchema,
   },
   async (input) => {
     if (!process.env.GEMINI_API_KEY) {
@@ -68,7 +55,7 @@ export const voiceChangerFlow = ai.defineFlow(
     }
     
     const { media } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-image-preview', // Corrected model
+      model: 'googleai/gemini-2.5-flash-image-preview', // This model can handle audio-to-audio
       config: {
         responseModalities: ['AUDIO'],
       },
@@ -79,7 +66,7 @@ export const voiceChangerFlow = ai.defineFlow(
     });
 
     if (!media || !media.url) {
-      throw new Error('No media returned from the voice changer model.');
+      throw new Error('No media returned from the audio effects model.');
     }
     
     const audioDataUrl = media.url;

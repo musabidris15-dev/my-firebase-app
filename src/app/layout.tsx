@@ -15,7 +15,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Home, Mic, User, UserCircle, Bell, Shield, AudioLines, Image as ImageIcon } from 'lucide-react';
+import { Home, Mic, User, UserCircle, Bell, Shield } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { FirebaseClientProvider, useAuth, useUser } from '@/firebase';
 import { useEffect, useState } from 'react';
-import { signInAnonymously } from 'firebase/auth';
+import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
@@ -37,7 +37,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
-    if (!isUserLoading) {
+    if (!isUserLoading && auth) {
       if (user) {
         setUserProfile({
           name: user.isAnonymous ? 'Anonymous Guest' : user.email || 'User',
@@ -47,13 +47,8 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           totalCredits: 100000,
         });
       } else {
-         setUserProfile({
-            name: 'Guest User',
-            email: 'guest@example.com',
-            planId: 'free',
-            creditsRemaining: 0,
-            totalCredits: 1000,
-        });
+         // Automatically sign in a default user for demonstration
+         initiateEmailSignIn(auth, 'abebe.bikila@example.com', 'password123');
       }
       setNotifications([
           { id: 1, title: 'Welcome to Geez Voice!', message: 'Thanks for signing up. Explore our features and start creating.', read: false, date: '2 hours ago' },
@@ -95,24 +90,6 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Voice Changer">
-                <Link href="/voice-changer">
-                  <AudioLines />
-                  <span>Voice Changer</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Image Generation">
-                <Link href="/image-generation">
-                  <ImageIcon />
-                  <span>Image Generation</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
