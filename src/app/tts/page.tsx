@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -88,7 +88,7 @@ type PreviewState = {
     isLoading: boolean;
 };
 
-const PREVIEW_TEXT = "ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መለወጫ መተግበሪያዎ።";
+const PREVIEW_TEXT = "ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መለወጫ መተግበሪያዎ። This is an example of a [happy](happy) expression.";
 const MOCK_USER_CREDITS = 1000;
 
 
@@ -248,7 +248,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: PREVIEW_TEXT, voice: voiceValue, expression: 'Default' }),
+            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue, expression: 'Default' }),
         });
         const result = await response.json();
 
@@ -329,7 +329,7 @@ export default function TTSPage() {
         <Card className="shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Text to Speech</CardTitle>
-                <p className="text-muted-foreground mt-2 text-lg">Convert text into natural-sounding speech.</p>
+                <p className="text-muted-foreground mt-2 text-lg">Convert text into natural-sounding speech. Use [phrase](emotion) to add expression.</p>
             </CardHeader>
             <CardContent className="p-6 md:p-8 space-y-6">
                 <div>
@@ -443,7 +443,7 @@ export default function TTSPage() {
                     </div>
 
                     <div>
-                        <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2">Select Emotion</label>
+                        <label htmlFor="expression-select" className="block text-sm font-medium text-muted-foreground mb-2">Default Emotion</label>
                         <ExpressionSelector />
                     </div>
                 </div>
