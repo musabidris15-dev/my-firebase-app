@@ -5,16 +5,18 @@ import { ai } from '@/app/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
 
-const AudioEffectsInputSchema = z.object({
-  audioDataUri: z.string().describe("The user's audio to be transformed, as a data URI."),
-  effect: z.string().describe('The voice effect to apply (e.g., "robot", "celebrity").'),
+const CustomizeAudioInputSchema = z.object({
+  audioDataUri: z.string().describe("The generated audio to be transformed, as a data URI."),
+  pitch: z.number().min(-10).max(10).default(0).describe('The pitch shift level, from -10 to 10.'),
+  echo: z.number().min(0).max(10).default(0).describe('The echo level, from 0 to 10.'),
+  reverb: z.number().min(0).max(10).default(0).describe('The reverb level, from 0 to 10.'),
 });
-export type AudioEffectsInput = z.infer<typeof AudioEffectsInputSchema>;
+export type CustomizeAudioInput = z.infer<typeof CustomizeAudioInputSchema>;
 
-const AudioEffectsOutputSchema = z.object({
+const CustomizeAudioOutputSchema = z.object({
   audioDataUri: z.string().describe('The transformed audio as a WAV data URI.'),
 });
-export type AudioEffectsOutput = z.infer<typeof AudioEffectsOutputSchema>;
+export type CustomizeAudioOutput = z.infer<typeof CustomizeAudioOutputSchema>;
 
 async function toWav(
   pcmData: Buffer,
@@ -43,30 +45,51 @@ async function toWav(
   });
 }
 
-export const audioEffectsFlow = ai.defineFlow(
+function buildPrompt(input: CustomizeAudioInput): string {
+    const effects: string[] = [];
+    if (input.pitch !== 0) {
+        effects.push(`a pitch shift of ${input.pitch}`);
+    }
+    if (input.echo > 0) {
+        effects.push(`an echo effect with a level of ${input.echo}/10`);
+    }
+    if (input.reverb > 0) {
+        effects.push(`a reverb effect with a level of ${input.reverb}/10`);
+    }
+
+    if (effects.length === 0) {
+        return "You are an expert audio engineer. Your task is to return the provided audio without any changes. Respond with ONLY the audio.";
+    }
+
+    return `You are an expert audio engineer. Your task is to transform the provided audio by applying the following effects: ${effects.join(', ')}. Respond with ONLY the transformed audio. Do not add any conversational text or introductions.`;
+}
+
+export const customizeAudioFlow = ai.defineFlow(
   {
-    name: 'audioEffectsFlow',
-    inputSchema: AudioEffectsInputSchema,
-    outputSchema: AudioEffectsOutputSchema,
+    name: 'customizeAudioFlow',
+    inputSchema: CustomizeAudioInputSchema,
+    outputSchema: CustomizeAudioOutputSchema,
   },
   async (input) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
     
+    const promptText = buildPrompt(input);
+
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image-preview', // This model can handle audio-to-audio
       config: {
         responseModalities: ['AUDIO'],
       },
       prompt: [
-        {text: `You are an expert audio engineer. Your task is to transform the provided audio by applying a voice effect. The desired effect is: ${input.effect}. Respond with ONLY the transformed audio. Do not add any conversational text or introductions.`},
+        {text: promptText},
         {media: {url: input.audioDataUri}}
       ],
     });
 
     if (!media || !media.url) {
-      throw new Error('No media returned from the audio effects model.');
+      throw new Error('No media returned from the audio customization model.');
     }
     
     const audioDataUrl = media.url;

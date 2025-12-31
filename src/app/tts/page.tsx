@@ -5,13 +5,15 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 
 // --- Voice Definitions ---
 const voices = {
@@ -66,29 +68,25 @@ const expressions = [
     { value: 'Professional', label: 'Professional' }, { value: 'Podcast Host', label: 'Podcast Host' },
 ];
 
-const audioEffects = [
-  { id: 'none', name: 'None' }, { id: 'robot', name: 'Robot' },
-  { id: 'alien', name: 'Alien' }, { id: 'deep', name: 'Deep Voice' },
-  { id: 'high-pitch', name: 'High Pitch' }, { id: 'echo', name: 'Echo Chamber' },
-  { id: 'reverb', name: 'Reverb' }, { id: 'movie-character', name: 'Movie Character' },
-  { id: 'anime-character', name: 'Anime Character' }, { id: 'celebrity', name: 'Celebrity' },
-];
-
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
+type CustomizationState = { pitch: number; echo: number; reverb: number; };
 
 const PREVIEW_TEXT = "ሰላም! ይህ ግዕዝ ነው፣ የአማርኛ ጽሑፍ ወደ ንግግር መለወጫ መተግበሪያዎ። This is an example of a [happy](happy) expression.";
-const MOCK_USER_CREDITS = 1000;
+const MOCK_USER_CREDITS = 20000;
+const DOWNLOAD_COST = 500;
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
   const [selectedExpression, setSelectedExpression] = useState(expressions[0].value);
-  const [selectedEffect, setSelectedEffect] = useState(audioEffects[0].id);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
+  const [customization, setCustomization] = useState<CustomizationState>({ pitch: 0, echo: 0, reverb: 0 });
+
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -108,22 +106,11 @@ export default function TTSPage() {
         player.src = '';
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
   
-  const setUiLoading = (loading: boolean) => {
-    setIsLoading(loading);
-    if (loading) {
-      showStatus('Generating audio... Please wait...', 'loading');
-      setAudioUrl('');
-    } else if (status.type === 'loading') {
-        showStatus(null, null);
-    }
-  };
-
-  const handleSpeak = async () => {
+  const handleGenerate = async () => {
     if (audioPlayerRef.current) {
         audioPlayerRef.current.pause();
         audioPlayerRef.current.src = '';
@@ -132,26 +119,26 @@ export default function TTSPage() {
 
     const trimmedText = text.trim();
     const characterCount = trimmedText.length;
-    const effectCost = selectedEffect !== 'none' ? 500 : 0;
-    const totalCost = characterCount + effectCost;
 
     if (characterCount < 2) {
         showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
         return;
     }
-    if (totalCost > userCredits) {
-        showStatus(`Error: Insufficient credits. This action requires ${totalCost.toLocaleString()} credits, but you only have ${userCredits.toLocaleString()}.`, 'error');
+    if (characterCount > userCredits) {
+        showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userCredits.toLocaleString()}.`, 'error');
         return;
     }
     
-    setUiLoading(true);
-    setUserCredits(prev => prev - totalCost);
+    setIsLoading(true);
+    showStatus('Generating audio... Please wait...', 'loading');
+    setAudioUrl('');
+    setUserCredits(prev => prev - characterCount);
 
     try {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: selectedExpression, effect: selectedEffect }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, expression: selectedExpression }),
       });
       const result = await response.json();
 
@@ -164,7 +151,7 @@ export default function TTSPage() {
       
       if (result.audioDataUri) {
           setAudioUrl(result.audioDataUri);
-          showStatus(`Audio generated successfully! ${totalCost.toLocaleString()} credits were used.`, 'success');
+          showStatus(`Audio generated successfully! ${characterCount.toLocaleString()} credits were used.`, 'success');
       } else {
           throw new Error('API response did not contain valid audio data.');
       }
@@ -174,9 +161,48 @@ export default function TTSPage() {
         if (error.message.includes("API key not valid")) errorMessage = "Error: Your API key is not valid. Please set it in the .env file.";
         if (error.message.includes("not valid JSON")) errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         showStatus(errorMessage, 'error');
-        setUserCredits(prev => prev + totalCost); // Refund credits on failure
+        setUserCredits(prev => prev + characterCount); // Refund credits on failure
     } finally {
-        setUiLoading(false);
+        setIsLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!audioUrl) {
+      showStatus('Error: Please generate audio before downloading.', 'error');
+      return;
+    }
+    if (DOWNLOAD_COST > userCredits) {
+      showStatus(`Error: Insufficient credits. Downloading requires ${DOWNLOAD_COST} credits.`, 'error');
+      return;
+    }
+
+    setIsDownloading(true);
+    showStatus('Applying customizations and preparing download...', 'loading');
+    setUserCredits(prev => prev - DOWNLOAD_COST);
+
+    try {
+      const response = await fetch('/api/customize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioDataUri: audioUrl, ...customization }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to customize audio.');
+
+      const link = document.createElement('a');
+      link.href = result.audioDataUri;
+      link.download = `geez-voice-${new Date().getTime()}.wav`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showStatus(`Download started! ${DOWNLOAD_COST} credits were used.`, 'success');
+
+    } catch (error: any) {
+      showStatus(`Error: ${error.message}`, 'error');
+      setUserCredits(prev => prev + DOWNLOAD_COST); // Refund
+    } finally {
+      setIsDownloading(false);
     }
   };
   
@@ -232,7 +258,6 @@ export default function TTSPage() {
   }
   
   const characterCount = text.length;
-  const totalCost = characterCount + (selectedEffect !== 'none' ? 500 : 0);
 
   return (
     <div className="container mx-auto max-w-3xl">
@@ -274,28 +299,46 @@ export default function TTSPage() {
                     </div>
                 </div>
 
-                 <div>
-                    <label htmlFor="effect-select" className="block text-sm font-medium text-muted-foreground mb-2">4. Apply audio effect (optional)</label>
-                    <Select value={selectedEffect} onValueChange={setSelectedEffect}>
-                        <SelectTrigger className="w-full text-lg h-auto p-3">
-                            <SelectValue placeholder="Select an effect" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {audioEffects.map((effect) => (
-                                <SelectItem key={effect.id} value={effect.id}>
-                                    {effect.name} {effect.id !== 'none' && '(+500 credits)'}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleSpeak} disabled={isLoading}>
+                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
                     {isLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
-                    <span>Generate Audio ({totalCost.toLocaleString()} credits)</span>
+                    <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                 </Button>
 
-                {audioUrl && (<div className="w-full pt-4"><audio ref={audioPlayerRef} src={audioUrl} controls className="w-full"></audio></div>)}
+                {audioUrl && (
+                  <div className='space-y-6 pt-4 border-t'>
+                     <Card>
+                      <CardHeader>
+                        <CardTitle className='flex items-center gap-2'><Wand2 className='h-5 w-5 text-primary' />Customize Audio</CardTitle>
+                      </CardHeader>
+                      <CardContent className='space-y-6'>
+                        <div className="grid gap-4">
+                          <div className='space-y-2'>
+                            <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
+                            <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} />
+                          </div>
+                          <div className='space-y-2'>
+                            <Label htmlFor="echo">Echo ({customization.echo})</Label>
+                            <Slider id="echo" min={0} max={10} step={1} value={[customization.echo]} onValueChange={([val]) => setCustomization(c => ({...c, echo: val}))} />
+                          </div>
+                           <div className='space-y-2'>
+                            <Label htmlFor="reverb">Reverb ({customization.reverb})</Label>
+                            <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} />
+                          </div>
+                        </div>
+                         <div className="w-full pt-4">
+                            <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full"></audio>
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                         <Button onClick={handleDownload} disabled={isDownloading} className="w-full">
+                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download Customized Audio ({DOWNLOAD_COST.toLocaleString()} credits)
+                        </Button>
+                      </CardFooter>
+                     </Card>
+                  </div>
+                )}
+                
                 <StatusAlert />
             </CardContent>
              <CardFooter className="flex justify-center items-center text-sm text-muted-foreground p-4 border-t">
