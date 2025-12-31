@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2 } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -86,8 +86,11 @@ export default function TTSPage() {
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
   const [customization, setCustomization] = useState<CustomizationState>({ pitch: 0, echo: 0, reverb: 0 });
+  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [customizedAudioUrl, setCustomizedAudioUrl] = useState('');
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const customizedAudioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
@@ -100,6 +103,7 @@ export default function TTSPage() {
     player.addEventListener('ended', onEnded);
     return () => {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
+      if (customizedAudioUrl) URL.revokeObjectURL(customizedAudioUrl);
       if (player) {
         player.removeEventListener('ended', onEnded);
         player.pause();
@@ -115,7 +119,15 @@ export default function TTSPage() {
         audioPlayerRef.current.pause();
         audioPlayerRef.current.src = '';
     }
+    if (customizedAudioPlayerRef.current) {
+        customizedAudioPlayerRef.current.pause();
+        customizedAudioPlayerRef.current.src = '';
+    }
     if (audioUrl) URL.revokeObjectURL(audioUrl);
+    if (customizedAudioUrl) URL.revokeObjectURL(customizedAudioUrl);
+    setAudioUrl('');
+    setCustomizedAudioUrl('');
+
 
     const trimmedText = text.trim();
     const characterCount = trimmedText.length;
@@ -131,7 +143,7 @@ export default function TTSPage() {
     
     setIsLoading(true);
     showStatus('Generating audio... Please wait...', 'loading');
-    setAudioUrl('');
+    
     setUserCredits(prev => prev - characterCount);
 
     try {
@@ -167,6 +179,44 @@ export default function TTSPage() {
     }
   };
 
+  const handlePreviewCustomization = async () => {
+    if (!audioUrl) return;
+    if (customizedAudioPlayerRef.current) {
+        customizedAudioPlayerRef.current.pause();
+        customizedAudioPlayerRef.current.src = '';
+    }
+     if (customizedAudioUrl) {
+        URL.revokeObjectURL(customizedAudioUrl);
+        setCustomizedAudioUrl('');
+    }
+
+    setIsCustomizing(true);
+    showStatus('Applying customizations for preview...', 'loading');
+
+    try {
+      const response = await fetch('/api/customize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioDataUri: audioUrl, ...customization }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to customize audio.');
+
+      setCustomizedAudioUrl(result.audioDataUri);
+      showStatus(`Preview ready.`, 'success');
+    } catch (error: any) {
+      showStatus(`Error: ${error.message}`, 'error');
+    } finally {
+      setIsCustomizing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (customizedAudioUrl && customizedAudioPlayerRef.current) {
+      customizedAudioPlayerRef.current.play();
+    }
+  }, [customizedAudioUrl]);
+
   const handleDownload = async () => {
     if (!audioUrl) {
       showStatus('Error: Please generate audio before downloading.', 'error');
@@ -178,7 +228,7 @@ export default function TTSPage() {
     }
 
     setIsDownloading(true);
-    showStatus('Applying customizations and preparing download...', 'loading');
+    showStatus('Applying final customizations and preparing download...', 'loading');
     setUserCredits(prev => prev - DOWNLOAD_COST);
 
     try {
@@ -196,6 +246,7 @@ export default function TTSPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(result.audioDataUri); // Clean up object URL after download
       showStatus(`Download started! ${DOWNLOAD_COST} credits were used.`, 'success');
 
     } catch (error: any) {
@@ -325,16 +376,31 @@ export default function TTSPage() {
                             <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} />
                           </div>
                         </div>
-                         <div className="w-full pt-4">
-                            <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full"></audio>
+
+                        <div className="flex flex-col sm:flex-row gap-4">
+                           <Button onClick={handlePreviewCustomization} disabled={isCustomizing || !audioUrl} className="w-full">
+                              {isCustomizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                              Preview Changes
+                          </Button>
+                          <Button onClick={handleDownload} disabled={isDownloading || !audioUrl} className="w-full">
+                              {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                              Download ({DOWNLOAD_COST.toLocaleString()} credits)
+                          </Button>
+                        </div>
+                        
+                        <div className='space-y-4'>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Original Audio</Label>
+                            <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
+                          </div>
+                          {customizedAudioUrl && (
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Customized Preview</Label>
+                              <audio ref={customizedAudioPlayerRef} src={customizedAudioUrl} controls className="w-full h-10 mt-1"></audio>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
-                      <CardFooter>
-                         <Button onClick={handleDownload} disabled={isDownloading} className="w-full">
-                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download Customized Audio ({DOWNLOAD_COST.toLocaleString()} credits)
-                        </Button>
-                      </CardFooter>
                      </Card>
                   </div>
                 )}
@@ -349,3 +415,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
