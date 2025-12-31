@@ -46,43 +46,36 @@ export default function ProfilePage() {
     const plansRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // --- All data is now loaded on the client side ---
         const initialProfile: UserProfile = {
-            name: 'Free User',
-            email: 'free.user@example.com',
-            planId: 'free',
-            subscriptionTier: null,
-            creditsUsed: 0,
-            creditsRemaining: 1000,
+            name: 'Abebe Bikila',
+            email: 'abebe.bikila@example.com',
+            planId: 'creator',
+            subscriptionTier: 'yearly',
+            creditsUsed: 230000,
+            creditsRemaining: 120000,
         };
 
         const initialPlanDetails: PlanDetails = {
-            totalCredits: 1000
+            totalCredits: 350000
         };
         
         setUserProfile(initialProfile);
         setPlanDetails(initialPlanDetails);
         setBillingCycle(initialProfile.subscriptionTier || 'monthly');
 
-        // Date-sensitive calculations
         const today = new Date();
-        const subscriptionEndDate = null; // Free users don't have an end date
-        const lastCreditRenewalDate = null; // Free users don't have renewals
+        const subscriptionEndDate = addDays(new Date('2023-01-15'), 365);
+        const lastCreditRenewalDate = new Date('2023-07-01');
         
         if (subscriptionEndDate) {
             const days = differenceInDays(subscriptionEndDate, today);
             const expiresSoon = isBefore(subscriptionEndDate, addDays(today, 30));
             setDaysUntilPlanExpires(days > 0 ? days : 0);
             setShouldShowRenewalMessage(expiresSoon && days > 0);
-        } else {
-            setDaysUntilPlanExpires(null);
-            setShouldShowRenewalMessage(false);
         }
 
         if (lastCreditRenewalDate) {
             setNextRenewalDate(format(addDays(lastCreditRenewalDate, 30), 'MMM d, yyyy'));
-        } else {
-            setNextRenewalDate(null);
         }
     }, []);
 
@@ -151,7 +144,6 @@ export default function ProfilePage() {
     const creatorPrice = billingCycle === 'monthly' ? 39 : 39 * 12 * 0.8;
 
     if (!userProfile || !planDetails) {
-        // Render a loading state or skeleton
         return (
             <div className="container mx-auto max-w-7xl">
                  <header className="mb-10">
@@ -173,7 +165,6 @@ export default function ProfilePage() {
             </header>
 
             <div className="grid gap-8 lg:grid-cols-3">
-                {/* Left Column */}
                 <div className="lg:col-span-1 space-y-8">
                      <Card>
                         <CardHeader>
@@ -222,7 +213,6 @@ export default function ProfilePage() {
                     </Card>
                 </div>
                 
-                {/* Right Column */}
                 <div className="lg:col-span-2 space-y-8">
                     <Card>
                         <CardHeader>
@@ -272,7 +262,6 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
                     
-                    {/* Pricing Plans */}
                     <div ref={plansRef}>
                         <Card>
                              <CardHeader>
@@ -367,9 +356,4 @@ export default function ProfilePage() {
             </div>
         </div>
     );
-
-    
-
-    
-
-    
+}

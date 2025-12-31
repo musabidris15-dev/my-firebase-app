@@ -12,27 +12,12 @@ import { Button } from '@/components/ui/button';
 import {
   ArrowLeft,
   User,
-  Mail,
   Shield,
-  Zap,
-  Gift,
-  Users,
-  CreditCard,
-  ChevronDown,
-  ChevronUp,
-  PlusCircle,
-  MinusCircle,
   Copy,
   Check,
-  LogIn,
-  Calendar,
-  Power,
   DollarSign,
   BarChart,
   History,
-  Voicemail,
-  CheckCircle,
-  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -44,7 +29,6 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Collapsible,
   CollapsibleContent,
@@ -53,6 +37,7 @@ import {
 import { useState, useMemo } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const MOCK_USER_DETAILS = {
   usr_1: {
@@ -187,8 +172,9 @@ const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}
                         {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                     </Pie>
                     <Tooltip contentStyle={{
-                        background: 'hsl(var(--background))',
+                        background: 'hsl(var(--card-background))',
                         borderColor: 'hsl(var(--border))',
+                        color: 'hsl(var(--card-foreground))',
                         borderRadius: 'var(--radius)'
                     }}/>
                 </PieChart>
@@ -215,8 +201,6 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
       setTimeout(() => setCopied(false), 2000);
     });
   };
-
-  const creditUsagePercentage = (user.credits / user.totalCredits) * 100;
 
   return (
     <div className="container mx-auto max-w-6xl">
@@ -421,5 +405,3 @@ export default function UserDetailPage({ params }: { params: { userId: string } 
     </div>
   );
 }
-    
-    

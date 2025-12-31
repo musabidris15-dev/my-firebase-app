@@ -81,7 +81,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-              <div className="bg-background p-4 rounded-lg shadow-md">
+              <div className="bg-card p-4 rounded-lg shadow-md">
                 <Image
                   src="https://picsum.photos/seed/coffee-ceremony/600/400"
                   width={600}
@@ -92,7 +92,7 @@ export default function HomePage() {
                 />
                 <p className="mt-4 text-sm font-medium">Simple & Powerful Text-to-Speech</p>
               </div>
-              <div className="bg-background p-4 rounded-lg shadow-md">
+              <div className="bg-card p-4 rounded-lg shadow-md">
                  <Image
                   src="https://picsum.photos/seed/lalibela-church/600/400"
                   width={600}

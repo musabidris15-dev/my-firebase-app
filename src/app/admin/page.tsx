@@ -105,7 +105,6 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // This will only run on the client
     setUsers(initialUsers);
     setFilteredUsers(initialUsers);
   }, []);
