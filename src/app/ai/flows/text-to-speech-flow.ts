@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/app/ai/genkit';
@@ -108,10 +109,6 @@ export const textToSpeechFlow = ai.defineFlow(
     }
 
     const audioGenerationPromises = segments.map(async (segment) => {
-        const expressionInstruction = (segment.expression && segment.expression.toLowerCase() !== 'default')
-            ? `(The speech should be delivered in a ${segment.expression.toLowerCase()} tone.)`
-            : '';
-
         const request: GenerateRequest = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {
@@ -124,7 +121,7 @@ export const textToSpeechFlow = ai.defineFlow(
                     },
                 },
             },
-            prompt: `${segment.text} ${expressionInstruction}`,
+            prompt: segment.text,
         };
         
         const { media } = await ai.generate(request);
