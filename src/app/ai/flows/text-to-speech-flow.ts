@@ -61,16 +61,13 @@ function parseTextWithEmotions(text: string): TextSegment[] {
 
     let match;
     while ((match = regex.exec(processedText)) !== null) {
-        // Add text before the current match
         if (match.index > lastIndex) {
             parts.push({ text: processedText.substring(lastIndex, match.index), tag: null });
         }
-        // Add the tag itself
         parts.push({ text: match[0], tag: match[1] });
         lastIndex = match.index + match[0].length;
     }
 
-    // Add any remaining text after the last match
     if (lastIndex < processedText.length) {
         parts.push({ text: processedText.substring(lastIndex), tag: null });
     }
@@ -87,7 +84,6 @@ function parseTextWithEmotions(text: string): TextSegment[] {
         }
     }
 
-    // Filter out any empty text segments
     return segments.filter(segment => segment.text.length > 0);
 }
 
@@ -122,7 +118,7 @@ export const textToSpeechFlow = ai.defineFlow(
                     voiceConfig: {
                         prebuiltVoiceConfig: { voiceName: voice },
                     },
-                    speakingRate: narrativeSpeed,
+                    narrativeSpeed: narrativeSpeed,
                 },
             },
             prompt: `${segment.text} ${expressionInstruction}`,
