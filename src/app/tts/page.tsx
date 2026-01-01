@@ -58,15 +58,30 @@ voices.male.sort((a, b) => a.name.localeCompare(b.name));
 const allVoices = [...voices.female, ...voices.male];
 
 const expressions = [
-    { value: 'Default', label: 'Default' }, { value: 'Whispering', label: 'Whispering' },
-    { value: 'Sad', label: 'Sad' }, { value: 'Happy', label: 'Happy' },
-    { value: 'Excited', label: 'Excited' }, { value: 'Shouting', label: 'Shouting' },
-    { value: 'Afraid', label: 'Afraid' }, { value: 'News Host', label: 'News Host' },
-    { value: 'Robotic', label: 'Robotic' }, { value: 'Breathy', label: 'Breathy' },
-    { value: 'Old Radio', label: 'Old Radio' }, { value: 'Monster', label: 'Monster' },
-    { value: 'Cheerful', label: 'Cheerful' }, { value: 'Customer Support', label: 'Customer Support' },
-    { value: 'Professional', label: 'Professional' }, { value: 'Podcast Host', label: 'Podcast Host' },
-];
+    { value: 'Default', label: 'Default' },
+    { value: 'Angry', label: 'Angry' },
+    { value: 'Terrified', label: 'Terrified' },
+    { value: 'Proud', label: 'Proud' },
+    { value: 'Guilty', label: 'Guilty' },
+    { value: 'Playful', label: 'Playful' },
+    { value: 'Bored', label: 'Bored' },
+    { value: 'Grateful', label: 'Grateful' },
+    { value: 'Whispering', label: 'Whispering' },
+    { value: 'Sad', label: 'Sad' },
+    { value: 'Happy', label: 'Happy' },
+    { value: 'Excited', label: 'Excited' },
+    { value: 'Shouting', label: 'Shouting' },
+    { value: 'Afraid', label: 'Afraid' },
+    { value: 'News Host', label: 'News Host' },
+    { value: 'Robotic', label: 'Robotic' },
+    { value: 'Breathy', label: 'Breathy' },
+    { value: 'Old Radio', label: 'Old Radio' },
+    { value: 'Monster', label: 'Monster' },
+    { value: 'Cheerful', label: 'Cheerful' },
+    { value: 'Customer Support', label: 'Customer Support' },
+    { value: 'Professional', label: 'Professional' },
+    { value: 'Podcast Host', label: 'Podcast Host' },
+].sort((a, b) => a.label.localeCompare(b.label));
 
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
@@ -446,5 +461,7 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
 
     
