@@ -131,39 +131,59 @@ export default function TTSPage() {
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
   
+  const applyCustomization = async (baseAudioUrl: string) => {
+    setIsCustomizing(true);
+    showStatus('Applying customizations...', 'loading');
+    try {
+      const response = await fetch('/api/customize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioDataUri: baseAudioUrl, ...customization }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to customize audio.');
+
+      setCustomizedAudioUrl(result.audioDataUri);
+      showStatus('Audio generated and customized successfully!', 'success');
+      return result.audioDataUri;
+    } catch (error: any) {
+      showStatus(`Error applying customization: ${error.message}`, 'error');
+      return null;
+    } finally {
+      setIsCustomizing(false);
+    }
+  };
+
   const handleGenerate = async () => {
-    if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
-        audioPlayerRef.current.src = '';
-    }
-    if (customizedAudioPlayerRef.current) {
-        customizedAudioPlayerRef.current.pause();
-        customizedAudioPlayerRef.current.src = '';
-    }
+    // Clear all previous audio states
+    if (audioPlayerRef.current) audioPlayerRef.current.src = '';
+    if (customizedAudioPlayerRef.current) customizedAudioPlayerRef.current.src = '';
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     if (customizedAudioUrl) URL.revokeObjectURL(customizedAudioUrl);
     setAudioUrl('');
     setCustomizedAudioUrl('');
 
-
     const trimmedText = text.trim();
     const characterCount = trimmedText.length;
 
     if (characterCount < 2) {
-        showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
-        return;
+      showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
+      return;
     }
     if (characterCount > userCredits) {
-        showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userCredits.toLocaleString()}.`, 'error');
-        return;
+      showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userCredits.toLocaleString()}.`, 'error');
+      return;
     }
     
     setIsLoading(true);
-    showStatus('Generating audio... Please wait...', 'loading');
+    showStatus('Generating base audio...', 'loading');
     
-    setUserCredits(prev => prev - characterCount);
+    let creditsRefund = 0;
 
     try {
+      setUserCredits(prev => prev - characterCount);
+      creditsRefund = characterCount;
+
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,8 +199,12 @@ export default function TTSPage() {
       }
       
       if (result.audioDataUri) {
-          setAudioUrl(result.audioDataUri);
-          showStatus(`Audio generated successfully! ${characterCount.toLocaleString()} credits were used.`, 'success');
+          setAudioUrl(result.audioDataUri); // Set the original audio URL
+          showStatus(`Base audio generated. ${characterCount.toLocaleString()} credits used.`, 'success');
+          
+          // Immediately apply customization
+          await applyCustomization(result.audioDataUri);
+
       } else {
           throw new Error('API response did not contain valid audio data.');
       }
@@ -190,42 +214,20 @@ export default function TTSPage() {
         if (error.message.includes("API key not valid")) errorMessage = "Error: Your API key is not valid. Please set it in the .env file.";
         if (error.message.includes("not valid JSON")) errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         showStatus(errorMessage, 'error');
-        setUserCredits(prev => prev + characterCount); // Refund credits on failure
+        if (creditsRefund > 0) {
+            setUserCredits(prev => prev + creditsRefund); // Refund credits on failure
+        }
     } finally {
         setIsLoading(false);
     }
   };
 
   const handlePreviewCustomization = async () => {
-    if (!audioUrl) return;
-    if (customizedAudioPlayerRef.current) {
-        customizedAudioPlayerRef.current.pause();
-        customizedAudioPlayerRef.current.src = '';
+    if (!audioUrl) {
+      showStatus('Please generate an audio clip first.', 'error');
+      return;
     }
-     if (customizedAudioUrl) {
-        URL.revokeObjectURL(customizedAudioUrl);
-        setCustomizedAudioUrl('');
-    }
-
-    setIsCustomizing(true);
-    showStatus('Applying customizations for preview...', 'loading');
-
-    try {
-      const response = await fetch('/api/customize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioDataUri: audioUrl, ...customization }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to customize audio.');
-
-      setCustomizedAudioUrl(result.audioDataUri);
-      showStatus(`Preview ready.`, 'success');
-    } catch (error: any) {
-      showStatus(`Error: ${error.message}`, 'error');
-    } finally {
-      setIsCustomizing(false);
-    }
+    await applyCustomization(audioUrl);
   };
 
   useEffect(() => {
@@ -246,19 +248,23 @@ export default function TTSPage() {
 
     setIsDownloading(true);
     showStatus('Applying final customizations and preparing download...', 'loading');
+    
+    let finalAudioUrl = customizedAudioUrl;
+    if (!finalAudioUrl || (customization.pitch === 0 && customization.echo === 0 && customization.reverb === 0)) {
+        // If no customization is set, or no preview has been generated, generate it now.
+        const customizedResult = await applyCustomization(audioUrl);
+        if(!customizedResult) {
+            setIsDownloading(false);
+            return; // Error already shown by applyCustomization
+        }
+        finalAudioUrl = customizedResult;
+    }
+    
     setUserCredits(prev => prev - DOWNLOAD_COST);
 
     try {
-      const response = await fetch('/api/customize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioDataUri: audioUrl, ...customization }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to customize audio.');
-
       const link = document.createElement('a');
-      link.href = result.audioDataUri;
+      link.href = finalAudioUrl;
       link.download = `geez-voice-${new Date().getTime()}.wav`;
       document.body.appendChild(link);
       link.click();
@@ -272,10 +278,6 @@ export default function TTSPage() {
       setIsDownloading(false);
     }
   };
-  
-  useEffect(() => {
-      if (audioUrl && audioPlayerRef.current) audioPlayerRef.current.play();
-  }, [audioUrl]);
 
   const handlePreview = async (e: React.MouseEvent, voiceValue: string) => {
     e.preventDefault(); e.stopPropagation();
@@ -410,33 +412,32 @@ export default function TTSPage() {
                     </div>
                 </div>
 
-                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
-                    {isLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
+                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isCustomizing}>
+                    {isLoading || isCustomizing ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
                     <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                 </Button>
 
                 <div className='space-y-6 pt-4 border-t'>
-                   <Card className={!audioUrl ? 'bg-muted/50' : ''}>
+                   <Card>
                     <CardHeader>
-                      <CardTitle className={cn('flex items-center gap-2', !audioUrl && 'text-muted-foreground')}>
-                        <Wand2 className={cn('h-5 w-5', audioUrl ? 'text-primary' : '')} />
+                      <CardTitle className={cn('flex items-center gap-2')}>
+                        <Wand2 className='h-5 w-5 text-primary' />
                         5. Customize Audio
                       </CardTitle>
-                      {!audioUrl && <p className="text-sm text-muted-foreground pt-2">Generate an audio clip first to enable these controls.</p>}
                     </CardHeader>
                     <CardContent className='space-y-6'>
                       <div className="grid gap-4">
                         <div className='space-y-2'>
                           <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
-                          <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} disabled={!audioUrl} />
+                          <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} />
                         </div>
                         <div className='space-y-2'>
                           <Label htmlFor="echo">Echo ({customization.echo})</Label>
-                          <Slider id="echo" min={0} max={10} step={1} value={[customization.echo]} onValueChange={([val]) => setCustomization(c => ({...c, echo: val}))} disabled={!audioUrl} />
+                          <Slider id="echo" min={0} max={10} step={1} value={[customization.echo]} onValueChange={([val]) => setCustomization(c => ({...c, echo: val}))} />
                         </div>
                          <div className='space-y-2'>
                           <Label htmlFor="reverb">Reverb ({customization.reverb})</Label>
-                          <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} disabled={!audioUrl} />
+                          <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} />
                         </div>
                       </div>
 
@@ -451,16 +452,18 @@ export default function TTSPage() {
                         </Button>
                       </div>
                       
-                      {audioUrl && (
+                      {(audioUrl || customizedAudioUrl) && (
                         <div className='space-y-4'>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Original Audio</Label>
-                            <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
-                          </div>
+                          {audioUrl && (
+                            <div>
+                                <Label className="text-xs text-muted-foreground">Original Audio</Label>
+                                <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
+                            </div>
+                          )}
                           {customizedAudioUrl && (
                             <div>
                               <Label className="text-xs text-muted-foreground">Customized Preview</Label>
-                              <audio ref={customizedAudioPlayerRef} src={customizedAudioUrl} controls className="w-full h-10 mt-1"></audio>
+                              <audio ref={customizedAudioPlayerRef} src={customizedAudioUrl} controls className="w-full h-10 mt-1" autoPlay></audio>
                             </div>
                           )}
                         </div>
@@ -479,3 +482,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
