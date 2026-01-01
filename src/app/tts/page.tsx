@@ -5,13 +5,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2, RefreshCw } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -85,7 +84,6 @@ const expressions = [
 
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
-type CustomizationState = { pitch: number; echo: number; reverb: number; };
 
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
@@ -99,12 +97,8 @@ export default function TTSPage() {
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
-  const [customization, setCustomization] = useState<CustomizationState>({ pitch: 0, echo: 0, reverb: 0 });
-  const [isCustomizing, setIsCustomizing] = useState(false);
-  const [customizedAudioUrl, setCustomizedAudioUrl] = useState('');
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
-  const customizedAudioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -118,47 +112,21 @@ export default function TTSPage() {
     player.addEventListener('ended', onEnded);
     return () => {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
-      if (customizedAudioUrl) URL.revokeObjectURL(customizedAudioUrl);
       if (player) {
         player.removeEventListener('ended', onEnded);
         player.pause();
         player.src = '';
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
   
-  const applyCustomization = async (baseAudioUrl: string) => {
-    setIsCustomizing(true);
-    showStatus('Applying customizations...', 'loading');
-    try {
-      const response = await fetch('/api/customize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioDataUri: baseAudioUrl, ...customization }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to customize audio.');
-
-      setCustomizedAudioUrl(result.audioDataUri);
-      showStatus('Audio generated and customized successfully!', 'success');
-      return result.audioDataUri;
-    } catch (error: any) {
-      showStatus(`Error applying customization: ${error.message}`, 'error');
-      return null;
-    } finally {
-      setIsCustomizing(false);
-    }
-  };
-
   const handleGenerate = async () => {
     if (audioPlayerRef.current) audioPlayerRef.current.src = '';
-    if (customizedAudioPlayerRef.current) customizedAudioPlayerRef.current.src = '';
     if (audioUrl) URL.revokeObjectURL(audioUrl);
-    if (customizedAudioUrl) URL.revokeObjectURL(customizedAudioUrl);
     setAudioUrl('');
-    setCustomizedAudioUrl('');
 
     const trimmedText = text.trim();
     const characterCount = trimmedText.length;
@@ -173,7 +141,7 @@ export default function TTSPage() {
     }
     
     setIsLoading(true);
-    showStatus('Generating base audio...', 'loading');
+    showStatus('Generating audio...', 'loading');
     
     let creditsRefund = 0;
 
@@ -197,8 +165,11 @@ export default function TTSPage() {
       
       if (result.audioDataUri) {
           setAudioUrl(result.audioDataUri);
-          showStatus(`Base audio generated. ${characterCount.toLocaleString()} credits used.`, 'success');
-          await applyCustomization(result.audioDataUri);
+          showStatus(`Audio generated successfully! ${characterCount.toLocaleString()} credits used.`, 'success');
+          if (audioPlayerRef.current) {
+            audioPlayerRef.current.src = result.audioDataUri;
+            audioPlayerRef.current.play();
+          }
       } else {
           throw new Error('API response did not contain valid audio data.');
       }
@@ -216,20 +187,6 @@ export default function TTSPage() {
     }
   };
 
-  const handlePreviewCustomization = async () => {
-    if (!audioUrl) {
-      showStatus('Please generate an audio clip first.', 'error');
-      return;
-    }
-    await applyCustomization(audioUrl);
-  };
-
-  useEffect(() => {
-    if (customizedAudioUrl && customizedAudioPlayerRef.current) {
-      customizedAudioPlayerRef.current.play();
-    }
-  }, [customizedAudioUrl]);
-
   const handleDownload = async () => {
     if (!audioUrl) {
       showStatus('Error: Please generate audio before downloading.', 'error');
@@ -241,25 +198,13 @@ export default function TTSPage() {
     }
 
     setIsDownloading(true);
-    showStatus('Applying final customizations and preparing download...', 'loading');
-    
-    let finalAudioUrl = customizedAudioUrl;
-    const hasCustomization = customization.pitch !== 0 || customization.echo !== 0 || customization.reverb !== 0;
-
-    if (!finalAudioUrl || hasCustomization) {
-        const customizedResult = await applyCustomization(audioUrl);
-        if(!customizedResult) {
-            setIsDownloading(false);
-            return;
-        }
-        finalAudioUrl = customizedResult;
-    }
+    showStatus('Preparing download...', 'loading');
     
     setUserCredits(prev => prev - DOWNLOAD_COST);
 
     try {
       const link = document.createElement('a');
-      link.href = finalAudioUrl;
+      link.href = audioUrl;
       link.download = `geez-voice-${new Date().getTime()}.wav`;
       document.body.appendChild(link);
       link.click();
@@ -347,7 +292,7 @@ export default function TTSPage() {
         <Card className="shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Text to Speech</CardTitle>
-                <p className="text-muted-foreground mt-2 text-lg">Convert text, add expressions, and apply audio effects.</p>
+                <p className="text-muted-foreground mt-2 text-lg">Convert text, add expressions, and generate high-quality audio.</p>
             </CardHeader>
             <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="space-y-2">
@@ -357,7 +302,7 @@ export default function TTSPage() {
                 </div>
 
                 <div className='space-y-2'>
-                    <Label className="text-sm font-medium text-muted-foreground">2. Add emotions to your script</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">2. Add emotions to your script (optional)</Label>
                     <ScrollArea className="w-full whitespace-nowrap rounded-md border">
                         <div className="flex w-max space-x-2 p-2">
                             {expressions.map(expression => (
@@ -390,67 +335,21 @@ export default function TTSPage() {
                     </Popover>
                 </div>
                 
-                <div className='space-y-6 pt-4 border-t'>
-                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Wand2 className="h-5 w-5 text-primary" />
-                        4. Customize Audio
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className='space-y-6'>
-                      <div className="grid gap-4">
-                        <div className='space-y-2'>
-                          <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
-                          <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} />
-                           <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Younger</span>
-                                <span>Older</span>
-                            </div>
-                        </div>
-                        <div className='space-y-2'>
-                          <Label htmlFor="echo">Echo ({customization.echo})</Label>
-                          <Slider id="echo" min={0} max={10} step={1} value={[customization.echo]} onValueChange={([val]) => setCustomization(c => ({...c, echo: val}))} />
-                        </div>
-                         <div className='space-y-2'>
-                          <Label htmlFor="reverb">Reverb ({customization.reverb})</Label>
-                          <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} />
-                        </div>
-                      </div>
-                    </CardContent>
-                   </Card>
-                </div>
-
-                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isCustomizing}>
-                    {isLoading || isCustomizing ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
+                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
+                    {isLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
                     <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                 </Button>
                 
-                {(audioUrl || customizedAudioUrl) && (
+                {audioUrl && (
                   <Card>
                       <CardHeader>
                         <CardTitle>Playback & Download</CardTitle>
                       </CardHeader>
-                      <CardContent className='space-y-4'>
-                          {audioUrl && (
-                            <div>
-                                <Label className="text-xs text-muted-foreground">Original Audio</Label>
-                                <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
-                            </div>
-                          )}
-                          {customizedAudioUrl && (
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Customized Preview</Label>
-                              <audio ref={customizedAudioPlayerRef} src={customizedAudioUrl} controls className="w-full h-10 mt-1" autoPlay></audio>
-                            </div>
-                          )}
+                      <CardContent>
+                          <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
                       </CardContent>
-                      <CardFooter className="flex flex-col sm:flex-row gap-4">
-                         <Button onClick={handlePreviewCustomization} disabled={!audioUrl || isCustomizing} className="w-full">
-                            {isCustomizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                            Preview Changes
-                        </Button>
-                        <Button onClick={handleDownload} disabled={!audioUrl || isDownloading} className="w-full">
+                      <CardFooter>
+                        <Button onClick={handleDownload} disabled={isDownloading} className="w-full">
                             {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                             Download ({DOWNLOAD_COST.toLocaleString()} credits)
                         </Button>
@@ -468,3 +367,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
