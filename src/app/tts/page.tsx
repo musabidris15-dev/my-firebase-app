@@ -94,7 +94,6 @@ const DOWNLOAD_COST = 500;
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
-  const [narrativeSpeed, setNarrativeSpeed] = useState(1.0);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
@@ -186,7 +185,7 @@ export default function TTSPage() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, narrativeSpeed: narrativeSpeed }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
       });
       const result = await response.json();
 
@@ -292,7 +291,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue, narrativeSpeed: 1.0 }),
+            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Preview failed.');
@@ -391,34 +390,13 @@ export default function TTSPage() {
                         </PopoverContent>
                     </Popover>
                 </div>
-
-                <div className="space-y-4 pt-4">
-                    <div className='space-y-2'>
-                        <Label htmlFor="narrativeSpeed" className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <GaugeCircle className="h-4 w-4" /> 4. Narrative Pace (Speed)
-                        </Label>
-                        <Slider
-                            id="narrativeSpeed"
-                            min={0.5}
-                            max={2.0}
-                            step={0.1}
-                            value={[narrativeSpeed]}
-                            onValueChange={([val]) => setNarrativeSpeed(val)}
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Slower</span>
-                            <span>Normal ({narrativeSpeed.toFixed(1)}x)</span>
-                            <span>Faster</span>
-                        </div>
-                    </div>
-                </div>
-
+                
                 <div className='space-y-6 pt-4 border-t'>
                    <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Wand2 className="h-5 w-5 text-primary" />
-                        5. Customize Audio
+                        4. Customize Audio
                       </CardTitle>
                     </CardHeader>
                     <CardContent className='space-y-6'>
@@ -426,10 +404,10 @@ export default function TTSPage() {
                         <div className='space-y-2'>
                           <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
                           <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Younger</span>
-                              <span>Older</span>
-                          </div>
+                           <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Younger</span>
+                                <span>Older</span>
+                            </div>
                         </div>
                         <div className='space-y-2'>
                           <Label htmlFor="echo">Echo ({customization.echo})</Label>
