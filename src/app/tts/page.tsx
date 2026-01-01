@@ -430,6 +430,10 @@ export default function TTSPage() {
                         <div className='space-y-2'>
                           <Label htmlFor="pitch">Pitch ({customization.pitch})</Label>
                           <Slider id="pitch" min={-10} max={10} step={1} value={[customization.pitch]} onValueChange={([val]) => setCustomization(c => ({...c, pitch: val}))} />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Younger</span>
+                              <span>Older</span>
+                          </div>
                         </div>
                         <div className='space-y-2'>
                           <Label htmlFor="echo">Echo ({customization.echo})</Label>
@@ -482,5 +486,7 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
 
     
