@@ -129,8 +129,8 @@ export const textToSpeechFlow = ai.defineFlow(
                     voiceConfig: {
                         prebuiltVoiceConfig: { voiceName: voice },
                     },
-                    speakingRate: speed,
                 },
+                speakingRate: speed,
             },
             prompt: `${segment.text} ${expressionInstruction}`,
         };
