@@ -53,7 +53,8 @@ function parseTextWithEmotions(text: string): TextSegment[] {
     const segments: TextSegment[] = [];
     const regex = /\[([a-zA-Z\s]+)\]/g;
     
-    const processedText = text.trim().startsWith('[') ? text : `[Default] ${text}`;
+    // Ensure there is always a default tag if none is provided at the start.
+    const processedText = text.trim().startsWith('[') ? text.trim() : `[Default] ${text.trim()}`;
     
     let lastIndex = 0;
     let lastTag: string | null = null;
@@ -73,19 +74,12 @@ function parseTextWithEmotions(text: string): TextSegment[] {
     if (remainingText) {
         segmentsFromText.push({ text: remainingText, tag: lastTag || 'Default' });
     }
-
-    if (segmentsFromText.length === 0 && processedText.trim()) {
-        const tagMatch = processedText.match(regex);
-        const tag = tagMatch ? tagMatch[0].replace(/\[|\]/g, '') : 'Default';
-        const cleanText = processedText.replace(regex, '').trim();
-        if(cleanText) segments.push({ text: cleanText, expression: tag });
-    } else {
-         segmentsFromText.forEach(s => {
-            if (s.text) {
-                segments.push({ text: s.text, expression: s.tag });
-            }
-         });
-    }
+    
+    segmentsFromText.forEach(s => {
+        if (s.text) {
+            segments.push({ text: s.text, expression: s.tag });
+        }
+    });
     
     return segments.filter(segment => segment.text.length > 0);
 }
@@ -105,10 +99,17 @@ export const textToSpeechFlow = ai.defineFlow(
     const segments = parseTextWithEmotions(text);
 
     if (segments.length === 0 && text.trim().length > 0) {
-        segments.push({ text: text, expression: 'Default' });
+        segments.push({ text: text.trim(), expression: 'Default' });
     }
 
     const audioGenerationPromises = segments.map(async (segment) => {
+        
+        let promptText = segment.text;
+        // The model should be instructed on the tone, not have the tone tag in the text to be synthesized.
+        if (segment.expression.toLowerCase() !== 'default') {
+            promptText = `Synthesize the following text in a ${segment.expression} voice: ${segment.text}`;
+        }
+
         const request: GenerateRequest = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {
@@ -121,7 +122,7 @@ export const textToSpeechFlow = ai.defineFlow(
                     },
                 },
             },
-            prompt: segment.text,
+            prompt: promptText,
         };
         
         const { media } = await ai.generate(request);
