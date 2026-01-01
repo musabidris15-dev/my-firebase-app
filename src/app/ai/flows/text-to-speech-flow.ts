@@ -8,7 +8,6 @@ import { GenerateRequest } from 'genkit/generate';
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech. Can include tags like [expression] to specify emotions.'),
   voice: z.string().describe('The voice to use for the speech.'),
-  narrativeSpeed: z.number().min(0.5).max(2.0).default(1.0).describe('The speaking rate of the audio.'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
@@ -97,7 +96,7 @@ export const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text, voice, narrativeSpeed }) => {
+  async ({ text, voice }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
@@ -112,14 +111,11 @@ export const textToSpeechFlow = ai.defineFlow(
         const expressionInstruction = (segment.expression && segment.expression.toLowerCase() !== 'default')
             ? `(The speech should be delivered in a ${segment.expression.toLowerCase()} tone.)`
             : '';
-        
-        const clampedSpeed = Math.max(0.5, Math.min(2.0, narrativeSpeed));
 
         const request: GenerateRequest = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {
                 responseModalities: ['AUDIO'],
-                speakingRate: clampedSpeed,
                 speechConfig: {
                     voiceConfig: {
                         prebuiltVoiceConfig: { 
