@@ -53,7 +53,6 @@ function parseTextWithEmotions(text: string): TextSegment[] {
     const segments: TextSegment[] = [];
     const regex = /\[([a-zA-Z\s]+)\]/g;
     
-    // Ensure there is always a default tag if none is provided at the start.
     const processedText = text.trim().startsWith('[') ? text.trim() : `[Default] ${text.trim()}`;
     
     let lastIndex = 0;
@@ -102,13 +101,11 @@ export const textToSpeechFlow = ai.defineFlow(
         segments.push({ text: text.trim(), expression: 'Default' });
     }
 
-    const audioGenerationPromises = segments.map(async (segment) => {
-        
-        let promptText = segment.text;
-        // The model should be instructed on the tone, not have the tone tag in the text to be synthesized.
-        if (segment.expression.toLowerCase() !== 'default') {
-            promptText = `Synthesize the following text in a ${segment.expression} voice: ${segment.text}`;
-        }
+    const pcmBuffers: Buffer[] = [];
+    
+    // Process segments sequentially to avoid rate limiting
+    for (const segment of segments) {
+        let promptText = `Synthesize the following text in a ${segment.expression} voice: ${segment.text}`;
 
         const request: GenerateRequest = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
@@ -138,10 +135,9 @@ export const textToSpeechFlow = ai.defineFlow(
         }
         
         const base64Data = audioDataUrl.substring(mimeTypeMatch[0].length);
-        return Buffer.from(base64Data, 'base64');
-    });
+        pcmBuffers.push(Buffer.from(base64Data, 'base64'));
+    }
 
-    const pcmBuffers = await Promise.all(audioGenerationPromises);
     const combinedPcmBuffer = Buffer.concat(pcmBuffers);
 
     const sampleRate = 24000;
