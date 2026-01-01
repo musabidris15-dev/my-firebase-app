@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/app/ai/genkit';
@@ -9,6 +8,7 @@ import { GenerateRequest } from 'genkit/generate';
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech. Can include tags like [expression] to specify emotions.'),
   voice: z.string().describe('The voice to use for the speech.'),
+  narrativeSpeed: z.number().min(0.5).max(2.0).default(1.0).describe('The speaking rate of the audio.'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
@@ -56,33 +56,37 @@ function parseTextWithEmotions(text: string): TextSegment[] {
     const processedText = text.trim().startsWith('[') ? text : `[Default] ${text}`;
     
     let lastIndex = 0;
-    const parts: {text: string, tag: string | null}[] = [];
+    let lastTag: string | null = null;
+    let segmentsFromText: { text: string; tag: string }[] = [];
 
     let match;
     while ((match = regex.exec(processedText)) !== null) {
-        if (match.index > lastIndex) {
-            parts.push({ text: processedText.substring(lastIndex, match.index), tag: null });
+        const textBefore = processedText.substring(lastIndex, match.index).trim();
+        if (textBefore) {
+            segmentsFromText.push({ text: textBefore, tag: lastTag || 'Default' });
         }
-        parts.push({ text: match[0], tag: match[1] });
+        lastTag = match[1];
         lastIndex = match.index + match[0].length;
     }
 
-    if (lastIndex < processedText.length) {
-        parts.push({ text: processedText.substring(lastIndex), tag: null });
+    const remainingText = processedText.substring(lastIndex).trim();
+    if (remainingText) {
+        segmentsFromText.push({ text: remainingText, tag: lastTag || 'Default' });
     }
 
-    let currentEmotion = 'Default';
-    for (const part of parts) {
-        if (part.tag !== null) {
-            currentEmotion = part.tag;
-        } else if (part.text.trim()) {
-            segments.push({
-                text: part.text.trim(),
-                expression: currentEmotion,
-            });
-        }
+    if (segmentsFromText.length === 0 && processedText.trim()) {
+        const tagMatch = processedText.match(regex);
+        const tag = tagMatch ? tagMatch[0].replace(/\[|\]/g, '') : 'Default';
+        const cleanText = processedText.replace(regex, '').trim();
+        if(cleanText) segments.push({ text: cleanText, expression: tag });
+    } else {
+         segmentsFromText.forEach(s => {
+            if (s.text) {
+                segments.push({ text: s.text, expression: s.tag });
+            }
+         });
     }
-
+    
     return segments.filter(segment => segment.text.length > 0);
 }
 
@@ -93,7 +97,7 @@ export const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text, voice }) => {
+  async ({ text, voice, narrativeSpeed }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
@@ -108,11 +112,14 @@ export const textToSpeechFlow = ai.defineFlow(
         const expressionInstruction = (segment.expression && segment.expression.toLowerCase() !== 'default')
             ? `(The speech should be delivered in a ${segment.expression.toLowerCase()} tone.)`
             : '';
+        
+        const clampedSpeed = Math.max(0.5, Math.min(2.0, narrativeSpeed));
 
         const request: GenerateRequest = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {
                 responseModalities: ['AUDIO'],
+                speakingRate: clampedSpeed,
                 speechConfig: {
                     voiceConfig: {
                         prebuiltVoiceConfig: { 
