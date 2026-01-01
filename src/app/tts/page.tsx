@@ -17,37 +17,36 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 // --- Voice Definitions ---
 const voices = {
     female: [
-        { name: 'Almaz (Achird)', value: 'Achird' },
         { name: 'Rahel (Aoede)', value: 'Aoede' },
         { name: 'Biruktait (Autonoe)', value: 'Autonoe' },
         { name: 'Debora (Erinome)', value: 'Erinome' },
+        { name: 'Mulu (Gacrux)', value: 'Gacrux' },
         { name: 'Tarik (Kore)', value: 'Kore' },
         { name: 'Tadelech (Laomedeia)', value: 'Laomedeia' },
         { name: 'Lia (Leda)', value: 'Leda' },
         { name: 'Zebiba (Pulcherrima)', value: 'Pulcherrima' },
-        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
-        { name: 'Tsedal (Schedar)', value: 'Schedar' },
         { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Kidist (Umbriel)', value: 'Umbriel' },
         { name: 'Mickey-like Female (Vindemiatrix)', value: 'Vindemiatrix' },
+        { name: 'Belay (Achernar)', value: 'Achernar' },
     ],
     male: [
-        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
-        { name: 'Belay (Achernar)', value: 'Achernar' },
-        { name: 'Gideon (Alnilam)', value: 'Alnilam' },
+        { name: 'Almaz (Achird)', value: 'Achird' },
         { name: 'Caleb (Algieba)', value: 'Algieba' },
         { name: 'Haile (Algenib)', value: 'Algenib' },
+        { name: 'Gideon (Alnilam)', value: 'Alnilam' },
         { name: 'Nardos (Callirrhoe)', value: 'Callirrhoe' },
         { name: 'Getachew (Charon)', value: 'Charon' },
         { name: 'Yordanos (Despina)', value: 'Despina' },
         { name: 'Elias (Enceladus)', value: 'Enceladus' },
         { name: 'Bereket (Fenrir)', value: 'Fenrir' },
-        { name: 'Mulu (Gacrux)', value: 'Gacrux' },
-        { name: 'Fikru (Iapetus)', value: 'Iapetus' },
         { name: 'Dawit (Orus)', value: 'Orus' },
         { name: 'Hewan (Puck)', value: 'Puck' },
         { name: 'Mulugeta (Rasalgethi)', value: 'Rasalgethi' },
+        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
         { name: 'Solomon (Sadaltager)', value: 'Sadaltager' },
+        { name: 'Tsedal (Schedar)', value: 'Schedar' },
+        { name: 'Abebe (Zephyr)', value: 'Zephyr' },
         { name: 'Tesfaye (Zubenelgenubi)', value: 'Zubenelgenubi' },
     ]
 };
@@ -367,5 +366,7 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
 
     
