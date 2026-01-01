@@ -9,6 +9,7 @@ import { GenerateRequest } from 'genkit/generate';
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech. Can include tags like [expression] to specify emotions.'),
   voice: z.string().describe('The voice to use for the speech.'),
+  speed: z.number().min(0.25).max(4.0).optional().describe('The speaking rate, where 1.0 is the normal speed.'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
@@ -98,7 +99,7 @@ export const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text, voice }) => {
+  async ({ text, voice, speed }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
@@ -118,6 +119,7 @@ export const textToSpeechFlow = ai.defineFlow(
                     voiceConfig: {
                         prebuiltVoiceConfig: { voiceName: voice },
                     },
+                    speakingRate: speed || 1.0,
                 },
             },
             prompt: `${segment.text} ${expressionInstruction}`,

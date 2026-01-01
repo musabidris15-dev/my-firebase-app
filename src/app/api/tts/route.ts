@@ -4,14 +4,14 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { text, voice } = (await request.json()) as Omit<TextToSpeechInput, 'expression'>;
+    const { text, voice, speed } = (await request.json()) as TextToSpeechInput;
 
     if (!text || !voice) {
       return NextResponse.json({ error: 'Missing text or voice parameter' }, { status: 400 });
     }
 
     // Generate the initial speech from text.
-    const ttsResult = await textToSpeechFlow({ text, voice });
+    const ttsResult = await textToSpeechFlow({ text, voice, speed });
 
     if (!ttsResult.audioDataUri) {
         throw new Error("Text-to-speech generation failed to return audio.");
