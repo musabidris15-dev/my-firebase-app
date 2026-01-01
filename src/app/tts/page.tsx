@@ -94,7 +94,7 @@ const DOWNLOAD_COST = 500;
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
-  const [speed, setSpeed] = useState(1.0);
+  const [narrativeSpeed, setNarrativeSpeed] = useState(1.0);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [status, setStatus] = useState<Status>({ message: null, type: null });
@@ -187,7 +187,7 @@ export default function TTSPage() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, speed: speed }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, narrativeSpeed: narrativeSpeed }),
       });
       const result = await response.json();
 
@@ -295,7 +295,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue }),
+            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue, narrativeSpeed: 1.0 }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Preview failed.');
@@ -406,12 +406,12 @@ export default function TTSPage() {
                             min={0.5}
                             max={2.0}
                             step={0.1}
-                            value={[speed]}
-                            onValueChange={([val]) => setSpeed(val)}
+                            value={[narrativeSpeed]}
+                            onValueChange={([val]) => setNarrativeSpeed(val)}
                         />
                         <div className="flex justify-between text-xs text-muted-foreground">
                             <span>Slower</span>
-                            <span>Normal ({speed.toFixed(1)}x)</span>
+                            <span>Normal ({narrativeSpeed.toFixed(1)}x)</span>
                             <span>Faster</span>
                         </div>
                     </div>
