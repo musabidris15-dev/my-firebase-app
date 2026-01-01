@@ -425,8 +425,8 @@ export default function TTSPage() {
                 <div className='space-y-6 pt-4 border-t'>
                    <Card>
                     <CardHeader>
-                      <CardTitle className={cn('flex items-center gap-2', !audioUrl && 'text-muted-foreground')}>
-                        <Wand2 className={cn('h-5 w-5', !audioUrl && 'text-muted-foreground', audioUrl && 'text-primary')} />
+                      <CardTitle className="flex items-center gap-2">
+                        <Wand2 className="h-5 w-5 text-primary" />
                         5. Customize Audio
                       </CardTitle>
                     </CardHeader>
