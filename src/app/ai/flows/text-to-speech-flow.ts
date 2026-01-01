@@ -53,43 +53,48 @@ type TextSegment = {
 function parseTextWithEmotions(text: string): TextSegment[] {
     const segments: TextSegment[] = [];
     const regex = /\[([a-zA-Z\s]+)\]/g;
-    let lastIndex = 0;
-    let currentEmotion = 'Default';
-
-    // Set default emotion if not specified at the beginning
-    if (!text.trim().startsWith('[')) {
-        text = '[Default] ' + text;
-    }
     
+    // Add a default emotion tag at the beginning if one doesn't exist
+    const processedText = text.trim().startsWith('[') ? text : `[Default] ${text}`;
+    
+    let lastIndex = 0;
     let match;
-    while ((match = regex.exec(text)) !== null) {
-        // Add text segment before the current match
-        if (match.index > lastIndex) {
-            const textSegment = text.substring(lastIndex, match.index).trim();
-            if (textSegment) {
-                segments.push({
-                    text: textSegment,
-                    expression: currentEmotion,
-                });
-            }
-        }
-        // Update current emotion
-        currentEmotion = match[1];
-        lastIndex = regex.lastIndex;
-    }
 
-    // Add remaining text segment after the last match
-    if (lastIndex < text.length) {
-        const textSegment = text.substring(lastIndex).trim();
-        if (textSegment) {
+    // Find all matches to create segments
+    while ((match = regex.exec(processedText)) !== null) {
+        if (match.index > lastIndex) {
+            // This case should not happen if we structure the loop correctly with lookaheads,
+            // but as a fallback, we can treat text between tags as having the previous emotion.
+        }
+        lastIndex = match.index;
+    }
+    regex.lastIndex = 0; // Reset regex
+    lastIndex = 0;
+
+    let currentEmotion = 'Default';
+    
+    // Split the text by the emotion tags
+    const parts = processedText.split(regex);
+    
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i]?.trim();
+        if (!part) continue;
+
+        // Every odd-indexed part is an emotion tag
+        if (i % 2 === 1) {
+            currentEmotion = part;
+        } 
+        // Every even-indexed part is the text content
+        else {
             segments.push({
-                text: textSegment,
+                text: part,
                 expression: currentEmotion,
             });
         }
     }
-    
-    return segments;
+
+    // Filter out any empty text segments
+    return segments.filter(segment => segment.text.length > 0);
 }
 
 
@@ -105,6 +110,11 @@ export const textToSpeechFlow = ai.defineFlow(
     }
     
     const segments = parseTextWithEmotions(text);
+
+    if (segments.length === 0 && text.trim().length > 0) {
+        // Fallback for text that might not parse correctly but is not empty
+        segments.push({ text: text, expression: 'Default' });
+    }
 
     const audioGenerationPromises = segments.map(async (segment) => {
         const expressionInstruction = (segment.expression && segment.expression.toLowerCase() !== 'default')
@@ -144,8 +154,6 @@ export const textToSpeechFlow = ai.defineFlow(
     const pcmBuffers = await Promise.all(audioGenerationPromises);
     const combinedPcmBuffer = Buffer.concat(pcmBuffers);
 
-    // Assuming a constant sample rate from the TTS model, e.g., 24000.
-    // A more robust solution might inspect the returned mimeType for each segment if it can vary.
     const sampleRate = 24000;
     const wavBase64 = await toWav(combinedPcmBuffer, 1, sampleRate);
 
