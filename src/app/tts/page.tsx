@@ -102,7 +102,6 @@ export default function TTSPage() {
   const [customization, setCustomization] = useState<CustomizationState>({ pitch: 0, echo: 0, reverb: 0 });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [customizedAudioUrl, setCustomizedAudioUrl] = useState('');
-  const [speed, setSpeed] = useState(1);
 
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
@@ -187,7 +186,7 @@ export default function TTSPage() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, speed: speed }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
       });
       const result = await response.json();
 
@@ -395,22 +394,6 @@ export default function TTSPage() {
                         </PopoverContent>
                     </Popover>
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="speed-slider" className="text-sm font-medium text-muted-foreground">4. Narrative Pace (Speed: {speed.toFixed(2)}x)</Label>
-                    <Slider
-                        id="speed-slider"
-                        min={0.5}
-                        max={1.5}
-                        step={0.05}
-                        value={[speed]}
-                        onValueChange={([val]) => setSpeed(val)}
-                    />
-                     <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Slower</span>
-                        <span>Normal</span>
-                        <span>Faster</span>
-                    </div>
-                </div>
 
                 <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isCustomizing}>
                     {isLoading || isCustomizing ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
@@ -422,7 +405,7 @@ export default function TTSPage() {
                     <CardHeader>
                       <CardTitle className={cn('flex items-center gap-2')}>
                         <Wand2 className='h-5 w-5 text-primary' />
-                        5. Customize Audio
+                        4. Customize Audio
                       </CardTitle>
                     </CardHeader>
                     <CardContent className='space-y-6'>
@@ -486,7 +469,3 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    
-
-    
