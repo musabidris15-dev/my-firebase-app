@@ -155,7 +155,6 @@ export default function TTSPage() {
   };
 
   const handleGenerate = async () => {
-    // Clear all previous audio states
     if (audioPlayerRef.current) audioPlayerRef.current.src = '';
     if (customizedAudioPlayerRef.current) customizedAudioPlayerRef.current.src = '';
     if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -199,12 +198,9 @@ export default function TTSPage() {
       }
       
       if (result.audioDataUri) {
-          setAudioUrl(result.audioDataUri); // Set the original audio URL
+          setAudioUrl(result.audioDataUri);
           showStatus(`Base audio generated. ${characterCount.toLocaleString()} credits used.`, 'success');
-          
-          // Immediately apply customization
           await applyCustomization(result.audioDataUri);
-
       } else {
           throw new Error('API response did not contain valid audio data.');
       }
@@ -215,7 +211,7 @@ export default function TTSPage() {
         if (error.message.includes("not valid JSON")) errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         showStatus(errorMessage, 'error');
         if (creditsRefund > 0) {
-            setUserCredits(prev => prev + creditsRefund); // Refund credits on failure
+            setUserCredits(prev => prev + creditsRefund);
         }
     } finally {
         setIsLoading(false);
@@ -250,12 +246,13 @@ export default function TTSPage() {
     showStatus('Applying final customizations and preparing download...', 'loading');
     
     let finalAudioUrl = customizedAudioUrl;
-    if (!finalAudioUrl || (customization.pitch === 0 && customization.echo === 0 && customization.reverb === 0)) {
-        // If no customization is set, or no preview has been generated, generate it now.
+    const hasCustomization = customization.pitch !== 0 || customization.echo !== 0 || customization.reverb !== 0;
+
+    if (!finalAudioUrl || hasCustomization) {
         const customizedResult = await applyCustomization(audioUrl);
         if(!customizedResult) {
             setIsDownloading(false);
-            return; // Error already shown by applyCustomization
+            return;
         }
         finalAudioUrl = customizedResult;
     }
@@ -273,7 +270,7 @@ export default function TTSPage() {
 
     } catch (error: any) {
       showStatus(`Error: ${error.message}`, 'error');
-      setUserCredits(prev => prev + DOWNLOAD_COST); // Refund
+      setUserCredits(prev => prev + DOWNLOAD_COST);
     } finally {
       setIsDownloading(false);
     }
@@ -322,7 +319,6 @@ export default function TTSPage() {
     setText(newText);
     textarea.focus();
     
-    // Move cursor after the inserted tag and space
     setTimeout(() => {
         textarea.selectionStart = textarea.selectionEnd = start + tag.length + 1;
     }, 0);
@@ -398,11 +394,11 @@ export default function TTSPage() {
 
                 <div className="space-y-4 pt-4">
                     <div className='space-y-2'>
-                        <Label htmlFor="speed" className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Label htmlFor="narrativeSpeed" className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                             <GaugeCircle className="h-4 w-4" /> 4. Narrative Pace (Speed)
                         </Label>
                         <Slider
-                            id="speed"
+                            id="narrativeSpeed"
                             min={0.5}
                             max={2.0}
                             step={0.1}
@@ -416,11 +412,6 @@ export default function TTSPage() {
                         </div>
                     </div>
                 </div>
-
-                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isCustomizing}>
-                    {isLoading || isCustomizing ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
-                    <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
-                </Button>
 
                 <div className='space-y-6 pt-4 border-t'>
                    <Card>
@@ -449,20 +440,21 @@ export default function TTSPage() {
                           <Slider id="reverb" min={0} max={10} step={1} value={[customization.reverb]} onValueChange={([val]) => setCustomization(c => ({...c, reverb: val}))} />
                         </div>
                       </div>
-
-                      <div className="flex flex-col sm:flex-row gap-4">
-                         <Button onClick={handlePreviewCustomization} disabled={!audioUrl || isCustomizing} className="w-full">
-                            {isCustomizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                            Preview Changes
-                        </Button>
-                        <Button onClick={handleDownload} disabled={!audioUrl || isDownloading} className="w-full">
-                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download ({DOWNLOAD_COST.toLocaleString()} credits)
-                        </Button>
-                      </div>
-                      
-                      {(audioUrl || customizedAudioUrl) && (
-                        <div className='space-y-4'>
+                    </CardContent>
+                   </Card>
+                </div>
+                
+                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isCustomizing}>
+                    {isLoading || isCustomizing ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
+                    <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
+                </Button>
+                
+                {(audioUrl || customizedAudioUrl) && (
+                  <Card>
+                      <CardHeader>
+                        <CardTitle>Playback & Download</CardTitle>
+                      </CardHeader>
+                      <CardContent className='space-y-4'>
                           {audioUrl && (
                             <div>
                                 <Label className="text-xs text-muted-foreground">Original Audio</Label>
@@ -475,11 +467,19 @@ export default function TTSPage() {
                               <audio ref={customizedAudioPlayerRef} src={customizedAudioUrl} controls className="w-full h-10 mt-1" autoPlay></audio>
                             </div>
                           )}
-                        </div>
-                      )}
-                    </CardContent>
-                   </Card>
-                </div>
+                      </CardContent>
+                      <CardFooter className="flex flex-col sm:flex-row gap-4">
+                         <Button onClick={handlePreviewCustomization} disabled={!audioUrl || isCustomizing} className="w-full">
+                            {isCustomizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Preview Changes
+                        </Button>
+                        <Button onClick={handleDownload} disabled={!audioUrl || isDownloading} className="w-full">
+                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download ({DOWNLOAD_COST.toLocaleString()} credits)
+                        </Button>
+                      </CardFooter>
+                  </Card>
+                )}
                 
                 <StatusAlert />
             </CardContent>

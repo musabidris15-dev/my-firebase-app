@@ -54,40 +54,34 @@ function parseTextWithEmotions(text: string): TextSegment[] {
     const segments: TextSegment[] = [];
     const regex = /\[([a-zA-Z\s]+)\]/g;
     
-    // Add a default emotion tag at the beginning if one doesn't exist
     const processedText = text.trim().startsWith('[') ? text : `[Default] ${text}`;
     
     let lastIndex = 0;
-    let match;
+    const parts: {text: string, tag: string | null}[] = [];
 
-    // Find all matches to create segments
+    let match;
     while ((match = regex.exec(processedText)) !== null) {
+        // Add text before the current match
         if (match.index > lastIndex) {
-            // This case should not happen if we structure the loop correctly with lookaheads,
-            // but as a fallback, we can treat text between tags as having the previous emotion.
+            parts.push({ text: processedText.substring(lastIndex, match.index), tag: null });
         }
-        lastIndex = match.index;
+        // Add the tag itself
+        parts.push({ text: match[0], tag: match[1] });
+        lastIndex = match.index + match[0].length;
     }
-    regex.lastIndex = 0; // Reset regex
-    lastIndex = 0;
+
+    // Add any remaining text after the last match
+    if (lastIndex < processedText.length) {
+        parts.push({ text: processedText.substring(lastIndex), tag: null });
+    }
 
     let currentEmotion = 'Default';
-    
-    // Split the text by the emotion tags
-    const parts = processedText.split(regex);
-    
-    for (let i = 0; i < parts.length; i++) {
-        const part = parts[i]?.trim();
-        if (!part) continue;
-
-        // Every odd-indexed part is an emotion tag
-        if (i % 2 === 1) {
-            currentEmotion = part;
-        } 
-        // Every even-indexed part is the text content
-        else {
+    for (const part of parts) {
+        if (part.tag !== null) {
+            currentEmotion = part.tag;
+        } else if (part.text.trim()) {
             segments.push({
-                text: part,
+                text: part.text.trim(),
                 expression: currentEmotion,
             });
         }
@@ -112,7 +106,6 @@ export const textToSpeechFlow = ai.defineFlow(
     const segments = parseTextWithEmotions(text);
 
     if (segments.length === 0 && text.trim().length > 0) {
-        // Fallback for text that might not parse correctly but is not empty
         segments.push({ text: text, expression: 'Default' });
     }
 

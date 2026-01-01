@@ -10,14 +10,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing text or voice parameter' }, { status: 400 });
     }
 
-    // Generate the initial speech from text.
     const ttsResult = await textToSpeechFlow({ text, voice, narrativeSpeed });
 
     if (!ttsResult.audioDataUri) {
         throw new Error("Text-to-speech generation failed to return audio.");
     }
     
-    // Return the original TTS audio.
     return NextResponse.json(ttsResult);
 
   } catch (error: any) {
