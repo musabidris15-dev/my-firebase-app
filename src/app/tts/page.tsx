@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2, RefreshCw, Speed } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2, RefreshCw, GaugeCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -399,7 +399,7 @@ export default function TTSPage() {
                 <div className="space-y-4 pt-4">
                     <div className='space-y-2'>
                         <Label htmlFor="speed" className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <Speed className="h-4 w-4" /> 4. Narrative Pace (Speed)
+                            <GaugeCircle className="h-4 w-4" /> 4. Narrative Pace (Speed)
                         </Label>
                         <Slider
                             id="speed"
@@ -425,8 +425,8 @@ export default function TTSPage() {
                 <div className='space-y-6 pt-4 border-t'>
                    <Card>
                     <CardHeader>
-                      <CardTitle className={cn('flex items-center gap-2')}>
-                        <Wand2 className='h-5 w-5 text-primary' />
+                      <CardTitle className={cn('flex items-center gap-2', !audioUrl && 'text-muted-foreground')}>
+                        <Wand2 className={cn('h-5 w-5', !audioUrl && 'text-muted-foreground', audioUrl && 'text-primary')} />
                         5. Customize Audio
                       </CardTitle>
                     </CardHeader>
@@ -491,5 +491,3 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    
