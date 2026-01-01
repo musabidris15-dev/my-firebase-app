@@ -9,7 +9,6 @@ import { GenerateRequest } from 'genkit/generate';
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech. Can include tags like [expression] to specify emotions.'),
   voice: z.string().describe('The voice to use for the speech.'),
-  narrativeSpeed: z.number().min(0.5).max(2.0).default(1.0).describe('The speed of the speech, from 0.5 (slow) to 2.0 (fast).'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
@@ -94,7 +93,7 @@ export const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async ({ text, voice, narrativeSpeed }) => {
+  async ({ text, voice }) => {
     if (!process.env.GEMINI_API_KEY) {
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
@@ -104,9 +103,6 @@ export const textToSpeechFlow = ai.defineFlow(
     if (segments.length === 0 && text.trim().length > 0) {
         segments.push({ text: text, expression: 'Default' });
     }
-
-    // Clamp the speed value to be within the allowed range [0.5, 2.0]
-    const clampedSpeed = Math.max(0.5, Math.min(narrativeSpeed, 2.0));
 
     const audioGenerationPromises = segments.map(async (segment) => {
         const expressionInstruction = (segment.expression && segment.expression.toLowerCase() !== 'default')
@@ -121,7 +117,6 @@ export const textToSpeechFlow = ai.defineFlow(
                     voiceConfig: {
                         prebuiltVoiceConfig: { 
                             voiceName: voice,
-                            speed: clampedSpeed,
                         },
                     },
                 },

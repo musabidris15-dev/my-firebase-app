@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2, RefreshCw, GaugeCircle } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Wand2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -102,8 +102,6 @@ export default function TTSPage() {
   const [customization, setCustomization] = useState<CustomizationState>({ pitch: 0, echo: 0, reverb: 0 });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [customizedAudioUrl, setCustomizedAudioUrl] = useState('');
-  const [narrativeSpeed, setNarrativeSpeed] = useState(1.0);
-
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const customizedAudioPlayerRef = useRef<HTMLAudioElement>(null);
@@ -186,7 +184,7 @@ export default function TTSPage() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice, narrativeSpeed }),
+        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
       });
       const result = await response.json();
 
@@ -292,7 +290,7 @@ export default function TTSPage() {
         const response = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue, narrativeSpeed: 1.0 }),
+            body: JSON.stringify({ text: "ሰላም! ይህንን ድምፅ ናሙና እየሞከርክ ነው።", voice: voiceValue }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Preview failed.');
@@ -421,19 +419,6 @@ export default function TTSPage() {
                       </div>
                     </CardContent>
                    </Card>
-                </div>
-
-                <div className='space-y-4 pt-4 border-t'>
-                    <div className='flex items-center gap-2'>
-                        <GaugeCircle className="h-5 w-5 text-primary" />
-                        <Label htmlFor="speed" className='text-base'>5. Narrative Pace (Speed)</Label>
-                    </div>
-                    <Slider id="speed" min={0.5} max={2.0} step={0.1} value={[narrativeSpeed]} onValueChange={([val]) => setNarrativeSpeed(val)} />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Slower</span>
-                        <span>Normal</span>
-                        <span>Faster</span>
-                    </div>
                 </div>
                 
                 <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isCustomizing}>
