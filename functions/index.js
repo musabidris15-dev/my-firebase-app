@@ -1,9 +1,10 @@
 
+require('dotenv').config({ path: '.env.production' });
+
 /**
  * @fileOverview Firebase Cloud Functions for integrating with Whop Payments and a secure TTS service.
  */
 
-require('dotenv').config();
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
@@ -315,3 +316,5 @@ exports.cancelSubscription = onCall(async (request) => {
     logger.info(`User ${request.auth.uid} requested to cancel their subscription.`);
     return { success: true, message: "Your subscription cancellation request has been received. Please check your email." };
 });
+
+    
