@@ -20,18 +20,18 @@ const voices = {
         { name: 'Rahel (Aoede)', value: 'Aoede' },
         { name: 'Biruktait (Autonoe)', value: 'Autonoe' },
         { name: 'Debora (Erinome)', value: 'Erinome' },
-        { name: 'Gacrux', value: 'Gacrux'},
-        { name: 'Achernar', value: 'Achernar'},
-        { name: 'Tarik (Kore)', value: 'Kore' },
+        { name: 'Samrawit (Gacrux)', value: 'Gacrux'},
+        { name: 'Eleni (Achernar)', value: 'Achernar'},
+        { name: 'Layla (Kore)', value: 'Kore' },
         { name: 'Tadelech (Laomedeia)', value: 'Laomedeia' },
         { name: 'Lia (Leda)', value: 'Leda' },
         { name: 'Zebiba (Pulcherrima)', value: 'Pulcherrima' },
         { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Kidist (Umbriel)', value: 'Umbriel' },
-        { name: 'Mickey-like Female (Vindemiatrix)', value: 'Vindemiatrix' },
+        { name: 'Ekram (Vindemiatrix)', value: 'Vindemiatrix' },
     ],
     male: [
-        { name: 'Almaz (Achird)', value: 'Achird' },
+        { name: 'Kemal (Achird)', value: 'Achird' },
         { name: 'Caleb (Algieba)', value: 'Algieba' },
         { name: 'Haile (Algenib)', value: 'Algenib' },
         { name: 'Gideon (Alnilam)', value: 'Alnilam' },
@@ -41,11 +41,11 @@ const voices = {
         { name: 'Elias (Enceladus)', value: 'Enceladus' },
         { name: 'Bereket (Fenrir)', value: 'Fenrir' },
         { name: 'Dawit (Orus)', value: 'Orus' },
-        { name: 'Hewan (Puck)', value: 'Puck' },
+        { name: 'Emran (Puck)', value: 'Puck' },
         { name: 'Mulugeta (Rasalgethi)', value: 'Rasalgethi' },
-        { name: 'Letebirhan (Sadachbia)', value: 'Sadachbia' },
+        { name: 'Khalid (Sadachbia)', value: 'Sadachbia' },
         { name: 'Solomon (Sadaltager)', value: 'Sadaltager' },
-        { name: 'Tsedal (Schedar)', value: 'Schedar' },
+        { name: 'Biruk (Schedar)', value: 'Schedar' },
         { name: 'Abebe (Zephyr)', value: 'Zephyr' },
         { name: 'Tesfaye (Zubenelgenubi)', value: 'Zubenelgenubi' },
     ]
@@ -227,7 +227,7 @@ export default function TTSPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showStatus(`Download started! ${DOWNLOAD_COST} credits were used.`, 'success');
+      showStatus(`Download started! ${DOWNLOAD_COST.toLocaleString()} credits were used.`, 'success');
 
     } catch (error: any) {
       showStatus(`Error: ${error.message}`, 'error');
