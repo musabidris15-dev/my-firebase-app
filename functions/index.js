@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Firebase Cloud Functions for integrating with Whop Payments and a secure TTS service.
  */
@@ -41,7 +42,7 @@ exports.initializeUser = functions.auth.user().onCreate(async (user) => {
             id: user.uid,
             email: user.email,
             planId: 'free',
-            credits: 10000,
+            credits: 2000,
             creationDate: admin.firestore.FieldValue.serverTimestamp(),
             referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
         });
