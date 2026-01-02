@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -81,6 +81,17 @@ const expressions = [
     { value: 'Podcast Host', label: 'Podcast Host' },
 ].sort((a, b) => a.label.localeCompare(b.label));
 
+
+const audioEffects = [
+  { value: 'Reverb', label: 'Reverb' },
+  { value: 'Echo', label: 'Echo' },
+  { value: 'Pitch Shift Up', label: 'Pitch Shift Up' },
+  { value: 'Pitch Shift Down', label: 'Pitch Shift Down' },
+  { value: 'Slow', label: 'Slow' },
+  { value: 'Fast', label: 'Fast' },
+  { value: 'Stadium Announcer', label: 'Stadium Announcer' },
+].sort((a, b) => a.label.localeCompare(b.label));
+
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
 type DownloadState = { format: 'wav' | 'mp3' | null; isLoading: boolean };
@@ -88,7 +99,7 @@ type DownloadState = { format: 'wav' | 'mp3' | null; isLoading: boolean };
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
 const DOWNLOAD_COST = 500;
-const MOCK_USER_PLAN = 'free'; // 'free', 'hobbyist', or 'creator'
+const MOCK_USER_PLAN = 'creator'; // 'free', 'hobbyist', or 'creator'
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -124,6 +135,7 @@ export default function TTSPage() {
   }, []);
   
   const isEmotionControlDisabled = userPlan === 'free';
+  const isEffectControlDisabled = userPlan !== 'creator';
 
   useEffect(() => {
     if (isEmotionControlDisabled) {
@@ -136,7 +148,7 @@ export default function TTSPage() {
   
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newText = e.target.value;
-    if (isEmotionControlDisabled) {
+    if (isEmotionControlDisabled || isEffectControlDisabled) {
       newText = newText.replace(/\[.*?\]/g, '');
     }
     setText(newText);
@@ -287,23 +299,22 @@ export default function TTSPage() {
     }
   };
 
-  const insertEmotionTag = (emotion: string) => {
-    if (isEmotionControlDisabled) return;
+  const insertTag = (tag: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const tag = `[${emotion}]`;
+    const formattedTag = `[${tag}]`;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const currentText = textarea.value;
 
-    const newText = currentText.substring(0, start) + tag + ' ' + currentText.substring(end);
+    const newText = currentText.substring(0, start) + formattedTag + ' ' + currentText.substring(end);
     
     setText(newText);
     textarea.focus();
     
     setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + tag.length + 1;
+        textarea.selectionStart = textarea.selectionEnd = start + formattedTag.length + 1;
     }, 0);
   };
 
@@ -355,8 +366,31 @@ export default function TTSPage() {
                     <ScrollArea className="w-full whitespace-nowrap rounded-md border">
                         <div className="flex w-max space-x-2 p-2">
                             {expressions.map(expression => (
-                                <Button key={expression.value} variant="outline" size="sm" onClick={() => insertEmotionTag(expression.label)} disabled={isEmotionControlDisabled}>
+                                <Button key={expression.value} variant="outline" size="sm" onClick={() => insertTag(expression.label)} disabled={isEmotionControlDisabled}>
                                     {expression.label}
+                                </Button>
+                            ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                </div>
+
+                <div className='space-y-2'>
+                    <div className="flex items-center justify-between">
+                      <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
+                        3. Add audio effects (Creator Plan only)
+                      </Label>
+                      {isEffectControlDisabled && userPlan !== 'creator' && (
+                        <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
+                          <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
+                        </Button>
+                      )}
+                    </div>
+                    <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                        <div className="flex w-max space-x-2 p-2">
+                            {audioEffects.map(effect => (
+                                <Button key={effect.value} variant="outline" size="sm" onClick={() => insertTag(effect.label)} disabled={isEffectControlDisabled}>
+                                    {effect.label}
                                 </Button>
                             ))}
                         </div>
@@ -365,7 +399,7 @@ export default function TTSPage() {
                 </div>
                 
                 <div>
-                    <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">3. Select a voice</Label>
+                    <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">4. Select a voice</Label>
                     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between text-lg h-auto p-3">
