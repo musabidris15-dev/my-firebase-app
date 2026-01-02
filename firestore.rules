@@ -39,7 +39,7 @@ service cloud.firestore {
      * In a real app, this should be managed securely via a backend process.
      */
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
     // Prototyping Validation: Functions to enforce relational integrity and business logic.
@@ -133,5 +133,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

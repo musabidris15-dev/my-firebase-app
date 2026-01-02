@@ -261,3 +261,52 @@ async function logFraudAttempt({ email, ip, deviceFingerprint, reason }) {
         logger.error('Failed to log fraud attempt:', { error, email, ip, reason });
     }
 }
+
+
+/**
+ * Deletes a user's account and all associated data from Firestore.
+ */
+exports.deleteUserAccount = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be authenticated to delete your account.");
+    }
+    const uid = request.auth.uid;
+    logger.info(`Attempting to delete account and data for user: ${uid}`);
+
+    try {
+        // Delete the user from Firebase Authentication
+        await admin.auth().deleteUser(uid);
+        logger.info(`Successfully deleted user from Firebase Auth: ${uid}`);
+
+        // Delete the user's document from Firestore
+        const userRef = db.collection('users').doc(uid);
+        await userRef.delete();
+        logger.info(`Successfully deleted user document from Firestore: ${uid}`);
+        
+        // Note: In a production app, you would also delete all subcollections 
+        // and associated data (e.g., avatars, videos) here.
+
+        return { success: true, message: 'Account deleted successfully.' };
+
+    } catch (error) {
+        logger.error(`Failed to delete user account for UID: ${uid}`, { error });
+        if (error.code === 'auth/user-not-found') {
+             throw new HttpsError("not-found", "User account not found.");
+        }
+        throw new HttpsError("internal", "Failed to delete user account.");
+    }
+});
+
+
+/**
+ * Placeholder function for cancelling a Whop subscription.
+ */
+exports.cancelSubscription = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be authenticated.");
+    }
+    // In a real app, you would retrieve the user's whopSubscriptionId 
+    // and use the Whop API to cancel it.
+    logger.info(`User ${request.auth.uid} requested to cancel their subscription.`);
+    return { success: true, message: "Your subscription cancellation request has been received. Please check your email." };
+});

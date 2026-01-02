@@ -15,7 +15,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { Header } from '@/components/app/header';
-import { Home, Mic, User, UserCircle, Bell, Shield } from 'lucide-react';
+import { Home, Mic, User, UserCircle, Bell, Shield, LogOut, Settings, BarChart, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -23,33 +23,35 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FirebaseProvider, useAuth, useUser } from '@/firebase';
+import { FirebaseProvider, useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
+import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-  const [userProfile, setUserProfile] = useState<any | null>(null);
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    if (!isUserLoading && auth) {
-      if (user) {
-        setUserProfile({
-          name: user.isAnonymous ? 'Anonymous Guest' : user.email || 'User',
-          email: user.isAnonymous ? `guest_${user.uid.substring(0, 6)}@example.com` : user.email!,
-          planId: 'hobbyist', 
-          creditsRemaining: 15000,
-          totalCredits: 100000,
-        });
-      } else {
+    if (!isUserLoading && !user && auth) {
          // Automatically sign in a default user for demonstration
          initiateEmailSignIn(auth, 'abebe.bikila@example.com', 'password123');
-      }
+    }
+    if (user) {
       setNotifications([
           { id: 1, title: 'Welcome to Geez Voice!', message: 'Thanks for signing up. Explore our features and start creating.', read: false, date: '2 hours ago' },
           { id: 2, title: 'New Voices Added', message: 'We have added 5 new Amharic voices to our library. Check them out!', read: false, date: '1 day ago' },
@@ -58,8 +60,20 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     }
   }, [isUserLoading, user, auth]);
 
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
-  const creditUsagePercentage = userProfile ? (userProfile.creditsRemaining / userProfile.totalCredits) * 100 : 0;
+  const creditUsagePercentage = (userProfile && userProfile.totalCredits) 
+    ? (userProfile.creditsRemaining / userProfile.totalCredits) * 100 
+    : 0;
+
+  const isLoading = isUserLoading || isProfileLoading;
+  const isAdmin = userProfile?.role === 'Admin';
+
 
   return (
     <SidebarProvider>
@@ -93,7 +107,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-            {isClient && userProfile && (
+            {isClient && !isLoading && user && userProfile && (
               <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start space-x-2 px-3 py-2 h-auto text-left">
@@ -107,9 +121,9 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1 items-start">
-                    <p className="text-sm font-medium leading-none">{userProfile.name}</p>
+                    <p className="text-sm font-medium leading-none">{user.isAnonymous ? 'Anonymous Guest' : userProfile.name || user.email}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {userProfile.email}
+                      {user.isAnonymous ? `guest_${user.uid.substring(0, 6)}@example.com` : user.email}
                     </p>
                   </div>
                 </Button>
@@ -117,9 +131,9 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent className="w-64 mb-2 ml-2" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{userProfile.name}</p>
+                    <p className="text-sm font-medium leading-none">{user.isAnonymous ? 'Anonymous Guest' : userProfile.name || user.email}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {userProfile.email}
+                      {user.isAnonymous ? `guest_${user.uid.substring(0, 6)}@example.com` : user.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -127,7 +141,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                   <div className='px-2 py-2 text-sm'>
                     <div className="flex justify-between items-center mb-1">
                         <span className="font-medium">Credits</span>
-                        <span className="text-muted-foreground">{userProfile.creditsRemaining.toLocaleString()} / {userProfile.totalCredits.toLocaleString()}</span>
+                        <span className="text-muted-foreground">{userProfile.creditsRemaining?.toLocaleString() || 0} / {userProfile.totalCredits?.toLocaleString() || 0}</span>
                     </div>
                     <Progress value={creditUsagePercentage} className="h-2" />
                     <Link href="/profile" className='text-xs text-primary hover:underline text-center block mt-2'>
@@ -142,15 +156,39 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href="/admin" className='cursor-pointer'>
-                        <Shield className="mr-2 h-4 w-4" />
-                        <span>Admin</span>
+                    <Link href="/profile" className='cursor-pointer'>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                 <DropdownMenuItem asChild>
+                    <Link href="/profile" className='cursor-pointer'>
+                        <BarChart className="mr-2 h-4 w-4" />
+                        <span>Billing</span>
+                    </Link>
+                </DropdownMenuItem>
+                 <DropdownMenuItem asChild>
+                    <Link href="#" className='cursor-pointer'>
+                        <LifeBuoy className="mr-2 h-4 w-4" />
+                        <span>Support</span>
+                    </Link>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                      <Link href="/admin" className='cursor-pointer'>
+                          <Shield className="mr-2 h-4 w-4" />
+                          <span>Admin</span>
+                      </Link>
+                  </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Log out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             )}

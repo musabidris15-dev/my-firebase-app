@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock, Users, Loader2 } from 'lucide-react';
+import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock, Users, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -14,7 +14,9 @@ import { addDays, format, differenceInDays, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirebaseApp } from '@/firebase';
+import { useFirebaseApp, useUser } from '@/firebase';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { signOut } from 'firebase/auth';
 
 type UserProfile = {
     name: string;
@@ -41,8 +43,11 @@ export default function ProfilePage() {
     const [nextRenewalDate, setNextRenewalDate] = useState<string | null>(null);
     const [shouldShowRenewalMessage, setShouldShowRenewalMessage] = useState(false);
     const [isLoading, setIsLoading] = useState<PlanKey | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
     const firebaseApp = useFirebaseApp();
+    const { user, auth } = useUser();
     const plansRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -137,6 +142,50 @@ export default function ProfilePage() {
             });
         } finally {
             setIsLoading(null);
+        }
+    };
+
+    const handleCancelSubscription = async () => {
+        setIsCancelling(true);
+        try {
+            const functions = getFunctions(firebaseApp);
+            const cancelSub = httpsCallable(functions, 'cancelSubscription');
+            const result = await cancelSub();
+            toast({
+                title: "Subscription Cancellation",
+                description: (result.data as any).message || "Your request has been processed.",
+            });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Cancellation Failed",
+                description: error.message || "Could not cancel your subscription. Please contact support.",
+            });
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setIsDeleting(true);
+        try {
+            const functions = getFunctions(firebaseApp);
+            const deleteAccount = httpsCallable(functions, 'deleteUserAccount');
+            await deleteAccount();
+            toast({
+                title: "Account Deleted",
+                description: "Your account and all associated data have been permanently deleted.",
+            });
+            if(auth) await signOut(auth);
+            // Redirect or handle post-deletion state
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: error.message || "Could not delete your account. Please contact support.",
+            });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -260,6 +309,14 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         </CardContent>
+                        {userProfile.planId !== 'free' && (
+                            <CardFooter>
+                                <Button variant="outline" onClick={handleCancelSubscription} disabled={isCancelling}>
+                                    {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Cancel Subscription
+                                </Button>
+                            </CardFooter>
+                        )}
                     </Card>
                     
                     <div ref={plansRef}>
@@ -352,6 +409,42 @@ export default function ProfilePage() {
                             </CardContent>
                         </Card>
                     </div>
+
+                    <Card className="border-destructive/50">
+                        <CardHeader>
+                            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">
+                                Deleting your account is a permanent action and cannot be undone. All your data, including generated audio and personal settings, will be erased forever.
+                            </p>
+                        </CardContent>
+                        <CardFooter>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete My Account
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteAccount} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Yes, delete my account
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </CardFooter>
+                    </Card>
                 </div>
             </div>
         </div>

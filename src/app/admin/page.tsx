@@ -37,6 +37,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
 import { format, subDays, formatDistanceToNow } from 'date-fns';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 type User = {
     id: string;
@@ -152,6 +155,17 @@ const calculateStats = (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all
 
 
 export default function AdminPage() {
+  const router = useRouter();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userAdminRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users');
+  }, [firestore, user]);
+
+  const { data: userAdminList } = useCollection(userAdminRef);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -162,9 +176,15 @@ export default function AdminPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   useEffect(() => {
+    if (user && userAdminList) {
+        const currentUser = userAdminList.find((u) => u.id === user.uid);
+        if (!currentUser || currentUser.role !== 'Admin') {
+            router.push('/');
+        }
+    }
     setUsers(initialUsers);
     setFilteredUsers(initialUsers);
-  }, []);
+  }, [user, userAdminList, router]);
 
   useEffect(() => {
     const lowercasedTerm = searchTerm.toLowerCase();
@@ -556,5 +576,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
