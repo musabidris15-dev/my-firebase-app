@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info, PitchFork } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -16,8 +16,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isBefore, subHours } from 'date-fns';
-import { useAuth, useFirebase, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 // --- Voice Definitions ---
 const voices = {
@@ -107,7 +107,8 @@ export default function TTSPage() {
   const [downloadState, setDownloadState] = useState<DownloadState>({ id: null, format: null, isLoading: false });
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  
+  const [effects, setEffects] = useState<EffectsState>({ reverb: 0, echo: 0, pitch: 0 });
 
   const { user } = useUser();
   const firestore = useFirestore();
@@ -117,17 +118,7 @@ export default function TTSPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  useEffect(() => {
-    if (userDocRef) {
-      const unsub = onSnapshot(userDocRef, (doc) => {
-        if (doc.exists()) {
-          setUserProfile(doc.data());
-        }
-      });
-      return () => unsub();
-    }
-  }, [userDocRef]);
-
+  const { data: userProfile, isLoading: isUserLoading } = useDoc<any>(userDocRef);
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -162,8 +153,8 @@ export default function TTSPage() {
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newText = e.target.value;
-    if (isEmotionControlDisabled || isEffectControlDisabled) {
-      newText = newText.replace(/\[([^:]+?)(?::\s*[\d.]+)?\]/g, '');
+    if (isEmotionControlDisabled) {
+      newText = newText.replace(/\[(?!Default|reverb|echo|pitch)[a-zA-Z\s]+(?::\s*[\d.]+)?\]/g, '');
     }
     setText(newText);
   };
@@ -171,9 +162,17 @@ export default function TTSPage() {
   const handleGenerate = async () => {
     if (audioPlayerRef.current) audioPlayerRef.current.src = '';
 
-    const textToGenerate = text.trim();
-    const characterCount = textToGenerate.length;
+    let textToGenerate = text.trim();
+    
+    let effectsString = '';
+    if (effects.reverb > 0) effectsString += `[reverb: ${effects.reverb}] `;
+    if (effects.echo > 0) effectsString += `[echo: ${effects.echo}] `;
+    if (effects.pitch !== 0) effectsString += `[pitch: ${effects.pitch}] `;
 
+    textToGenerate = effectsString + textToGenerate;
+    
+    const characterCount = textToGenerate.length;
+    
     if (characterCount < 2) {
       showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
       return;
@@ -392,18 +391,33 @@ export default function TTSPage() {
                       </ScrollArea>
                   </div>
                   
-                  <div className={cn('space-y-4 rounded-lg border p-4', isEffectControlDisabled && 'opacity-50 cursor-not-allowed')}>
-                      <div className="flex items-center justify-between">
-                        <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
-                          3. Audio Effects Lab (Creator Plan only)
-                        </Label>
-                        {isEffectControlDisabled && userProfile?.planId !== 'creator' && (
-                          <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
-                            <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
-                          </Button>
-                        )}
-                      </div>
-                  </div>
+                   <div className={cn('space-y-4 rounded-lg border p-4', isEffectControlDisabled && 'opacity-50 cursor-not-allowed')}>
+                        <div className="flex items-center justify-between">
+                            <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
+                                3. Audio Effects Lab (Creator Plan only)
+                            </Label>
+                            {isEffectControlDisabled && userProfile?.planId !== 'creator' && (
+                                <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
+                                    <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
+                                </Button>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="reverb-slider">Reverb</Label>
+                                <Slider id="reverb-slider" min={0} max={1} step={0.1} value={[effects.reverb]} onValueChange={([val]) => setEffects(e => ({...e, reverb: val}))} disabled={isEffectControlDisabled} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="echo-slider">Echo</Label>
+                                <Slider id="echo-slider" min={0} max={1} step={0.1} value={[effects.echo]} onValueChange={([val]) => setEffects(e => ({...e, echo: val}))} disabled={isEffectControlDisabled} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="pitch-slider">Pitch</Label>
+                                <Slider id="pitch-slider" min={-6} max={6} step={1} value={[effects.pitch]} onValueChange={([val]) => setEffects(e => ({...e, pitch: val}))} disabled={isEffectControlDisabled} />
+                            </div>
+                        </div>
+                    </div>
+
 
                   <div>
                       <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">4. Select a voice</Label>
@@ -425,8 +439,8 @@ export default function TTSPage() {
                       </Popover>
                   </div>
                   
-                  <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
-                      {isLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
+                  <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isUserLoading}>
+                      {isLoading || isUserLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
                       <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                   </Button>
                   
@@ -498,7 +512,7 @@ export default function TTSPage() {
             </CardContent>
              <CardFooter className="flex justify-center items-center text-sm text-muted-foreground p-4 border-t">
                 <Wallet className="h-4 w-4 mr-2" />
-                Remaining Credits: {userProfile?.creditsRemaining.toLocaleString() ?? '...'}
+                Remaining Credits: {isUserLoading ? '...' : userProfile?.creditsRemaining.toLocaleString() ?? '...'}
             </CardFooter>
         </Card>
     </div>
