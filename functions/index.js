@@ -4,6 +4,7 @@
 
 const { onCall, HttpsError } = require("firebase-functions/v2/on-call");
 const { onRequest } = require("firebase-functions/v2/https");
+const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const axios = require("axios");
 const logger = require("firebase-functions/logger");
@@ -25,6 +26,31 @@ const WHOP_PLANS = {
     creator_monthly: 'plan_6VPgm0sLSThCZ',
     creator_yearly: 'plan_Xh8nEVACfO2aS',
 };
+
+
+/**
+ * Creates a user document in Firestore when a new Firebase Auth user is created.
+ */
+exports.initializeUser = functions.auth.user().onCreate(async (user) => {
+    logger.info(`Initializing new user: ${user.uid} (${user.email})`);
+
+    const userRef = db.collection('users').doc(user.uid);
+
+    try {
+        await userRef.set({
+            id: user.uid,
+            email: user.email,
+            planId: 'free',
+            credits: 10000,
+            creationDate: admin.firestore.FieldValue.serverTimestamp(),
+            referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        });
+        logger.info(`Successfully created Firestore document for user: ${user.uid}`);
+    } catch (error) {
+        logger.error(`Failed to create Firestore document for user: ${user.uid}`, { error });
+    }
+});
+
 
 /**
  * Creates a Whop checkout session for an authenticated user.
@@ -234,5 +260,3 @@ async function logFraudAttempt({ email, ip, deviceFingerprint, reason }) {
         logger.error('Failed to log fraud attempt:', { error, email, ip, reason });
     }
 }
-
-    
