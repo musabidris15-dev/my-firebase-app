@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FirebaseClientProvider, useAuth, useUser } from '@/firebase';
+import { FirebaseProvider, useAuth, useUser } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 
@@ -232,7 +232,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
+        <FirebaseProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
@@ -244,7 +244,7 @@ export default function RootLayout({
             </AuthWrapper>
             <Toaster />
           </ThemeProvider>
-        </FirebaseClientProvider>
+        </FirebaseProvider>
       </body>
     </html>
   );
