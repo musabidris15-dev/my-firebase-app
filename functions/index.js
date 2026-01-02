@@ -3,6 +3,7 @@
  * @fileOverview Firebase Cloud Functions for integrating with Whop Payments and a secure TTS service.
  */
 
+require('dotenv').config();
 const { onCall, HttpsError } = require("firebase-functions/v2/on-call");
 const { onRequest } = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
@@ -15,9 +16,9 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // Retrieve Whop API Key from environment variables
-const WHOP_API_KEY = functions.config().whop ? functions.config().whop.key : undefined;
+const WHOP_API_KEY = process.env.WHOP_API_KEY;
 if (!WHOP_API_KEY) {
-    logger.error("Whop API key is not configured. Run 'firebase functions:config:set whop.key=\"YOUR_KEY\"' and deploy functions.");
+    logger.error("Whop API key is not configured. Make sure WHOP_API_KEY is set in your environment.");
 }
 
 // Whop Plan IDs
