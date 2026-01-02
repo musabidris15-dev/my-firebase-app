@@ -76,14 +76,14 @@ export default function HomePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
               <div className="bg-card p-4 rounded-lg shadow-md">
                 <Image
-                  src="https://picsum.photos/seed/app-ui-1/600/400"
+                  src="https://picsum.photos/seed/ethiopian-dance/600/400"
                   width={600}
                   height={400}
-                  data-ai-hint="app interface"
+                  data-ai-hint="ethiopian cultural dance"
                   alt="App Interface 1"
                   className="rounded-md object-cover aspect-video"
                 />
-                <p className="mt-4 text-sm font-medium">Simple & Powerful Text-to-Speech</p>
+                <p className="mt-4 text-sm font-medium">Authentic Ethiopian Voices</p>
               </div>
               <div className="bg-card p-4 rounded-lg shadow-md">
                  <Image
