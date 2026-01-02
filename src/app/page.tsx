@@ -5,10 +5,50 @@ import { Button } from '@/components/ui/button';
 import { Languages, Clapperboard, MicVocal } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useUser } from '@/firebase';
+import { useEffect, useState } from 'react';
+
+const Greeting = () => {
+  const { user } = useUser();
+  const [greeting, setGreeting] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      const hour = new Date().getHours();
+      let timeBasedGreeting = '';
+
+      if (hour < 12) {
+        timeBasedGreeting = 'እንደምን አደሩ'; // Good morning
+      } else if (hour < 18) {
+        timeBasedGreeting = 'እንደምን ዋሉ'; // Good afternoon
+      } else {
+        timeBasedGreeting = 'እንደምን አመሹ'; // Good evening
+      }
+      
+      const displayName = user.isAnonymous ? 'Guest' : user.email?.split('@')[0] || 'User';
+
+      setGreeting(`${timeBasedGreeting}, ${displayName}!`);
+    }
+  }, [user]);
+
+  if (!greeting) return null;
+
+  return (
+    <div className="container px-4 md:px-6 mb-8">
+      <h2 className="text-2xl font-semibold font-amharic text-center">{greeting}</h2>
+    </div>
+  );
+};
+
 
 export default function HomePage() {
   return (
     <div className="flex flex-col">
+        {/* Greeting Section */}
+        <section className="w-full pt-12">
+          <Greeting />
+        </section>
+
         {/* Hero Section */}
         <section className="w-full py-20 md:py-32 lg:py-40 bg-gradient-to-b from-background to-muted/50">
           <div className="container px-4 md:px-6">
