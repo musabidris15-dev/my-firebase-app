@@ -4,7 +4,7 @@
  */
 
 require('dotenv').config();
-const { onCall, HttpsError } = require("firebase-functions/v2/on-call");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
