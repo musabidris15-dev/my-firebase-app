@@ -60,6 +60,10 @@
           "type": "string",
           "description": "The date and time when the user account was created.",
           "format": "date-time"
+        },
+        "lastKnownIp": {
+            "type": "string",
+            "description": "The last known IP address of the user."
         }
       },
       "required": [
@@ -165,7 +169,7 @@
         "email": { "type": "string", "description": "The email address used in the sign-up attempt.", "format": "email" },
         "ipAddress": { "type": "string", "description": "The IP address of the user at the time of the attempt." },
         "deviceFingerprint": { "type": "string", "description": "A unique hash representing the user's device." },
-        "reason": { "type": "string", "description": "The reason the attempt was flagged.", "enum": ["vpn_detected", "duplicate_device"] },
+        "reason": { "type": "string", "description": "The reason the attempt was flagged.", "enum": ["vpn_detected", "duplicate_device", "duplicate_ip"] },
         "timestamp": { "type": "string", "format": "date-time", "description": "The date and time of the detected attempt." }
       },
       "required": ["id", "email", "ipAddress", "deviceFingerprint", "reason", "timestamp"]

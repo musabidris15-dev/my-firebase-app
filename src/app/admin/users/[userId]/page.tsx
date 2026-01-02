@@ -194,8 +194,8 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
     notFound();
   }
   
-  const handleCopy = () => {
-    navigator.clipboard.writeText(user.id).then(() => {
+  const handleCopy = (textToCopy: string) => {
+    navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -227,7 +227,7 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                     <span className="text-muted-foreground font-medium">User ID</span>
                     <div className="flex items-center gap-2">
                         <span className="font-mono text-xs">{user.id}</span>
-                         <Button onClick={handleCopy} variant="ghost" size="icon" className="h-6 w-6">
+                         <Button onClick={() => handleCopy(user.id)} variant="ghost" size="icon" className="h-6 w-6">
                             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                         </Button>
                     </div>
@@ -240,26 +240,41 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                     <span className="text-muted-foreground font-medium">Last Login</span>
                     <span className="font-medium">{user.lastLoginDate}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground font-medium">Login Provider</span>
-                    <Badge variant="outline">{user.loginProvider}</Badge>
-                </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Security & Access
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Role</span>
                     <Badge variant={user.role === 'Admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
                 </div>
-                 <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Status</span>
-                    <Badge
+                     <Badge
                         variant={user.status === 'Active' ? 'default' : 'destructive'}
                         className={user.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/20' : 'bg-red-500/20 text-red-700 border-red-500/20'}
                     >
                         {user.status}
                     </Badge>
                 </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">Login Provider</span>
+                    <Badge variant="outline">{user.loginProvider}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">Last Login IP</span>
+                    <span className="font-mono text-xs">{user.lastKnownIp}</span>
+                </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -404,3 +419,5 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
     </div>
   );
 }
+
+    

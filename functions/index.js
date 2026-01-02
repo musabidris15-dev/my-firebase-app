@@ -190,8 +190,6 @@ exports.verifySignUpAttempt = onCall(async (request) => {
     }
 
     // --- 1. VPN Detection ---
-    // In a real application, you would use a service like ipinfo.io or ip-api.com
-    // For this example, we'll block a known VPN IP range as a placeholder.
     const isVpn = ip.startsWith('103.208.220.') || ip.startsWith('209.141.56.'); // Example ranges
     if (isVpn) {
         logger.warn(`VPN detected for email: ${email}, IP: ${ip}`);
@@ -199,17 +197,22 @@ exports.verifySignUpAttempt = onCall(async (request) => {
         throw new HttpsError('permission-denied', 'VPN detected. Please disable your VPN to continue.');
     }
 
-    // --- 2. Duplicate Device/IP Check ---
-    const fraudAttemptsRef = db.collection('fraudAttempts');
-    const deviceQuery = fraudAttemptsRef.where('deviceFingerprint', '==', deviceFingerprint);
-    const ipQuery = fraudAttemptsRef.where('ipAddress', '==', ip);
-
-    const [deviceSnapshot, ipSnapshot] = await Promise.all([deviceQuery.get(), ipQuery.get()]);
-
-    if (!deviceSnapshot.empty || !ipSnapshot.empty) {
-        logger.warn(`Duplicate sign-up attempt for email: ${email}, IP: ${ip}, Fingerprint: ${deviceFingerprint}`);
+    // --- 2. Duplicate Device Check (from fraud logs) ---
+    const fraudDeviceQuery = db.collection('fraudAttempts').where('deviceFingerprint', '==', deviceFingerprint);
+    const fraudDeviceSnapshot = await fraudDeviceQuery.get();
+    if (!fraudDeviceSnapshot.empty) {
+        logger.warn(`Duplicate sign-up attempt (device fingerprint) for email: ${email}, IP: ${ip}`);
         await logFraudAttempt({ email, ip, deviceFingerprint, reason: 'duplicate_device' });
-        throw new HttpsError('permission-denied', 'This device or network has already been used for a free sign-up.');
+        throw new HttpsError('permission-denied', 'This device has already been used for a free sign-up.');
+    }
+
+    // --- 3. Duplicate IP Check (from existing free tier users) ---
+    const usersIpQuery = db.collection('users').where('lastKnownIp', '==', ip).where('planId', '==', 'free');
+    const usersIpSnapshot = await usersIpQuery.get();
+    if (!usersIpSnapshot.empty) {
+        logger.warn(`Duplicate sign-up attempt (IP Address) for email: ${email}, IP: ${ip}`);
+        await logFraudAttempt({ email, ip, deviceFingerprint, reason: 'duplicate_ip' });
+        throw new HttpsError('permission-denied', 'This network has already been used for a free sign-up.');
     }
 
     return { success: true, message: 'Verification successful.' };

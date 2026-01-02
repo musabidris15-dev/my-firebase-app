@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert, Shield } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,13 +47,14 @@ type User = {
     status: string;
     joined: string;
     credits: number;
+    role: string;
 };
 
 type FraudAttempt = {
     id: string;
     email: string;
     ipAddress: string;
-    reason: 'vpn_detected' | 'duplicate_device';
+    reason: 'vpn_detected' | 'duplicate_device' | 'duplicate_ip';
     timestamp: Date;
 };
 
@@ -67,6 +68,7 @@ const initialUsers: User[] = [
     status: 'Active',
     joined: '2023-01-15',
     credits: 120000,
+    role: 'Admin',
   },
   {
     id: 'usr_2',
@@ -77,6 +79,7 @@ const initialUsers: User[] = [
     status: 'Active',
     joined: '2023-02-20',
     credits: 15000,
+    role: 'User',
   },
   {
     id: 'usr_3',
@@ -87,6 +90,7 @@ const initialUsers: User[] = [
     status: 'Suspended',
     joined: '2023-03-10',
     credits: 0,
+    role: 'User',
   },
   {
     id: 'usr_4',
@@ -97,6 +101,7 @@ const initialUsers: User[] = [
     status: 'Active',
     joined: '2023-04-05',
     credits: 350000,
+    role: 'User',
   },
    {
     id: 'usr_5',
@@ -107,6 +112,7 @@ const initialUsers: User[] = [
     status: 'Active',
     joined: '2023-05-21',
     credits: 1000,
+    role: 'User',
   },
 ];
 
@@ -114,6 +120,7 @@ const MOCK_FRAUD_ATTEMPTS: FraudAttempt[] = [
     { id: 'fa_1', email: 'test1@example.com', ipAddress: '103.208.220.1', reason: 'vpn_detected', timestamp: subDays(new Date(), 1) },
     { id: 'fa_2', email: 'test2@another.com', ipAddress: '98.12.111.45', reason: 'duplicate_device', timestamp: subDays(new Date(), 2) },
     { id: 'fa_3', email: 'test3@example.net', ipAddress: '209.141.56.200', reason: 'vpn_detected', timestamp: subDays(new Date(), 3) },
+    { id: 'fa_4', email: 'test4@example.com', ipAddress: '192.168.1.102', reason: 'duplicate_ip', timestamp: subDays(new Date(), 4) },
 ];
 
 
@@ -332,6 +339,7 @@ export default function AdminPage() {
                       <TableHead>Status</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>Credits</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>
                       <span className="sr-only">Actions</span>
                       </TableHead>
@@ -361,6 +369,9 @@ export default function AdminPage() {
                           {user.tier && <span className="text-muted-foreground"> ({user.tier})</span>}
                       </TableCell>
                       <TableCell>{user.credits.toLocaleString()}</TableCell>
+                      <TableCell>
+                          <Badge variant={user.role === 'Admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
+                      </TableCell>
                       <TableCell>
                           <Dialog open={editingUser?.id === user.id} onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}>
                               <DropdownMenu>
@@ -442,7 +453,7 @@ export default function AdminPage() {
                       </TableRow>
                   )) : (
                       <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center">
+                          <TableCell colSpan={6} className="h-24 text-center">
                               No users found.
                           </TableCell>
                       </TableRow>
@@ -526,7 +537,7 @@ export default function AdminPage() {
                                   <TableCell className="font-mono">{attempt.ipAddress}</TableCell>
                                   <TableCell>
                                       <Badge variant="destructive">
-                                          {attempt.reason === 'vpn_detected' ? 'VPN Detected' : 'Duplicate Device'}
+                                          {attempt.reason === 'vpn_detected' ? 'VPN Detected' : attempt.reason === 'duplicate_ip' ? 'Duplicate IP' : 'Duplicate Device'}
                                       </Badge>
                                   </TableCell>
                                   <TableCell>
