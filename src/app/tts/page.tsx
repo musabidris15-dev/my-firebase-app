@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
 
 // --- Voice Definitions ---
 const voices = {
@@ -81,20 +82,10 @@ const expressions = [
     { value: 'Podcast Host', label: 'Podcast Host' },
 ].sort((a, b) => a.label.localeCompare(b.label));
 
-
-const audioEffects = [
-  { value: 'Reverb', label: 'Reverb' },
-  { value: 'Echo', label: 'Echo' },
-  { value: 'Pitch Shift Up', label: 'Pitch Shift Up' },
-  { value: 'Pitch Shift Down', label: 'Pitch Shift Down' },
-  { value: 'Slow', label: 'Slow' },
-  { value: 'Fast', label: 'Fast' },
-  { value: 'Stadium Announcer', label: 'Stadium Announcer' },
-].sort((a, b) => a.label.localeCompare(b.label));
-
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
 type DownloadState = { format: 'wav' | 'mp3' | null; isLoading: boolean };
+type EffectsState = { reverb: number; echo: number; pitch: number; };
 
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
@@ -110,6 +101,8 @@ export default function TTSPage() {
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
   const [userPlan] = useState(MOCK_USER_PLAN);
+  const [effects, setEffects] = useState<EffectsState>({ reverb: 0, echo: 0, pitch: 0.5 });
+
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -149,7 +142,8 @@ export default function TTSPage() {
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newText = e.target.value;
     if (isEmotionControlDisabled || isEffectControlDisabled) {
-      newText = newText.replace(/\[.*?\]/g, '');
+      // Strip tags if user is not on a plan that supports them
+      newText = newText.replace(/\[([^:]+?)(?::\s*[\d.]+)?\]/g, '');
     }
     setText(newText);
   };
@@ -159,8 +153,18 @@ export default function TTSPage() {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl('');
 
-    const trimmedText = text.trim();
-    const characterCount = trimmedText.length;
+    let effectsPrefix = '';
+    if (!isEffectControlDisabled) {
+      if (effects.reverb > 0) effectsPrefix += `[reverb: ${effects.reverb.toFixed(2)}]`;
+      if (effects.echo > 0) effectsPrefix += `[echo: ${effects.echo.toFixed(2)}]`;
+      // Pitch default is 0.5, representing 1.0x speed.
+      // The range is 0-1 on slider, mapping to 0.5x to 1.5x speed.
+      const pitchValue = 0.5 + effects.pitch;
+      if (effects.pitch !== 0.5) effectsPrefix += `[pitch: ${pitchValue.toFixed(2)}]`;
+    }
+
+    const textToGenerate = `${effectsPrefix} ${text}`.trim();
+    const characterCount = text.trim().length;
 
     if (characterCount < 2) {
       showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
@@ -183,7 +187,7 @@ export default function TTSPage() {
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmedText, voice: selectedVoice }),
+        body: JSON.stringify({ text: textToGenerate, voice: selectedVoice }),
       });
       const result = await response.json();
 
@@ -374,11 +378,11 @@ export default function TTSPage() {
                         <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                 </div>
-
-                <div className='space-y-2'>
+                
+                <div className={cn('space-y-4 rounded-lg border p-4', isEffectControlDisabled && 'opacity-50 cursor-not-allowed')}>
                     <div className="flex items-center justify-between">
                       <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
-                        3. Add audio effects (Creator Plan only)
+                        3. Audio Effects Lab (Creator Plan only)
                       </Label>
                       {isEffectControlDisabled && userPlan !== 'creator' && (
                         <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
@@ -386,18 +390,22 @@ export default function TTSPage() {
                         </Button>
                       )}
                     </div>
-                    <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-                        <div className="flex w-max space-x-2 p-2">
-                            {audioEffects.map(effect => (
-                                <Button key={effect.value} variant="outline" size="sm" onClick={() => insertTag(effect.label)} disabled={isEffectControlDisabled}>
-                                    {effect.label}
-                                </Button>
-                            ))}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="reverb-slider">Reverb</Label>
+                            <Slider id="reverb-slider" value={[effects.reverb]} onValueChange={([val]) => setEffects(e => ({...e, reverb: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
                         </div>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                        <div className="space-y-2">
+                            <Label htmlFor="echo-slider">Echo</Label>
+                            <Slider id="echo-slider" value={[effects.echo]} onValueChange={([val]) => setEffects(e => ({...e, echo: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
+                        </div>
+                        <div className="space-y-2">
+                             <Label htmlFor="pitch-slider">Pitch</Label>
+                            <Slider id="pitch-slider" value={[effects.pitch]} onValueChange={([val]) => setEffects(e => ({...e, pitch: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
+                        </div>
+                    </div>
                 </div>
-                
+
                 <div>
                     <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">4. Select a voice</Label>
                     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>

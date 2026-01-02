@@ -7,7 +7,7 @@ import wav from 'wav';
 import { GenerateRequest } from 'genkit/generate';
 
 const TextToSpeechInputSchema = z.object({
-  text: z.string().describe('The text to convert to speech. Can include tags like [expression] to specify emotions.'),
+  text: z.string().describe('The text to convert to speech. Can include tags like [expression] or [effect:value] to specify emotions and effects.'),
   voice: z.string().describe('The voice to use for the speech.'),
 });
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
@@ -44,43 +44,51 @@ async function toWav(
   });
 }
 
-type TextSegment = {
+type ParsedSegment = {
     text: string;
-    expression: string;
+    tag: string;
+    value?: number;
 };
 
-function parseTextWithEmotions(text: string): TextSegment[] {
-    const segments: TextSegment[] = [];
-    const regex = /\[([a-zA-Z\s]+)\]/g;
-    
+// This regex now captures a key, and optionally a colon and a floating-point value.
+const tagRegex = /\[([a-zA-Z\s]+)(?::\s*(\d*\.?\d+))?\]/g;
+
+function parseTextWithEffects(text: string): { segments: ParsedSegment[], effects: Record<string, number> } {
+    const segments: ParsedSegment[] = [];
+    const effects: Record<string, number> = {};
+    const effectKeywords = ['reverb', 'echo', 'pitch'];
+
+    // Ensure the text starts with a default tag if it doesn't have one
     const processedText = text.trim().startsWith('[') ? text.trim() : `[Default] ${text.trim()}`;
     
     let lastIndex = 0;
-    let lastTag: string | null = null;
-    let segmentsFromText: { text: string; tag: string }[] = [];
+    let lastTag = 'Default';
 
     let match;
-    while ((match = regex.exec(processedText)) !== null) {
+    while ((match = tagRegex.exec(processedText)) !== null) {
         const textBefore = processedText.substring(lastIndex, match.index).trim();
         if (textBefore) {
-            segmentsFromText.push({ text: textBefore, tag: lastTag || 'Default' });
+            segments.push({ text: textBefore, tag: lastTag });
         }
-        lastTag = match[1];
+
+        const currentTag = match[1].toLowerCase();
+        const value = match[2] ? parseFloat(match[2]) : undefined;
+
+        if (effectKeywords.includes(currentTag) && value !== undefined) {
+            effects[currentTag] = value;
+        } else {
+             lastTag = match[1]; // This is an expression tag
+        }
+        
         lastIndex = match.index + match[0].length;
     }
 
     const remainingText = processedText.substring(lastIndex).trim();
     if (remainingText) {
-        segmentsFromText.push({ text: remainingText, tag: lastTag || 'Default' });
+        segments.push({ text: remainingText, tag: lastTag });
     }
     
-    segmentsFromText.forEach(s => {
-        if (s.text) {
-            segments.push({ text: s.text, expression: s.tag });
-        }
-    });
-    
-    return segments.filter(segment => segment.text.length > 0);
+    return { segments: segments.filter(s => s.text), effects };
 }
 
 
@@ -95,17 +103,26 @@ export const textToSpeechFlow = ai.defineFlow(
         throw new Error("API key not valid. Please set the GEMINI_API_KEY environment variable.");
     }
     
-    const segments = parseTextWithEmotions(text);
+    const { segments, effects } = parseTextWithEffects(text);
 
     if (segments.length === 0 && text.trim().length > 0) {
-        segments.push({ text: text.trim(), expression: 'Default' });
+        segments.push({ text: text.trim(), tag: 'Default' });
     }
 
     const pcmBuffers: Buffer[] = [];
     
     // Process segments sequentially to avoid rate limiting
     for (const segment of segments) {
-        let promptText = `Synthesize the following text in a ${segment.expression} voice: ${segment.text}`;
+        // Construct a prompt that includes effects if they exist.
+        let promptText = `Synthesize the following text in a ${segment.tag} voice: ${segment.text}`;
+        
+        let effectsString = Object.entries(effects)
+            .map(([key, value]) => `${key}=${value}`)
+            .join(', ');
+        
+        if(effectsString) {
+            promptText = `With effects (${effectsString}), synthesize the following text in a ${segment.tag} voice: ${segment.text}`;
+        }
 
         const request: GenerateRequest = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
