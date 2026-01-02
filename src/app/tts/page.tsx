@@ -89,7 +89,6 @@ type EffectsState = { reverb: number; echo: number; pitch: number; };
 
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
-const DOWNLOAD_COST = 500;
 const MOCK_USER_PLAN = 'creator'; // 'free', 'hobbyist', or 'creator'
 
 export default function TTSPage() {
@@ -227,16 +226,9 @@ export default function TTSPage() {
       showStatus('Error: Please generate audio before downloading.', 'error');
       return;
     }
-    if (DOWNLOAD_COST > userCredits) {
-      showStatus(`Error: Insufficient credits. Downloading requires ${DOWNLOAD_COST} credits.`, 'error');
-      return;
-    }
-
+    
     setDownloadState({ format, isLoading: true });
     showStatus(`Preparing ${format.toUpperCase()} download...`, 'loading');
-    
-    setUserCredits(prev => prev - DOWNLOAD_COST);
-    let creditsRefunded = false;
 
     try {
       let finalAudioUrl = audioUrl;
@@ -264,11 +256,9 @@ export default function TTSPage() {
           URL.revokeObjectURL(finalAudioUrl);
       }
 
-      showStatus(`Download started! ${DOWNLOAD_COST.toLocaleString()} credits were used.`, 'success');
+      showStatus(`Download started!`, 'success');
     } catch (error: any) {
       showStatus(`Error: ${error.message}`, 'error');
-      setUserCredits(prev => prev + DOWNLOAD_COST);
-      creditsRefunded = true;
     } finally {
       setDownloadState({ format: null, isLoading: false });
     }
@@ -442,11 +432,11 @@ export default function TTSPage() {
                       <CardFooter className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Button onClick={() => handleDownload('wav')} disabled={downloadState.isLoading} className="w-full">
                             {downloadState.isLoading && downloadState.format === 'wav' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download WAV ({DOWNLOAD_COST.toLocaleString()} credits)
+                            Download WAV
                         </Button>
                          <Button onClick={() => handleDownload('mp3')} disabled={downloadState.isLoading} className="w-full">
                             {downloadState.isLoading && downloadState.format === 'mp3' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download MP3 ({DOWNLOAD_COST.toLocaleString()} credits)
+                            Download MP3
                         </Button>
                       </CardFooter>
                   </Card>
@@ -462,3 +452,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
