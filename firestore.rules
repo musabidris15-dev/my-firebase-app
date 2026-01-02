@@ -98,11 +98,6 @@ service cloud.firestore {
     /**
      * @description Controls access to Text-to-Speech (TTS) requests.
      * @path /ttsRequests/{requestId}
-     * @allow (read) A user can only read their own TTS request records.
-     * @allow (list) A user can only list their own TTS requests, not anyone else's.
-     * @allow (create) A user can create a TTS request if it meets validation criteria (e.g., character limit).
-     * @allow (update, delete) No one can update or delete TTS records to maintain a clear audit trail.
-     * @principle Enforces ownership and abuse prevention through input validation.
      */
     match /ttsRequests/{requestId} {
       allow read: if isOwner(resource.data.userId);
@@ -110,5 +105,18 @@ service cloud.firestore {
       allow create: if isOwner(request.resource.data.userId) && hasValidTtsRequestCreateData(request.resource.data.userId);
       allow update, delete: if false; // Disallow modification to preserve history.
     }
+    
+    /**
+     * @description Controls access to fraud attempt logs.
+     * @path /fraudAttempts/{attemptId}
+     */
+    match /fraudAttempts/{attemptId} {
+      // Only admins can read these logs. No one can create them from the client.
+      allow read: if isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
   }
 }
+
+    

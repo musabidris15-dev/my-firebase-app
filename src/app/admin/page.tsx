@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3 } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
-import { format, subDays } from 'date-fns';
+import { format, subDays, formatDistanceToNow } from 'date-fns';
 
 type User = {
     id: string;
@@ -47,6 +47,14 @@ type User = {
     status: string;
     joined: string;
     credits: number;
+};
+
+type FraudAttempt = {
+    id: string;
+    email: string;
+    ipAddress: string;
+    reason: 'vpn_detected' | 'duplicate_device';
+    timestamp: Date;
 };
 
 const initialUsers: User[] = [
@@ -101,6 +109,13 @@ const initialUsers: User[] = [
     credits: 1000,
   },
 ];
+
+const MOCK_FRAUD_ATTEMPTS: FraudAttempt[] = [
+    { id: 'fa_1', email: 'test1@example.com', ipAddress: '103.208.220.1', reason: 'vpn_detected', timestamp: subDays(new Date(), 1) },
+    { id: 'fa_2', email: 'test2@another.com', ipAddress: '98.12.111.45', reason: 'duplicate_device', timestamp: subDays(new Date(), 2) },
+    { id: 'fa_3', email: 'test3@example.net', ipAddress: '209.141.56.200', reason: 'vpn_detected', timestamp: subDays(new Date(), 3) },
+];
+
 
 // --- Mock Data for Stats ---
 const MOCK_GENERATION_DATA = Array.from({ length: 90 }, (_, i) => ({
@@ -200,15 +215,16 @@ export default function AdminPage() {
       <header className="mb-10">
         <h1 className="text-4xl font-bold tracking-tight">Admin Dashboard</h1>
         <p className="text-lg text-muted-foreground mt-2">
-          User management and application oversight.
+          User management, application oversight, and security monitoring.
         </p>
       </header>
 
       <Tabs defaultValue="overview">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
@@ -476,6 +492,53 @@ export default function AdminPage() {
                       Send Notification
                   </Button>
               </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+           <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <ShieldAlert className="h-5 w-5 text-destructive" />
+                      Fraud & Abuse Prevention
+                  </CardTitle>
+                  <CardDescription>Review and manage suspicious user activities.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>Timestamp</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>IP Address</TableHead>
+                              <TableHead>Reason</TableHead>
+                              <TableHead>Actions</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {MOCK_FRAUD_ATTEMPTS.map(attempt => (
+                              <TableRow key={attempt.id}>
+                                  <TableCell>
+                                      <div>{format(attempt.timestamp, 'yyyy-MM-dd HH:mm')}</div>
+                                      <div className="text-xs text-muted-foreground">{formatDistanceToNow(attempt.timestamp, { addSuffix: true })}</div>
+                                  </TableCell>
+                                  <TableCell>{attempt.email}</TableCell>
+                                  <TableCell className="font-mono">{attempt.ipAddress}</TableCell>
+                                  <TableCell>
+                                      <Badge variant="destructive">
+                                          {attempt.reason === 'vpn_detected' ? 'VPN Detected' : 'Duplicate Device'}
+                                      </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                       <Button variant="outline" size="sm">
+                                            Block IP
+                                        </Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

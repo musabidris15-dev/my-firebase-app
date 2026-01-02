@@ -154,6 +154,21 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "The date and time the notification was created." }
       },
       "required": ["id", "recipient", "title", "message", "createdAt"]
+    },
+    "FraudAttempt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FraudAttempt",
+      "type": "object",
+      "description": "Logs a detected attempt to circumvent free tier limitations.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the fraud attempt log." },
+        "email": { "type": "string", "description": "The email address used in the sign-up attempt.", "format": "email" },
+        "ipAddress": { "type": "string", "description": "The IP address of the user at the time of the attempt." },
+        "deviceFingerprint": { "type": "string", "description": "A unique hash representing the user's device." },
+        "reason": { "type": "string", "description": "The reason the attempt was flagged.", "enum": ["vpn_detected", "duplicate_device"] },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The date and time of the detected attempt." }
+      },
+      "required": ["id", "email", "ipAddress", "deviceFingerprint", "reason", "timestamp"]
     }
   },
   "auth": {
@@ -223,7 +238,7 @@
           ]
         }
       },
-       {
+      {
         "path": "/notifications/{notificationId}",
         "definition": {
           "entityName": "Notification",
@@ -235,8 +250,23 @@
             { "name": "notificationId", "description": "The unique ID of the notification." }
           ]
         }
+      },
+      {
+        "path": "/fraudAttempts/{attemptId}",
+        "definition": {
+          "entityName": "FraudAttempt",
+          "schema": {
+            "$ref": "#/backend/entities/FraudAttempt"
+          },
+          "description": "Logs suspicious sign-up attempts for admin review.",
+          "params": [
+            { "name": "attemptId", "description": "The unique ID for the logged attempt." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars, and indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections.\n\n**Notifications Collection:** A top-level 'notifications' collection is added to store messages. This allows admins to easily send broadcast messages to all users (by setting 'recipient' to 'all') or target specific users. Users can read broadcast messages and any messages where they are the recipient, but cannot write to the collection. This centralizes announcements and alerts."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, while adhering to the principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters).  Authorization independence is achieved by avoiding `get()` calls in the rules, which requires denormalizing authorization data when needed.\n\n**Users Collection:** Stores user profiles.  A flat collection simplifies user management and authentication.  No denormalization is needed here as access control is based on `request.auth.uid`.\n\n**Avatars Subcollection:** Each user has a subcollection of Avatars.  This enforces ownership, making rules simpler and more secure.  Access control is based on the path `/users/{userId}/avatars/{avatarId}`.\n\n**GeneratedVideos Subcollection:** Each avatar has a subcollection of generated videos. This structure ensures that videos are directly associated with their avatars, and indirectly, with the user who owns the avatar. Access control is based on the path `/users/{userId}/avatars/{avatarId}/generatedVideos/{generatedVideoId}`.\n\n**Referral Program:**  The referral program is implemented directly in the `users` collection via the `referralCode` and `referredBy` fields.  This simplifies the data model and reduces the need for additional collections.\n\n**Notifications Collection:** A top-level 'notifications' collection is added to store messages. This allows admins to easily send broadcast messages to all users (by setting 'recipient' to 'all') or target specific users. Users can read broadcast messages and any messages where they are the recipient, but cannot write to the collection. This centralizes announcements and alerts.\n\n**FraudAttempts Collection:** A top-level collection to log potential fraudulent activities, like signing up from a VPN or using the same device for multiple free accounts. This collection is write-only for the backend function and read-only for admins, ensuring a secure audit trail."
   }
 }
+
+    

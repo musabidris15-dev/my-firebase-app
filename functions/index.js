@@ -137,13 +137,9 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
  * Securely generates TTS audio, with rate limiting and App Check enforcement.
  */
 exports.generateTtsAudio = onCall({
-  // Part 4: Enforce App Check on the function.
-  // This is a crucial step. It ensures that only your authentic app instance
-  // can call this function, blocking unauthorized scripts, bots, or Postman requests.
   enforceAppCheck: true,
 }, async (request) => {
     
-    // Part 3.1: Check for authenticated user context.
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "You must be logged in to generate audio.");
     }
@@ -154,7 +150,6 @@ exports.generateTtsAudio = onCall({
         throw new HttpsError("invalid-argument", "Invalid text input. Must be a string under 500 characters.");
     }
 
-    // Part 3.2: Implement Rate Limiting.
     const now = admin.firestore.Timestamp.now();
     const oneMinuteAgo = admin.firestore.Timestamp.fromMillis(now.toMillis() - 60000);
 
@@ -168,21 +163,73 @@ exports.generateTtsAudio = onCall({
     if (recentRequestsSnapshot.size >= 5) {
         throw new HttpsError("resource-exhausted", "You are making too many requests. Please try again in a minute.");
     }
-
-    // --- Placeholder for your actual TTS API call ---
-    // Example: const audioData = await callYourTtsProvider(text);
-    // For this example, we'll simulate a successful generation.
+    
     logger.info(`User ${uid} is generating audio for text: "${text.substring(0, 30)}..."`);
     const mockAudioUrl = `https://storage.googleapis.com/your-bucket-name/audio/${uid}/${Date.now()}.mp3`;
-    // --- End of placeholder ---
 
-    // Log the successful request to Firestore for future rate limit checks.
     await requestsRef.add({
         userId: uid,
         text: text,
-        audioUrl: mockAudioUrl, // Store the URL to the generated audio
+        audioUrl: mockAudioUrl,
         createdAt: now,
     });
 
     return { success: true, audioUrl: mockAudioUrl };
 });
+
+
+/**
+ * Verifies a sign-up attempt to prevent free tier abuse.
+ */
+exports.verifySignUpAttempt = onCall(async (request) => {
+    const { email, deviceFingerprint } = request.data;
+    const ip = request.rawRequest.ip;
+
+    if (!email || !deviceFingerprint || !ip) {
+        throw new HttpsError('invalid-argument', 'Missing required parameters for verification.');
+    }
+
+    // --- 1. VPN Detection ---
+    // In a real application, you would use a service like ipinfo.io or ip-api.com
+    // For this example, we'll block a known VPN IP range as a placeholder.
+    const isVpn = ip.startsWith('103.208.220.') || ip.startsWith('209.141.56.'); // Example ranges
+    if (isVpn) {
+        logger.warn(`VPN detected for email: ${email}, IP: ${ip}`);
+        await logFraudAttempt({ email, ip, deviceFingerprint, reason: 'vpn_detected' });
+        throw new HttpsError('permission-denied', 'VPN detected. Please disable your VPN to continue.');
+    }
+
+    // --- 2. Duplicate Device/IP Check ---
+    const fraudAttemptsRef = db.collection('fraudAttempts');
+    const deviceQuery = fraudAttemptsRef.where('deviceFingerprint', '==', deviceFingerprint);
+    const ipQuery = fraudAttemptsRef.where('ipAddress', '==', ip);
+
+    const [deviceSnapshot, ipSnapshot] = await Promise.all([deviceQuery.get(), ipQuery.get()]);
+
+    if (!deviceSnapshot.empty || !ipSnapshot.empty) {
+        logger.warn(`Duplicate sign-up attempt for email: ${email}, IP: ${ip}, Fingerprint: ${deviceFingerprint}`);
+        await logFraudAttempt({ email, ip, deviceFingerprint, reason: 'duplicate_device' });
+        throw new HttpsError('permission-denied', 'This device or network has already been used for a free sign-up.');
+    }
+
+    return { success: true, message: 'Verification successful.' };
+});
+
+/**
+ * Helper function to log a fraud attempt to Firestore.
+ */
+async function logFraudAttempt({ email, ip, deviceFingerprint, reason }) {
+    try {
+        await db.collection('fraudAttempts').add({
+            email,
+            ipAddress: ip,
+            deviceFingerprint,
+            reason,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+        logger.error('Failed to log fraud attempt:', { error, email, ip, reason });
+    }
+}
+
+    
