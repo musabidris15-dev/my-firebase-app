@@ -83,6 +83,7 @@ const expressions = [
 
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
+type DownloadState = { format: 'wav' | 'mp3' | null; isLoading: boolean };
 
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
@@ -93,7 +94,7 @@ export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadState, setDownloadState] = useState<DownloadState>({ format: null, isLoading: false });
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
@@ -205,7 +206,7 @@ export default function TTSPage() {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = async (format: 'wav' | 'mp3') => {
     if (!audioUrl) {
       showStatus('Error: Please generate audio before downloading.', 'error');
       return;
@@ -215,25 +216,45 @@ export default function TTSPage() {
       return;
     }
 
-    setIsDownloading(true);
-    showStatus('Preparing download...', 'loading');
+    setDownloadState({ format, isLoading: true });
+    showStatus(`Preparing ${format.toUpperCase()} download...`, 'loading');
     
     setUserCredits(prev => prev - DOWNLOAD_COST);
+    let creditsRefunded = false;
 
     try {
+      let finalAudioUrl = audioUrl;
+
+      if (format === 'mp3') {
+        const response = await fetch('/api/customize-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audioDataUri: audioUrl, outputFormat: 'mp3' }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `MP3 conversion failed.`);
+        finalAudioUrl = result.audioDataUri;
+      }
+      
       const link = document.createElement('a');
-      link.href = audioUrl;
-      link.download = `geez-voice-${new Date().getTime()}.wav`;
+      link.href = finalAudioUrl;
+      link.download = `geez-voice-${new Date().getTime()}.${format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showStatus(`Download started! ${DOWNLOAD_COST.toLocaleString()} credits were used.`, 'success');
 
+      // Revoke blob URL if it was created for MP3
+      if (format === 'mp3' && finalAudioUrl !== audioUrl) {
+          URL.revokeObjectURL(finalAudioUrl);
+      }
+
+      showStatus(`Download started! ${DOWNLOAD_COST.toLocaleString()} credits were used.`, 'success');
     } catch (error: any) {
       showStatus(`Error: ${error.message}`, 'error');
       setUserCredits(prev => prev + DOWNLOAD_COST);
+      creditsRefunded = true;
     } finally {
-      setIsDownloading(false);
+      setDownloadState({ format: null, isLoading: false });
     }
   };
 
@@ -376,10 +397,14 @@ export default function TTSPage() {
                       <CardContent>
                           <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
                       </CardContent>
-                      <CardFooter>
-                        <Button onClick={handleDownload} disabled={isDownloading} className="w-full">
-                            {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download ({DOWNLOAD_COST.toLocaleString()} credits)
+                      <CardFooter className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button onClick={() => handleDownload('wav')} disabled={downloadState.isLoading} className="w-full">
+                            {downloadState.isLoading && downloadState.format === 'wav' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download WAV ({DOWNLOAD_COST.toLocaleString()} credits)
+                        </Button>
+                         <Button onClick={() => handleDownload('mp3')} disabled={downloadState.isLoading} className="w-full">
+                            {downloadState.isLoading && downloadState.format === 'mp3' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download MP3 ({DOWNLOAD_COST.toLocaleString()} credits)
                         </Button>
                       </CardFooter>
                   </Card>
@@ -395,5 +420,3 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    
