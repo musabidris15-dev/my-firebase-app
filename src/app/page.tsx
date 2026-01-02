@@ -76,10 +76,10 @@ export default function HomePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
               <div className="bg-card p-4 rounded-lg shadow-md">
                 <Image
-                  src="https://picsum.photos/seed/coffee-ceremony/600/400"
+                  src="https://picsum.photos/seed/app-ui-1/600/400"
                   width={600}
                   height={400}
-                  data-ai-hint="coffee ceremony"
+                  data-ai-hint="app interface"
                   alt="App Interface 1"
                   className="rounded-md object-cover aspect-video"
                 />
@@ -87,14 +87,14 @@ export default function HomePage() {
               </div>
               <div className="bg-card p-4 rounded-lg shadow-md">
                  <Image
-                  src="https://picsum.photos/seed/african-village/600/400"
+                  src="https://picsum.photos/seed/app-ui-2/600/400"
                   width={600}
                   height={400}
-                  data-ai-hint="African village"
-                  alt="African village with huts"
+                  data-ai-hint="dashboard analytics"
+                  alt="App Interface 2"
                   className="rounded-md object-cover aspect-video"
                 />
-                 <p className="mt-4 text-sm font-medium">Culturally Rich Voice Models</p>
+                 <p className="mt-4 text-sm font-medium">Detailed Usage Analytics</p>
               </div>
             </div>
           </div>
