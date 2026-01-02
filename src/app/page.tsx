@@ -87,14 +87,14 @@ export default function HomePage() {
               </div>
               <div className="bg-card p-4 rounded-lg shadow-md">
                  <Image
-                  src="https://picsum.photos/seed/lalibela-church/600/400"
+                  src="https://picsum.photos/seed/african-village/600/400"
                   width={600}
                   height={400}
-                  data-ai-hint="Lalibela church"
-                  alt="App Interface 2"
+                  data-ai-hint="African village"
+                  alt="African village with huts"
                   className="rounded-md object-cover aspect-video"
                 />
-                 <p className="mt-4 text-sm font-medium">Extensive Voice Library</p>
+                 <p className="mt-4 text-sm font-medium">Culturally Rich Voice Models</p>
               </div>
             </div>
           </div>
