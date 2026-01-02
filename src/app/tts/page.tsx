@@ -98,7 +98,7 @@ type HistoryItem = {
   timestamp: Date;
 };
 
-const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
+const PREVIEW_TEXT = "ሰላም ይህ ግዕዝ ነው የናንተ አማርኛ ፅሁፍን ወደ ንግግር መቀየሪያ";
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
