@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -96,6 +97,9 @@ body {
     @apply bg-background text-foreground;
     transition: background-color 0.3s, color 0.3s;
   }
+  .rdp-day {
+    transition: background-color 0.2s ease-in-out;
+  }
 }
 
 /* Custom scrollbar for aesthetics */
@@ -109,3 +113,5 @@ textarea::-webkit-scrollbar-thumb {
 textarea::-webkit-scrollbar-track {
     background-color: hsl(var(--input));
 }
+
+    
