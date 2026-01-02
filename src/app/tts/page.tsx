@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2 } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from 'date-fns';
 
 // --- Voice Definitions ---
 const voices = {
@@ -84,8 +86,15 @@ const expressions = [
 
 type Status = { message: string | null; type: 'info' | 'error' | 'success' | 'loading' | null; };
 type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boolean; };
-type DownloadState = { format: 'wav' | 'mp3' | null; isLoading: boolean };
+type DownloadState = { id: string | null; format: 'wav' | 'mp3' | null; isLoading: boolean };
 type EffectsState = { reverb: number; echo: number; pitch: number; };
+type HistoryItem = {
+  id: string;
+  audioUrl: string;
+  text: string;
+  voice: string;
+  timestamp: Date;
+};
 
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
@@ -95,13 +104,13 @@ export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
   const [selectedVoice, setSelectedVoice] = useState(allVoices[0].value);
   const [isLoading, setIsLoading] = useState(false);
-  const [downloadState, setDownloadState] = useState<DownloadState>({ format: null, isLoading: false });
+  const [downloadState, setDownloadState] = useState<DownloadState>({ id: null, format: null, isLoading: false });
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
   const [userPlan] = useState(MOCK_USER_PLAN);
   const [effects, setEffects] = useState<EffectsState>({ reverb: 0, echo: 0, pitch: 0.5 });
-
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -122,6 +131,7 @@ export default function TTSPage() {
         player.pause();
         player.src = '';
       }
+      history.forEach(item => URL.revokeObjectURL(item.audioUrl));
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -156,8 +166,6 @@ export default function TTSPage() {
     if (!isEffectControlDisabled) {
       if (effects.reverb > 0) effectsPrefix += `[reverb: ${effects.reverb.toFixed(2)}]`;
       if (effects.echo > 0) effectsPrefix += `[echo: ${effects.echo.toFixed(2)}]`;
-      // Pitch default is 0.5, representing 1.0x speed.
-      // The range is 0-1 on slider, mapping to 0.5x to 1.5x speed.
       const pitchValue = 0.5 + effects.pitch;
       if (effects.pitch !== 0.5) effectsPrefix += `[pitch: ${pitchValue.toFixed(2)}]`;
     }
@@ -198,12 +206,15 @@ export default function TTSPage() {
       }
       
       if (result.audioDataUri) {
-          setAudioUrl(result.audioDataUri);
+          const newHistoryItem: HistoryItem = {
+            id: new Date().getTime().toString(),
+            audioUrl: result.audioDataUri,
+            text,
+            voice: allVoices.find(v => v.value === selectedVoice)?.name || 'Unknown',
+            timestamp: new Date()
+          };
+          setHistory(prev => [newHistoryItem, ...prev]);
           showStatus(`Audio generated successfully! ${characterCount.toLocaleString()} credits used.`, 'success');
-          if (audioPlayerRef.current) {
-            audioPlayerRef.current.src = result.audioDataUri;
-            audioPlayerRef.current.play();
-          }
       } else {
           throw new Error('API response did not contain valid audio data.');
       }
@@ -221,23 +232,18 @@ export default function TTSPage() {
     }
   };
 
-  const handleDownload = async (format: 'wav' | 'mp3') => {
-    if (!audioUrl) {
-      showStatus('Error: Please generate audio before downloading.', 'error');
-      return;
-    }
-    
-    setDownloadState({ format, isLoading: true });
+  const handleDownload = async (itemId: string, sourceAudioUrl: string, format: 'wav' | 'mp3') => {
+    setDownloadState({ id: itemId, format, isLoading: true });
     showStatus(`Preparing ${format.toUpperCase()} download...`, 'loading');
 
     try {
-      let finalAudioUrl = audioUrl;
+      let finalAudioUrl = sourceAudioUrl;
 
       if (format === 'mp3') {
         const response = await fetch('/api/customize-audio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ audioDataUri: audioUrl, outputFormat: 'mp3' }),
+          body: JSON.stringify({ audioDataUri: sourceAudioUrl, outputFormat: 'mp3' }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `MP3 conversion failed.`);
@@ -251,16 +257,16 @@ export default function TTSPage() {
       link.click();
       document.body.removeChild(link);
 
-      // Revoke blob URL if it was created for MP3
-      if (format === 'mp3' && finalAudioUrl !== audioUrl) {
-          URL.revokeObjectURL(finalAudioUrl);
+      if (format === 'mp3' && finalAudioUrl !== sourceAudioUrl) {
+          // Assuming the conversion API returns a new blob URL that needs revoking
+          // If it's a data URI, no revoking is needed for it.
       }
 
       showStatus(`Download started!`, 'success');
     } catch (error: any) {
       showStatus(`Error: ${error.message}`, 'error');
     } finally {
-      setDownloadState({ format: null, isLoading: false });
+      setDownloadState({ id: null, format: null, isLoading: false });
     }
   };
 
@@ -333,116 +339,165 @@ export default function TTSPage() {
   const characterCount = text.length;
 
   return (
-    <div className="container mx-auto max-w-3xl">
+    <div className="container mx-auto max-w-4xl">
         <Card className="shadow-lg">
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">Text to Speech</CardTitle>
                 <p className="text-muted-foreground mt-2 text-lg">Convert text, add expressions, and generate high-quality audio.</p>
             </CardHeader>
-            <CardContent className="p-6 md:p-8 space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="text-to-speak" className="text-sm font-medium text-muted-foreground">1. Enter your script</Label>
-                    <Textarea ref={textareaRef} id="text-to-speak" rows={6} className="text-lg" placeholder="[Happy] Welcome to Geez Voice! Start typing here..." value={text} onChange={handleTextChange} />
-                    <div className="text-right text-sm text-muted-foreground mt-2">{characterCount.toLocaleString()} characters</div>
-                </div>
+            <CardContent>
+              <Tabs defaultValue="generator">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="generator">Generator</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
+                </TabsList>
+                <TabsContent value="generator" className="p-6 md:p-8 space-y-6">
+                  <div className="space-y-2">
+                      <Label htmlFor="text-to-speak" className="text-sm font-medium text-muted-foreground">1. Enter your script</Label>
+                      <Textarea ref={textareaRef} id="text-to-speak" rows={6} className="text-lg" placeholder="[Happy] Welcome to Geez Voice! Start typing here..." value={text} onChange={handleTextChange} />
+                      <div className="text-right text-sm text-muted-foreground mt-2">{characterCount.toLocaleString()} characters</div>
+                  </div>
 
-                <div className='space-y-2'>
-                    <div className="flex items-center justify-between">
-                      <Label className={cn("text-sm font-medium", isEmotionControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
-                        2. Add emotions to your script (optional)
-                      </Label>
-                      {isEmotionControlDisabled && (
-                        <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
-                          <Link href="/profile"><Sparkles className="mr-2 h-4 w-4" />Upgrade to Unlock</Link>
-                        </Button>
-                      )}
-                    </div>
-                    <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-                        <div className="flex w-max space-x-2 p-2">
-                            {expressions.map(expression => (
-                                <Button key={expression.value} variant="outline" size="sm" onClick={() => insertTag(expression.label)} disabled={isEmotionControlDisabled}>
-                                    {expression.label}
-                                </Button>
-                            ))}
-                        </div>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                </div>
-                
-                <div className={cn('space-y-4 rounded-lg border p-4', isEffectControlDisabled && 'opacity-50 cursor-not-allowed')}>
-                    <div className="flex items-center justify-between">
-                      <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
-                        3. Audio Effects Lab (Creator Plan only)
-                      </Label>
-                      {isEffectControlDisabled && userPlan !== 'creator' && (
-                        <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
-                          <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
-                        </Button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="reverb-slider">Reverb</Label>
-                            <Slider id="reverb-slider" value={[effects.reverb]} onValueChange={([val]) => setEffects(e => ({...e, reverb: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="echo-slider">Echo</Label>
-                            <Slider id="echo-slider" value={[effects.echo]} onValueChange={([val]) => setEffects(e => ({...e, echo: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
-                        </div>
-                        <div className="space-y-2">
-                             <Label htmlFor="pitch-slider">Pitch</Label>
-                            <Slider id="pitch-slider" value={[effects.pitch]} onValueChange={([val]) => setEffects(e => ({...e, pitch: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
-                        </div>
-                    </div>
-                </div>
+                  <div className='space-y-2'>
+                      <div className="flex items-center justify-between">
+                        <Label className={cn("text-sm font-medium", isEmotionControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
+                          2. Add emotions to your script (optional)
+                        </Label>
+                        {isEmotionControlDisabled && (
+                          <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
+                            <Link href="/profile"><Sparkles className="mr-2 h-4 w-4" />Upgrade to Unlock</Link>
+                          </Button>
+                        )}
+                      </div>
+                      <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                          <div className="flex w-max space-x-2 p-2">
+                              {expressions.map(expression => (
+                                  <Button key={expression.value} variant="outline" size="sm" onClick={() => insertTag(expression.label)} disabled={isEmotionControlDisabled}>
+                                      {expression.label}
+                                  </Button>
+                              ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
+                  </div>
+                  
+                  <div className={cn('space-y-4 rounded-lg border p-4', isEffectControlDisabled && 'opacity-50 cursor-not-allowed')}>
+                      <div className="flex items-center justify-between">
+                        <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
+                          3. Audio Effects Lab (Creator Plan only)
+                        </Label>
+                        {isEffectControlDisabled && userPlan !== 'creator' && (
+                          <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
+                            <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                          <div className="space-y-2">
+                              <Label htmlFor="reverb-slider">Reverb</Label>
+                              <Slider id="reverb-slider" value={[effects.reverb]} onValueChange={([val]) => setEffects(e => ({...e, reverb: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
+                          </div>
+                          <div className="space-y-2">
+                              <Label htmlFor="echo-slider">Echo</Label>
+                              <Slider id="echo-slider" value={[effects.echo]} onValueChange={([val]) => setEffects(e => ({...e, echo: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
+                          </div>
+                          <div className="space-y-2">
+                              <Label htmlFor="pitch-slider">Pitch</Label>
+                              <Slider id="pitch-slider" value={[effects.pitch]} onValueChange={([val]) => setEffects(e => ({...e, pitch: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
+                          </div>
+                      </div>
+                  </div>
 
-                <div>
-                    <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">4. Select a voice</Label>
-                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between text-lg h-auto p-3">
-                            {selectedVoice ? allVoices.find((voice) => voice.value === selectedVoice)?.name : "Select a voice..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <div>
+                      <Label htmlFor="voice-select" className="block text-sm font-medium text-muted-foreground mb-2">4. Select a voice</Label>
+                      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                          <PopoverTrigger asChild>
+                              <Button variant="outline" role="combobox" aria-expanded={popoverOpen} className="w-full justify-between text-lg h-auto p-3">
+                              {selectedVoice ? allVoices.find((voice) => voice.value === selectedVoice)?.name : "Select a voice..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                              <Command><CommandInput placeholder="Search voice..." />
+                                  <CommandList>{previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}<CommandEmpty>No voice found.</CommandEmpty>
+                                      <CommandGroup heading="Female Voices">{voices.female.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
+                                      <CommandGroup heading="Male Voices">{voices.male.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
+                                  </CommandList>
+                              </Command>
+                          </PopoverContent>
+                      </Popover>
+                  </div>
+                  
+                  <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
+                      {isLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
+                      <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
+                  </Button>
+                  
+                  <StatusAlert />
+                </TabsContent>
+                <TabsContent value="history" className="p-6 md:p-8 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-semibold flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Generation History (Current Session)
+                        </h3>
+                        {history.length > 0 && (
+                            <Button variant="outline" size="sm" onClick={() => setHistory([])}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear History
                             </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command><CommandInput placeholder="Search voice..." />
-                                <CommandList>{previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}<CommandEmpty>No voice found.</CommandEmpty>
-                                    <CommandGroup heading="Female Voices">{voices.female.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
-                                    <CommandGroup heading="Male Voices">{voices.male.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                
-                <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading}>
-                    {isLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
-                    <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
-                </Button>
-                
-                {audioUrl && (
-                  <Card>
-                      <CardHeader>
-                        <CardTitle>Playback & Download</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          <audio ref={audioPlayerRef} src={audioUrl} controls className="w-full h-10 mt-1"></audio>
-                      </CardContent>
-                      <CardFooter className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Button onClick={() => handleDownload('wav')} disabled={downloadState.isLoading} className="w-full">
-                            {downloadState.isLoading && downloadState.format === 'wav' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download WAV
-                        </Button>
-                         <Button onClick={() => handleDownload('mp3')} disabled={downloadState.isLoading} className="w-full">
-                            {downloadState.isLoading && downloadState.format === 'mp3' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download MP3
-                        </Button>
-                      </CardFooter>
-                  </Card>
-                )}
-                
-                <StatusAlert />
+                        )}
+                    </div>
+                    {history.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-10 border-2 border-dashed rounded-lg">
+                            <p>No audio generated in this session yet.</p>
+                            <p className="text-sm">Generated clips will appear here.</p>
+                        </div>
+                    ) : (
+                        <ScrollArea className="h-[400px] space-y-4 pr-3">
+                            {history.map((item) => (
+                                <Card key={item.id} className="mb-4">
+                                    <CardHeader>
+                                        <CardTitle className="text-sm font-normal text-muted-foreground">
+                                          {format(item.timestamp, 'PPpp')}
+                                        </CardTitle>
+                                        <p className="text-base font-semibold line-clamp-2">"{item.text}"</p>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <audio src={item.audioUrl} controls className="w-full h-10"></audio>
+                                        <div className="text-xs text-muted-foreground mt-2">Voice: {item.voice}</div>
+                                    </CardContent>
+                                    <CardFooter className="flex-col items-stretch space-y-4">
+                                         <Alert variant="destructive" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300">
+                                            <AlertCircle className="h-4 w-4 !text-yellow-600 dark:!text-yellow-400" />
+                                            <AlertTitle className="text-yellow-800 dark:text-yellow-200">Download Your Audio</AlertTitle>
+                                            <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                                                History is cleared on page reload. Download now to save your work.
+                                            </AlertDescription>
+                                        </Alert>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <Button 
+                                              onClick={() => handleDownload(item.id, item.audioUrl, 'wav')} 
+                                              disabled={downloadState.isLoading && downloadState.id === item.id}
+                                            >
+                                                {downloadState.isLoading && downloadState.id === item.id && downloadState.format === 'wav' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                Download WAV
+                                            </Button>
+                                            <Button 
+                                              onClick={() => handleDownload(item.id, item.audioUrl, 'mp3')} 
+                                              disabled={downloadState.isLoading && downloadState.id === item.id}
+                                            >
+                                                {downloadState.isLoading && downloadState.id === item.id && downloadState.format === 'mp3' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                Download MP3
+                                            </Button>
+                                        </div>
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </ScrollArea>
+                    )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
              <CardFooter className="flex justify-center items-center text-sm text-muted-foreground p-4 border-t">
                 <Wallet className="h-4 w-4 mr-2" />
