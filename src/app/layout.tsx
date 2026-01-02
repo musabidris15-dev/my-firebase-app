@@ -104,6 +104,14 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Profile">
+                <Link href="/profile">
+                  <UserCircle />
+                  <span>Profile</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -287,3 +295,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
