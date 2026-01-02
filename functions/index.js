@@ -15,9 +15,9 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // Retrieve Whop API Key from environment variables
-const WHOP_API_KEY = process.env.WHOP_API_KEY;
+const WHOP_API_KEY = functions.config().whop ? functions.config().whop.key : undefined;
 if (!WHOP_API_KEY) {
-    logger.error("WHOP_API_KEY environment variable not set. Functions will not work correctly.");
+    logger.error("Whop API key is not configured. Run 'firebase functions:config:set whop.key=\"YOUR_KEY\"' and deploy functions.");
 }
 
 // Whop Plan IDs
@@ -63,6 +63,10 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
     }
     const uid = request.auth.uid;
     const { planKey } = request.data;
+
+    if (!WHOP_API_KEY) {
+        throw new HttpsError("internal", "The server is missing the Whop API key configuration.");
+    }
 
     // Input Validation: Ensure planKey is provided and valid.
     if (!planKey || !WHOP_PLANS[planKey]) {
