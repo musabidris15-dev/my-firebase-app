@@ -99,6 +99,28 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Cultural Heritage Section */}
+        <section className="w-full py-20 md:py-32 border-t">
+            <div className="container grid items-center justify-center gap-4 px-4 text-center md:px-6">
+                <div className="space-y-3">
+                    <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Rooted in Heritage</h2>
+                    <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                        Inspired by the rich traditions and vibrant history of Ethiopia, Geez Voice brings authentic narration to the digital age.
+                    </p>
+                </div>
+                <div className="w-full max-w-4xl mx-auto mt-8">
+                     <Image
+                        src="https://picsum.photos/seed/village/800/500"
+                        width={800}
+                        height={500}
+                        data-ai-hint="ethiopian village"
+                        alt="A beautiful Ethiopian village landscape with traditional huts."
+                        className="rounded-lg object-cover aspect-[16/10] shadow-xl"
+                    />
+                </div>
+            </div>
+        </section>
     </div>
   );
 }
