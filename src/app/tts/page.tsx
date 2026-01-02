@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2 } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -15,7 +15,9 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from 'date-fns';
+import { format, isBefore, subHours } from 'date-fns';
+import { useAuth, useFirebase, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 // --- Voice Definitions ---
 const voices = {
@@ -97,8 +99,6 @@ type HistoryItem = {
 };
 
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
-const MOCK_USER_CREDITS = 20000;
-const MOCK_USER_PLAN = 'creator'; // 'free', 'hobbyist', or 'creator'
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -106,11 +106,28 @@ export default function TTSPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [downloadState, setDownloadState] = useState<DownloadState>({ id: null, format: null, isLoading: false });
   const [status, setStatus] = useState<Status>({ message: null, type: null });
-  const [audioUrl, setAudioUrl] = useState('');
-  const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
-  const [userPlan] = useState(MOCK_USER_PLAN);
-  const [effects, setEffects] = useState<EffectsState>({ reverb: 0, echo: 0, pitch: 0.5 });
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  useEffect(() => {
+    if (userDocRef) {
+      const unsub = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          setUserProfile(doc.data());
+        }
+      });
+      return () => unsub();
+    }
+  }, [userDocRef]);
+
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -118,14 +135,13 @@ export default function TTSPage() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [preview, setPreview] = useState<PreviewState>({ voice: null, isPlaying: false, isLoading: false });
   const [previewError, setPreviewError] = useState<string | null>(null);
-  
+
   useEffect(() => {
     previewPlayerRef.current = new Audio();
     const player = previewPlayerRef.current;
     const onEnded = () => setPreview({ voice: preview.voice, isPlaying: false, isLoading: false });
     player.addEventListener('ended', onEnded);
     return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (player) {
         player.removeEventListener('ended', onEnded);
         player.pause();
@@ -135,61 +151,54 @@ export default function TTSPage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
-  const isEmotionControlDisabled = userPlan === 'free';
-  const isEffectControlDisabled = userPlan !== 'creator';
 
-  useEffect(() => {
-    if (isEmotionControlDisabled) {
-      // If user is on free plan, strip out any emotion tags from the default text
-      setText(PREVIEW_TEXT.replace(/\[.*?\]/g, '').trim());
-    }
-  }, [isEmotionControlDisabled]);
+  const lastEmotionUseDate = userProfile?.lastEmotionUseDate?.toDate();
+  const canUseFreeEmotion = !lastEmotionUseDate || isBefore(lastEmotionUseDate, subHours(new Date(), 24));
+  
+  const isEmotionControlDisabled = userProfile?.planId === 'free' && !canUseFreeEmotion;
+  const isEffectControlDisabled = userProfile?.planId !== 'creator';
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
-  
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newText = e.target.value;
     if (isEmotionControlDisabled || isEffectControlDisabled) {
-      // Strip tags if user is not on a plan that supports them
       newText = newText.replace(/\[([^:]+?)(?::\s*[\d.]+)?\]/g, '');
     }
     setText(newText);
   };
-
+  
   const handleGenerate = async () => {
     if (audioPlayerRef.current) audioPlayerRef.current.src = '';
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl('');
 
-    let effectsPrefix = '';
-    if (!isEffectControlDisabled) {
-      if (effects.reverb > 0) effectsPrefix += `[reverb: ${effects.reverb.toFixed(2)}]`;
-      if (effects.echo > 0) effectsPrefix += `[echo: ${effects.echo.toFixed(2)}]`;
-      const pitchValue = 0.5 + effects.pitch;
-      if (effects.pitch !== 0.5) effectsPrefix += `[pitch: ${pitchValue.toFixed(2)}]`;
-    }
-
-    const textToGenerate = `${effectsPrefix} ${text}`.trim();
-    const characterCount = text.trim().length;
+    const textToGenerate = text.trim();
+    const characterCount = textToGenerate.length;
 
     if (characterCount < 2) {
       showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
       return;
     }
-    if (characterCount > userCredits) {
-      showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userCredits.toLocaleString()}.`, 'error');
+    if (userProfile && characterCount > userProfile.creditsRemaining) {
+      showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userProfile.creditsRemaining.toLocaleString()}.`, 'error');
       return;
     }
-    
+
     setIsLoading(true);
     showStatus('Generating audio...', 'loading');
     
     let creditsRefund = 0;
 
     try {
-      setUserCredits(prev => prev - characterCount);
-      creditsRefund = characterCount;
+      if (userDocRef) {
+        const newCredits = userProfile.creditsRemaining - characterCount;
+        await setDoc(userDocRef, { creditsRemaining: newCredits }, { merge: true });
+        creditsRefund = characterCount;
+      }
+      
+      const containsEmotionTag = /\[(?!Default|reverb|echo|pitch)[a-zA-Z\s]+\]/.test(textToGenerate);
+      if (userProfile?.planId === 'free' && containsEmotionTag && canUseFreeEmotion && userDocRef) {
+        await setDoc(userDocRef, { lastEmotionUseDate: serverTimestamp() }, { merge: true });
+      }
 
       const response = await fetch('/api/tts', {
         method: 'POST',
@@ -224,8 +233,8 @@ export default function TTSPage() {
         if (error.message.includes("API key not valid")) errorMessage = "Error: Your API key is not valid. Please set it in the .env file.";
         if (error.message.includes("not valid JSON")) errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         showStatus(errorMessage, 'error');
-        if (creditsRefund > 0) {
-            setUserCredits(prev => prev + creditsRefund);
+        if (creditsRefund > 0 && userDocRef) {
+            await setDoc(userDocRef, { creditsRemaining: userProfile.creditsRemaining }, { merge: true });
         }
     } finally {
         setIsLoading(false);
@@ -256,11 +265,6 @@ export default function TTSPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      if (format === 'mp3' && finalAudioUrl !== sourceAudioUrl) {
-          // Assuming the conversion API returns a new blob URL that needs revoking
-          // If it's a data URI, no revoking is needed for it.
-      }
 
       showStatus(`Download started!`, 'success');
     } catch (error: any) {
@@ -363,12 +367,19 @@ export default function TTSPage() {
                         <Label className={cn("text-sm font-medium", isEmotionControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
                           2. Add emotions to your script (optional)
                         </Label>
-                        {isEmotionControlDisabled && (
-                          <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
-                            <Link href="/profile"><Sparkles className="mr-2 h-4 w-4" />Upgrade to Unlock</Link>
-                          </Button>
+                        {userProfile?.planId === 'free' && !canUseFreeEmotion && (
+                            <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
+                                <Link href="/profile"><Sparkles className="mr-2 h-4 w-4" />Upgrade to use more</Link>
+                            </Button>
                         )}
                       </div>
+                      {userProfile?.planId === 'free' && canUseFreeEmotion && (
+                          <Alert variant="default" className="border-primary/50 bg-primary/10">
+                              <Info className="h-4 w-4 text-primary"/>
+                              <AlertTitle>Daily Emotion Pass</AlertTitle>
+                              <AlertDescription>As a free user, you can use one custom emotion for free per day. It's on us!</AlertDescription>
+                          </Alert>
+                      )}
                       <ScrollArea className="w-full whitespace-nowrap rounded-md border">
                           <div className="flex w-max space-x-2 p-2">
                               {expressions.map(expression => (
@@ -386,25 +397,11 @@ export default function TTSPage() {
                         <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
                           3. Audio Effects Lab (Creator Plan only)
                         </Label>
-                        {isEffectControlDisabled && userPlan !== 'creator' && (
+                        {isEffectControlDisabled && userProfile?.planId !== 'creator' && (
                           <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
                             <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
                           </Button>
                         )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-                          <div className="space-y-2">
-                              <Label htmlFor="reverb-slider">Reverb</Label>
-                              <Slider id="reverb-slider" value={[effects.reverb]} onValueChange={([val]) => setEffects(e => ({...e, reverb: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
-                          </div>
-                          <div className="space-y-2">
-                              <Label htmlFor="echo-slider">Echo</Label>
-                              <Slider id="echo-slider" value={[effects.echo]} onValueChange={([val]) => setEffects(e => ({...e, echo: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
-                          </div>
-                          <div className="space-y-2">
-                              <Label htmlFor="pitch-slider">Pitch</Label>
-                              <Slider id="pitch-slider" value={[effects.pitch]} onValueChange={([val]) => setEffects(e => ({...e, pitch: val}))} max={1} step={0.05} disabled={isEffectControlDisabled} />
-                          </div>
                       </div>
                   </div>
 
@@ -501,7 +498,7 @@ export default function TTSPage() {
             </CardContent>
              <CardFooter className="flex justify-center items-center text-sm text-muted-foreground p-4 border-t">
                 <Wallet className="h-4 w-4 mr-2" />
-                Remaining Credits: {userCredits.toLocaleString()}
+                Remaining Credits: {userProfile?.creditsRemaining.toLocaleString() ?? '...'}
             </CardFooter>
         </Card>
     </div>

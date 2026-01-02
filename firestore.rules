@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset enforces a strict user-ownership model. All data, including user profiles,
  * avatars, generated videos, and TTS requests are considered private and only accessible by the authenticated user who owns it.
@@ -50,6 +51,19 @@ service cloud.firestore {
     function hasValidUserCreateData(userId) {
       return request.resource.data.id == userId;
     }
+
+    /**
+     * Validates that a user is only updating fields they are allowed to.
+     * Free users can update their `lastEmotionUseDate`, and all users can update `creditsRemaining`.
+     */
+    function hasValidUserUpdateData() {
+        let after = request.resource.data;
+        let before = resource.data;
+        // Allow updating only 'creditsRemaining' and 'lastEmotionUseDate'.
+        return after.keys().hasOnly(['creditsRemaining', 'lastEmotionUseDate']) &&
+               (after.creditsRemaining is number) &&
+               (after.lastEmotionUseDate == request.time || after.lastEmotionUseDate is timestamp);
+    }
     
     /**
      * Validates the required fields for a notification document upon creation.
@@ -80,9 +94,10 @@ service cloud.firestore {
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get, update, delete: if isOwner(userId) || isAdmin();
+      allow get, delete: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if (isOwner(userId) && hasValidUserCreateData(userId)) || isAdmin();
+      allow update: if (isOwner(userId) && hasValidUserUpdateData()) || isAdmin();
     }
     
     /**

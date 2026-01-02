@@ -48,6 +48,11 @@
             "description": "The last date the user's credits were renewed.",
             "format": "date-time"
         },
+        "lastEmotionUseDate": {
+          "type": "string",
+          "description": "The last date a free tier user used a custom emotion.",
+          "format": "date-time"
+        },
         "referralCode": {
           "type": "string",
           "description": "The unique referral code assigned to the user."
