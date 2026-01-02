@@ -184,9 +184,8 @@ const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}
 }
 
 
-export default function UserDetailPage({ params }: { params: { userId: string } }) {
+export default function UserDetailPage({ params: { userId } }: { params: { userId: string } }) {
   const router = useRouter();
-  const { userId } = params;
   const [isReferralsOpen, setIsReferralsOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const user = useMemo(() => MOCK_USER_DETAILS[userId as keyof typeof MOCK_USER_DETAILS], [userId]);
