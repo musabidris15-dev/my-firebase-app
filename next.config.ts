@@ -1,47 +1,13 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'storage.googleapis.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'aifire.appspot.com',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
+  allowedDevOrigins: [
+    "localhost:3000",
+    "9000-firebase-studio-1761077070485.cluster-cbeiita7rbe7iuwhvjs5zww2i4.cloudworkstations.dev",
+    "9001-firebase-studio-1761077070485.cluster-cbeiita7rbe7iuwhvjs5zww2i4.cloudworkstations.dev",
+    "9002-firebase-studio-1761077070485.cluster-cbeiita7rbe7iuwhvjs5zww2i4.cloudworkstations.dev",
+    "9005-firebase-studio-1761077070485.cluster-cbeiita7rbe7iuwhvjs5zww2i4.cloudworkstations.dev"
+  ],
 };
 
 export default nextConfig;

@@ -67,7 +67,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <div className="flex h-14 items-center px-4">
               <Link href="/" className="flex items-center space-x-2">
-              <Image src="/logo.png" alt="Geez Voice Logo" width={24} height={24} className="h-6 w-6" />
+              
               <span className="font-bold">
                 Geez Voice
               </span>
