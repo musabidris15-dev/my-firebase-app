@@ -62,7 +62,7 @@ const MOCK_USER_DETAILS = {
       { date: '2023-07-05', description: 'Generated Audio (ID: aud_123)', amount: -2500, type: 'spent' },
       { date: '2023-07-10', description: 'Referral Bonus: T. Dibaba', amount: 50000, type: 'gained' },
       { date: '2023-07-12', description: 'Generated Audio (ID: aud_456)', amount: -8000, type: 'spent' },
-      { date: '2023-07-20', description: 'Admin Credit Adjustment', amount: 10000, type: 'gained' },
+      { date: '2023-_07-20', description: 'Admin Credit Adjustment', amount: 10000, type: 'gained' },
     ],
     referredUsers: [
       { id: 'usr_2', name: 'Tirunesh Dibaba', joined: '2023-02-20', plan: 'Hobbyist (Monthly)' },
