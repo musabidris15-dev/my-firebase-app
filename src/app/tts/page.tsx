@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -20,7 +20,8 @@ const voices = {
         { name: 'Rahel (Aoede)', value: 'Aoede' },
         { name: 'Biruktait (Autonoe)', value: 'Autonoe' },
         { name: 'Debora (Erinome)', value: 'Erinome' },
-        { name: 'Mulu (Gacrux)', value: 'Gacrux' },
+        { name: 'Gacrux', value: 'Gacrux'},
+        { name: 'Achernar', value: 'Achernar'},
         { name: 'Tarik (Kore)', value: 'Kore' },
         { name: 'Tadelech (Laomedeia)', value: 'Laomedeia' },
         { name: 'Lia (Leda)', value: 'Leda' },
@@ -28,7 +29,6 @@ const voices = {
         { name: 'Tirsit (Sulafat)', value: 'Sulafat' },
         { name: 'Kidist (Umbriel)', value: 'Umbriel' },
         { name: 'Mickey-like Female (Vindemiatrix)', value: 'Vindemiatrix' },
-        { name: 'Belay (Achernar)', value: 'Achernar' },
     ],
     male: [
         { name: 'Almaz (Achird)', value: 'Achird' },
@@ -87,6 +87,7 @@ type PreviewState = { voice: string | null; isPlaying: boolean; isLoading: boole
 const PREVIEW_TEXT = "[Cheerful] Welcome to Geez Voice! [Default] Experience the power of AI with granular emotional control.";
 const MOCK_USER_CREDITS = 20000;
 const DOWNLOAD_COST = 500;
+const MOCK_USER_PLAN = 'free'; // 'free', 'hobbyist', or 'creator'
 
 export default function TTSPage() {
   const [text, setText] = useState(PREVIEW_TEXT);
@@ -96,6 +97,7 @@ export default function TTSPage() {
   const [status, setStatus] = useState<Status>({ message: null, type: null });
   const [audioUrl, setAudioUrl] = useState('');
   const [userCredits, setUserCredits] = useState(MOCK_USER_CREDITS);
+  const [userPlan] = useState(MOCK_USER_PLAN);
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -119,9 +121,26 @@ export default function TTSPage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  const isEmotionControlDisabled = userPlan === 'free';
+
+  useEffect(() => {
+    if (isEmotionControlDisabled) {
+      // If user is on free plan, strip out any emotion tags from the default text
+      setText(PREVIEW_TEXT.replace(/\[.*?\]/g, '').trim());
+    }
+  }, [isEmotionControlDisabled]);
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
   
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    let newText = e.target.value;
+    if (isEmotionControlDisabled) {
+      newText = newText.replace(/\[.*?\]/g, '');
+    }
+    setText(newText);
+  };
+
   const handleGenerate = async () => {
     if (audioPlayerRef.current) audioPlayerRef.current.src = '';
     if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -248,6 +267,7 @@ export default function TTSPage() {
   };
 
   const insertEmotionTag = (emotion: string) => {
+    if (isEmotionControlDisabled) return;
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -296,16 +316,25 @@ export default function TTSPage() {
             <CardContent className="p-6 md:p-8 space-y-6">
                 <div className="space-y-2">
                     <Label htmlFor="text-to-speak" className="text-sm font-medium text-muted-foreground">1. Enter your script</Label>
-                    <Textarea ref={textareaRef} id="text-to-speak" rows={6} className="text-lg" placeholder="[Happy] Welcome to Geez Voice! Start typing here..." value={text} onChange={(e) => setText(e.target.value)} />
+                    <Textarea ref={textareaRef} id="text-to-speak" rows={6} className="text-lg" placeholder="[Happy] Welcome to Geez Voice! Start typing here..." value={text} onChange={handleTextChange} />
                     <div className="text-right text-sm text-muted-foreground mt-2">{characterCount.toLocaleString()} characters</div>
                 </div>
 
                 <div className='space-y-2'>
-                    <Label className="text-sm font-medium text-muted-foreground">2. Add emotions to your script (optional)</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className={cn("text-sm font-medium", isEmotionControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
+                        2. Add emotions to your script (optional)
+                      </Label>
+                      {isEmotionControlDisabled && (
+                        <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
+                          <Link href="/profile"><Sparkles className="mr-2 h-4 w-4" />Upgrade to Unlock</Link>
+                        </Button>
+                      )}
+                    </div>
                     <ScrollArea className="w-full whitespace-nowrap rounded-md border">
                         <div className="flex w-max space-x-2 p-2">
                             {expressions.map(expression => (
-                                <Button key={expression.value} variant="outline" size="sm" onClick={() => insertEmotionTag(expression.label)}>
+                                <Button key={expression.value} variant="outline" size="sm" onClick={() => insertEmotionTag(expression.label)} disabled={isEmotionControlDisabled}>
                                     {expression.label}
                                 </Button>
                             ))}
@@ -366,7 +395,5 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    
 
     
