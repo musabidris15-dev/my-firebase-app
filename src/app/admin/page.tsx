@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert, Shield } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert, Shield, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,14 +43,15 @@ import { useRouter } from 'next/navigation';
 
 type User = {
     id: string;
-    name: string;
+    name?: string;
     email: string;
-    plan: string;
-    tier: string | null;
-    status: string;
-    joined: string;
-    credits: number;
-    role: string;
+    planId: string;
+    subscriptionTier: string | null;
+    status: string; // This might need to be derived or stored
+    creationDate: Date | string;
+    creditsRemaining: number;
+    totalCredits: number;
+    role?: string;
 };
 
 type FraudAttempt = {
@@ -58,73 +59,8 @@ type FraudAttempt = {
     email: string;
     ipAddress: string;
     reason: 'vpn_detected' | 'duplicate_device' | 'duplicate_ip';
-    timestamp: Date;
+    timestamp: { toDate: () => Date };
 };
-
-const initialUsers: User[] = [
-  {
-    id: 'usr_1',
-    name: 'Abebe Bikila',
-    email: 'abebe.bikila@example.com',
-    plan: 'Creator',
-    tier: 'Yearly',
-    status: 'Active',
-    joined: '2023-01-15',
-    credits: 120000,
-    role: 'Admin',
-  },
-  {
-    id: 'usr_2',
-    name: 'Tirunesh Dibaba',
-    email: 'tirunesh.dibaba@example.com',
-    plan: 'Hobbyist',
-    tier: 'Monthly',
-    status: 'Active',
-    joined: '2023-02-20',
-    credits: 15000,
-    role: 'User',
-  },
-  {
-    id: 'usr_3',
-    name: 'Haile Gebrselassie',
-    email: 'haile.g@example.com',
-    plan: 'Free Tier',
-    tier: null,
-    status: 'Suspended',
-    joined: '2023-03-10',
-    credits: 0,
-    role: 'User',
-  },
-  {
-    id: 'usr_4',
-    name: 'Kenenisa Bekele',
-    email: 'kenenisa.bekele@example.com',
-    plan: 'Creator',
-    tier: 'Monthly',
-    status: 'Active',
-    joined: '2023-04-05',
-    credits: 350000,
-    role: 'User',
-  },
-   {
-    id: 'usr_5',
-    name: 'Meseret Defar',
-    email: 'meseret.defar@example.com',
-    plan: 'Free Tier',
-    tier: null,
-    status: 'Active',
-    joined: '2023-05-21',
-    credits: 1000,
-    role: 'User',
-  },
-];
-
-const MOCK_FRAUD_ATTEMPTS: FraudAttempt[] = [
-    { id: 'fa_1', email: 'test1@example.com', ipAddress: '103.208.220.1', reason: 'vpn_detected', timestamp: subDays(new Date(), 1) },
-    { id: 'fa_2', email: 'test2@another.com', ipAddress: '98.12.111.45', reason: 'duplicate_device', timestamp: subDays(new Date(), 2) },
-    { id: 'fa_3', email: 'test3@example.net', ipAddress: '209.141.56.200', reason: 'vpn_detected', timestamp: subDays(new Date(), 3) },
-    { id: 'fa_4', email: 'test4@example.com', ipAddress: '192.168.1.102', reason: 'duplicate_ip', timestamp: subDays(new Date(), 4) },
-];
 
 
 // --- Mock Data for Stats ---
@@ -156,41 +92,46 @@ const calculateStats = (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
   const adminEmails = ['musabidris15@gmail.com', 'geezvoices@gmail.com'];
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const [timeframe, setTimeframe] = useState('monthly');
   const [stats, setStats] = useState({ characters: 0, hours: 0 });
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  useEffect(() => {
-    if (!isUserLoading) {
-      if (!user || !adminEmails.includes(user.email ?? '')) {
-        router.push('/');
-      }
-    }
-    setUsers(initialUsers);
-    setFilteredUsers(initialUsers);
-  }, [user, isUserLoading, router, adminEmails]);
+  // Firestore Data Hooks
+  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const { data: users, isLoading: areUsersLoading } = useCollection<User>(usersQuery);
+
+  const fraudQuery = useMemoFirebase(() => firestore ? collection(firestore, 'fraudAttempts') : null, [firestore]);
+  const { data: fraudAttempts, isLoading: areFraudAttemptsLoading } = useCollection<FraudAttempt>(fraudQuery);
+
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    if (!isAuthLoading && (!user || !adminEmails.includes(user.email ?? ''))) {
+        router.push('/');
+    }
+  }, [user, isAuthLoading, router, adminEmails]);
+  
+  useEffect(() => {
+    const allUsers = users || [];
     const lowercasedTerm = searchTerm.toLowerCase();
     if (lowercasedTerm === '') {
-        setFilteredUsers(users);
+        setFilteredUsers(allUsers);
     } else {
-        const results = users.filter(user =>
-            user.name.toLowerCase().includes(lowercasedTerm) ||
-            user.email.toLowerCase().includes(lowercasedTerm)
+        const results = allUsers.filter(u =>
+            u.name?.toLowerCase().includes(lowercasedTerm) ||
+            u.email.toLowerCase().includes(lowercasedTerm)
         );
         setFilteredUsers(results);
     }
   }, [searchTerm, users]);
+
 
   useEffect(() => {
     // @ts-ignore
@@ -200,11 +141,13 @@ export default function AdminPage() {
 
   const handleSaveChanges = () => {
     if (!editingUser) return;
-    setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+    // Here you would add the logic to save changes to Firestore
+    console.log("Saving user:", editingUser);
     setEditingUser(null);
   }
 
   const handleDownloadUsers = () => {
+    if (!users) return;
     const jsonString = JSON.stringify(users, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -230,6 +173,10 @@ export default function AdminPage() {
     return 'bg-primary/10';
   };
   
+  if (isAuthLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
   return (
     <div className="container mx-auto max-w-7xl">
       <header className="mb-10">
@@ -359,34 +306,40 @@ export default function AdminPage() {
                   </TableRow>
                   </TableHeader>
                   <TableBody>
-                  {filteredUsers.length > 0 ? filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
+                  {areUsersLoading ? (
+                      <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center">
+                              <Loader2 className="h-6 w-6 animate-spin inline-block" />
+                          </TableCell>
+                      </TableRow>
+                  ) : filteredUsers.length > 0 ? filteredUsers.map((u) => (
+                      <TableRow key={u.id}>
                       <TableCell>
-                          <div className="font-medium">{user.name}</div>
+                          <div className="font-medium">{u.name || 'N/A'}</div>
                           <div className="text-sm text-muted-foreground">
-                          {user.email}
+                          {u.email}
                           </div>
                       </TableCell>
                       <TableCell>
-                          <Badge
-                          variant={
-                              user.status === 'Active' ? 'default' : 'destructive'
-                          }
-                          className={user.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/20' : 'bg-red-500/20 text-red-700 border-red-500/20'}
-                          >
-                          {user.status}
+                           <Badge
+                              variant={'default'}
+                              className={'bg-green-500/20 text-green-700 border-green-500/20'}
+                            >
+                              Active
+                            </Badge>
+                      </TableCell>
+                      <TableCell>
+                          {u.planId}
+                          {u.subscriptionTier && <span className="text-muted-foreground"> ({u.subscriptionTier})</span>}
+                      </TableCell>
+                      <TableCell>{u.creditsRemaining.toLocaleString()}</TableCell>
+                      <TableCell>
+                          <Badge variant={adminEmails.includes(u.email) ? 'destructive' : 'secondary'}>
+                            {adminEmails.includes(u.email) ? 'Admin' : 'User'}
                           </Badge>
                       </TableCell>
                       <TableCell>
-                          {user.plan}
-                          {user.tier && <span className="text-muted-foreground"> ({user.tier})</span>}
-                      </TableCell>
-                      <TableCell>{user.credits.toLocaleString()}</TableCell>
-                      <TableCell>
-                          <Badge variant={user.role === 'Admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                          <Dialog open={editingUser?.id === user.id} onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}>
+                          <Dialog open={editingUser?.id === u.id} onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}>
                               <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -396,10 +349,10 @@ export default function AdminPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                   <DropdownMenuItem asChild>
-                                      <Link href={`/admin/users/${user.id}`}>View Details</Link>
+                                      <Link href={`/admin/users/${u.id}`}>View Details</Link>
                                   </DropdownMenuItem>
                                   <DialogTrigger asChild>
-                                      <DropdownMenuItem onClick={() => setEditingUser(user)}>Edit User</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => setEditingUser(u)}>Edit User</DropdownMenuItem>
                                   </DialogTrigger>
                                   <DropdownMenuItem>Suspend User</DropdownMenuItem>
                                   <DropdownMenuItem className="text-red-600">
@@ -418,7 +371,7 @@ export default function AdminPage() {
                                   <div className="grid gap-4 py-4">
                                       <div className="grid grid-cols-4 items-center gap-4">
                                           <Label htmlFor="name" className="text-right">Name</Label>
-                                          <Input id="name" value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="col-span-3" />
+                                          <Input id="name" value={editingUser.name || ''} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="col-span-3" />
                                       </div>
                                       <div className="grid grid-cols-4 items-center gap-4">
                                           <Label htmlFor="email" className="text-right">Email</Label>
@@ -426,34 +379,34 @@ export default function AdminPage() {
                                       </div>
                                       <div className="grid grid-cols-4 items-center gap-4">
                                           <Label htmlFor="plan" className="text-right">Plan</Label>
-                                          <Select value={editingUser.plan} onValueChange={(value) => setEditingUser({...editingUser, plan: value, tier: value === 'Free Tier' ? null : editingUser.tier || 'Monthly'})}>
+                                          <Select value={editingUser.planId} onValueChange={(value) => setEditingUser({...editingUser, planId: value, subscriptionTier: value === 'free' ? null : editingUser.subscriptionTier || 'monthly'})}>
                                               <SelectTrigger className="col-span-3">
                                                   <SelectValue placeholder="Select a plan" />
                                               </SelectTrigger>
                                               <SelectContent>
-                                                  <SelectItem value="Free Tier">Free Tier</SelectItem>
-                                                  <SelectItem value="Hobbyist">Hobbyist</SelectItem>
-                                                  <SelectItem value="Creator">Creator</SelectItem>
+                                                  <SelectItem value="free">Free</SelectItem>
+                                                  <SelectItem value="hobbyist">Hobbyist</SelectItem>
+                                                  <SelectItem value="creator">Creator</SelectItem>
                                               </SelectContent>
                                           </Select>
                                       </div>
-                                      {editingUser.plan !== 'Free Tier' && (
+                                      {editingUser.planId !== 'free' && (
                                           <div className="grid grid-cols-4 items-center gap-4">
                                               <Label htmlFor="tier" className="text-right">Tier</Label>
-                                              <Select value={editingUser.tier || 'Monthly'} onValueChange={(value) => setEditingUser({...editingUser, tier: value})}>
+                                              <Select value={editingUser.subscriptionTier || 'monthly'} onValueChange={(value) => setEditingUser({...editingUser, subscriptionTier: value})}>
                                                   <SelectTrigger className="col-span-3">
                                                       <SelectValue placeholder="Select a tier" />
                                                   </SelectTrigger>
                                                   <SelectContent>
-                                                      <SelectItem value="Monthly">Monthly</SelectItem>
-                                                      <SelectItem value="Yearly">Yearly</SelectItem>
+                                                      <SelectItem value="monthly">Monthly</SelectItem>
+                                                      <SelectItem value="yearly">Yearly</SelectItem>
                                                   </SelectContent>
                                               </Select>
                                           </div>
                                       )}
                                       <div className="grid grid-cols-4 items-center gap-4">
                                           <Label htmlFor="credits" className="text-right">Credits</Label>
-                                          <Input id="credits" type="number" value={editingUser.credits} onChange={(e) => setEditingUser({...editingUser, credits: Number(e.target.value)})} className="col-span-3" />
+                                          <Input id="credits" type="number" value={editingUser.creditsRemaining} onChange={(e) => setEditingUser({...editingUser, creditsRemaining: Number(e.target.value)})} className="col-span-3" />
                                       </div>
                                   </div>
                                   <DialogFooter>
@@ -540,26 +493,40 @@ export default function AdminPage() {
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {MOCK_FRAUD_ATTEMPTS.map(attempt => (
-                              <TableRow key={attempt.id}>
-                                  <TableCell>
-                                      <div>{format(attempt.timestamp, 'yyyy-MM-dd HH:mm')}</div>
-                                      <div className="text-xs text-muted-foreground">{formatDistanceToNow(attempt.timestamp, { addSuffix: true })}</div>
-                                  </TableCell>
-                                  <TableCell>{attempt.email}</TableCell>
-                                  <TableCell className="font-mono">{attempt.ipAddress}</TableCell>
-                                  <TableCell>
-                                      <Badge variant="destructive">
-                                          {attempt.reason === 'vpn_detected' ? 'VPN Detected' : attempt.reason === 'duplicate_ip' ? 'Duplicate IP' : 'Duplicate Device'}
-                                      </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                       <Button variant="outline" size="sm">
-                                            Block IP
-                                        </Button>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
+                        {areFraudAttemptsLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                    <Loader2 className="h-6 w-6 animate-spin inline-block" />
+                                </TableCell>
+                            </TableRow>
+                        ) : fraudAttempts && fraudAttempts.length > 0 ? (
+                            fraudAttempts.map(attempt => (
+                                <TableRow key={attempt.id}>
+                                    <TableCell>
+                                        <div>{format(attempt.timestamp.toDate(), 'yyyy-MM-dd HH:mm')}</div>
+                                        <div className="text-xs text-muted-foreground">{formatDistanceToNow(attempt.timestamp.toDate(), { addSuffix: true })}</div>
+                                    </TableCell>
+                                    <TableCell>{attempt.email}</TableCell>
+                                    <TableCell className="font-mono">{attempt.ipAddress}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="destructive">
+                                            {attempt.reason === 'vpn_detected' ? 'VPN Detected' : attempt.reason === 'duplicate_ip' ? 'Duplicate IP' : 'Duplicate Device'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                         <Button variant="outline" size="sm">
+                                              Block IP
+                                          </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                             <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                    No fraud attempts recorded.
+                                </TableCell>
+                            </TableRow>
+                        )}
                       </TableBody>
                   </Table>
               </CardContent>

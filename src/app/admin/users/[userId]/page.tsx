@@ -18,6 +18,7 @@ import {
   DollarSign,
   BarChart,
   History,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -38,125 +39,25 @@ import { useState, useMemo } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { format } from 'date-fns';
 
-const MOCK_USER_DETAILS = {
-  usr_1: {
-    id: 'usr_1a2b3c4d5e6f',
-    name: 'Abebe Bikila',
-    email: 'abebe.bikila@example.com',
-    plan: 'Creator',
-    tier: 'Yearly',
-    status: 'Active',
-    role: 'Admin',
-    signupDate: '2023-01-15',
-    lastLoginDate: '2023-07-28',
-    loginProvider: 'Google',
-    lastKnownIp: '192.168.1.101',
-    credits: 120000,
-    totalCredits: 350000,
-    nextBillingDate: '2024-01-15',
-    lifetimeValue: 468,
-    churnStatus: 'None',
-    creditHistory: [
-      { date: '2023-07-01', description: 'Monthly Renewal', amount: 350000, type: 'gained' },
-      { date: '2023-07-05', description: 'Generated Audio (ID: aud_123)', amount: -2500, type: 'spent' },
-      { date: '2023-07-10', description: 'Referral Bonus: T. Dibaba', amount: 50000, type: 'gained' },
-      { date: '2023-07-12', description: 'Generated Audio (ID: aud_456)', amount: -8000, type: 'spent' },
-      { date: '2023-_07-20', description: 'Admin Credit Adjustment', amount: 10000, type: 'gained' },
-    ],
-    referredUsers: [
-      { id: 'usr_2', name: 'Tirunesh Dibaba', joined: '2023-02-20', plan: 'Hobbyist (Monthly)' },
-      { id: 'usr_4', name: 'Kenenisa Bekele', joined: '2023-04-05', plan: 'Creator (Monthly)' },
-    ],
-    ttsUsage: {
-        lifetimeCharacters: 1250000,
-        lastGenerated: '2023-07-28 10:30 AM',
-        voiceTierUsage: {
-            standard: 60,
-            premium: 40,
-        },
-        totalFilesGenerated: 152,
-        generationHistory: [
-            { timestamp: '2023-07-28 10:30 AM', charCount: 1200, voice: 'Algenib (Premium)', status: 'Success' },
-            { timestamp: '2023-07-27 08:15 PM', charCount: 850, voice: 'Achird (Standard)', status: 'Success' },
-            { timestamp: '2023-07-27 08:14 PM', charCount: 150, voice: 'Achird (Standard)', status: 'Fail' },
-            { timestamp: '2023-07-26 11:00 AM', charCount: 3500, voice: 'Vindemiatrix (Premium)', status: 'Success' },
-            { timestamp: '2023-07-25 02:45 PM', charCount: 500, voice: 'Zephyr (Standard)', status: 'Success' },
-        ]
-    }
-  },
-  usr_2: {
-    id: 'usr_6g7h8i9j0k1l',
-    name: 'Tirunesh Dibaba',
-    email: 'tirunesh.dibaba@example.com',
-    plan: 'Hobbyist',
-    tier: 'Monthly',
-    status: 'Active',
-    role: 'User',
-    signupDate: '2023-02-20',
-    lastLoginDate: '2023-07-25',
-    loginProvider: 'Email',
-    lastKnownIp: '192.168.1.102',
-    credits: 15000,
-    totalCredits: 100000,
-    nextBillingDate: '2023-08-20',
-    lifetimeValue: 90,
-    churnStatus: 'None',
-    creditHistory: [
-      { date: '2023-07-20', description: 'Monthly Renewal', amount: 100000, type: 'gained' },
-      { date: '2023-07-22', description: 'Generated Audio (ID: aud_789)', amount: -1200, type: 'spent' },
-    ],
-    referredUsers: [],
-    ttsUsage: {
-        lifetimeCharacters: 450000,
-        lastGenerated: '2023-07-22 03:00 PM',
-        voiceTierUsage: {
-            standard: 95,
-            premium: 5,
-        },
-        totalFilesGenerated: 48,
-        generationHistory: [
-            { timestamp: '2023-07-22 03:00 PM', charCount: 1200, voice: 'Achird (Standard)', status: 'Success' },
-            { timestamp: '2023-07-18 09:10 AM', charCount: 2000, voice: 'Zephyr (Standard)', status: 'Success' },
-            { timestamp: '2023-07-15 01:20 PM', charCount: 500, voice: 'Algenib (Premium)', status: 'Success' },
-        ]
-    }
-  },
-    usr_4: {
-    id: 'usr_4',
-    name: 'Kenenisa Bekele',
-    email: 'kenenisa.bekele@example.com',
-    plan: 'Creator',
-    tier: 'Monthly',
-    status: 'Active',
-    role: 'User',
-    signupDate: '2023-04-05',
-    lastLoginDate: '2023-07-29',
-    loginProvider: 'Email',
-    lastKnownIp: '192.168.1.104',
-    credits: 350000,
-    totalCredits: 350000,
-    nextBillingDate: '2023-08-05',
-    lifetimeValue: 234,
-    churnStatus: 'None',
-    creditHistory: [
-      { date: '2023-07-05', description: 'Monthly Renewal', amount: 350000, type: 'gained' },
-    ],
-    referredUsers: [],
-    ttsUsage: {
-        lifetimeCharacters: 25000,
-        lastGenerated: '2023-07-29 01:00 PM',
-        voiceTierUsage: {
-            standard: 10,
-            premium: 90,
-        },
-        totalFilesGenerated: 5,
-        generationHistory: [
-             { timestamp: '2023-07-29 01:00 PM', charCount: 5000, voice: 'Algenib (Premium)', status: 'Success' },
-        ]
-    }
-  },
+type UserProfile = {
+    id: string;
+    name?: string;
+    email: string;
+    planId: string;
+    subscriptionTier: string | null;
+    creationDate: { toDate: () => Date };
+    lastKnownIp: string;
+    creditsRemaining: number;
+    totalCredits: number;
+    // These would be added for a more complete picture
+    lastLoginDate?: { toDate: () => Date }; 
+    lifetimeValue?: number;
 };
+
 
 const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}) => {
     const chartData = [
@@ -186,10 +87,18 @@ const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}
 
 export default function UserDetailPage({ params: { userId } }: { params: { userId: string } }) {
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', userId) : null, [firestore, userId]);
+  const { data: user, isLoading } = useDoc<UserProfile>(userDocRef);
+
   const [isReferralsOpen, setIsReferralsOpen] = useState(true);
   const [copied, setCopied] = useState(false);
-  const user = useMemo(() => MOCK_USER_DETAILS[userId as keyof typeof MOCK_USER_DETAILS], [userId]);
-
+  
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+  
   if (!user) {
     notFound();
   }
@@ -200,6 +109,29 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
       setTimeout(() => setCopied(false), 2000);
     });
   };
+
+  // MOCK DATA - Replace with real data when available
+  const MOCK_USER_DETAILS = {
+     role: 'User',
+     status: 'Active',
+     loginProvider: 'Email',
+     nextBillingDate: '2024-08-05',
+     lifetimeValue: 234,
+     referredUsers: [],
+     ttsUsage: {
+        lifetimeCharacters: 25000,
+        lastGenerated: '2023-07-29 01:00 PM',
+        voiceTierUsage: {
+            standard: 10,
+            premium: 90,
+        },
+        totalFilesGenerated: 5,
+        generationHistory: [
+             { timestamp: '2023-07-29 01:00 PM', charCount: 5000, voice: 'Algenib (Premium)', status: 'Success' },
+        ]
+    }
+  };
+
 
   return (
     <div className="container mx-auto max-w-6xl">
@@ -218,7 +150,7 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <User className="h-6 w-6 text-primary" />
-                <span>{user.name}</span>
+                <span>{user.name || 'N/A'}</span>
               </CardTitle>
               <CardDescription>{user.email}</CardDescription>
             </CardHeader>
@@ -234,11 +166,11 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                 </div>
                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Sign-up Date</span>
-                    <span className="font-medium">{user.signupDate}</span>
+                    <span className="font-medium">{format(user.creationDate.toDate(), 'yyyy-MM-dd')}</span>
                 </div>
                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Last Login</span>
-                    <span className="font-medium">{user.lastLoginDate}</span>
+                    <span className="font-medium">{user.lastLoginDate ? format(user.lastLoginDate.toDate(), 'yyyy-MM-dd') : 'N/A'}</span>
                 </div>
             </CardContent>
           </Card>
@@ -253,24 +185,24 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
             <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Role</span>
-                    <Badge variant={user.role === 'Admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
+                    <Badge variant={MOCK_USER_DETAILS.role === 'Admin' ? 'destructive' : 'secondary'}>{MOCK_USER_DETAILS.role}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Status</span>
                      <Badge
-                        variant={user.status === 'Active' ? 'default' : 'destructive'}
-                        className={user.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/20' : 'bg-red-500/20 text-red-700 border-red-500/20'}
+                        variant={MOCK_USER_DETAILS.status === 'Active' ? 'default' : 'destructive'}
+                        className={MOCK_USER_DETAILS.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/20' : 'bg-red-500/20 text-red-700 border-red-500/20'}
                     >
-                        {user.status}
+                        {MOCK_USER_DETAILS.status}
                     </Badge>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Login Provider</span>
-                    <Badge variant="outline">{user.loginProvider}</Badge>
+                    <Badge variant="outline">{MOCK_USER_DETAILS.loginProvider}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Last Login IP</span>
-                    <span className="font-mono text-xs">{user.lastKnownIp}</span>
+                    <span className="font-mono text-xs">{user.lastKnownIp || 'N/A'}</span>
                 </div>
             </CardContent>
           </Card>
@@ -285,19 +217,19 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
             <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Current Plan</span>
-                    <span className="font-semibold">{user.plan} {user.tier && `(${user.tier})`}</span>
+                    <span className="font-semibold">{user.planId} {user.subscriptionTier && `(${user.subscriptionTier})`}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Next Billing Date</span>
-                    <span className="font-medium">{user.nextBillingDate}</span>
+                    <span className="font-medium">{MOCK_USER_DETAILS.nextBillingDate}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Lifetime Value</span>
-                    <span className="font-semibold text-green-600">${user.lifetimeValue.toLocaleString()}</span>
+                    <span className="font-semibold text-green-600">${user.lifetimeValue?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Referred Users</span>
-                    <span className="font-semibold">{user.referredUsers.length}</span>
+                    <span className="font-semibold">{MOCK_USER_DETAILS.referredUsers.length}</span>
                 </div>
             </CardContent>
           </Card>
@@ -316,23 +248,23 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <div className="p-3 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground">Lifetime Chars</p>
-                            <p className="text-xl font-bold">{(user.ttsUsage.lifetimeCharacters / 1000).toFixed(1)}k</p>
+                            <p className="text-xl font-bold">{(MOCK_USER_DETAILS.ttsUsage.lifetimeCharacters / 1000).toFixed(1)}k</p>
                         </div>
                         <div className="p-3 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground">Files Generated</p>
-                            <p className="text-xl font-bold">{user.ttsUsage.totalFilesGenerated}</p>
+                            <p className="text-xl font-bold">{MOCK_USER_DETAILS.ttsUsage.totalFilesGenerated}</p>
                         </div>
                         <div className="p-3 bg-muted/50 rounded-lg">
                             <p className="text-xs text-muted-foreground">Last Generation</p>
-                            <p className="text-lg font-semibold">{user.ttsUsage.lastGenerated.split(' ')[0]}</p>
+                            <p className="text-lg font-semibold">{MOCK_USER_DETAILS.ttsUsage.lastGenerated.split(' ')[0]}</p>
                         </div>
                         <div className="p-3 bg-muted/50 rounded-lg flex flex-col items-center justify-center">
                             <p className="text-xs text-muted-foreground mb-1">Voice Tiers</p>
                             <div className="flex items-center gap-2">
-                                <VoiceTierChart data={user.ttsUsage.voiceTierUsage} />
+                                <VoiceTierChart data={MOCK_USER_DETAILS.ttsUsage.voiceTierUsage} />
                                 <div className="text-xs text-left">
-                                    <p><span className="font-semibold">{user.ttsUsage.voiceTierUsage.standard}%</span> Standard</p>
-                                    <p><span className="font-semibold">{user.ttsUsage.voiceTierUsage.premium}%</span> Premium</p>
+                                    <p><span className="font-semibold">{MOCK_USER_DETAILS.ttsUsage.voiceTierUsage.standard}%</span> Standard</p>
+                                    <p><span className="font-semibold">{MOCK_USER_DETAILS.ttsUsage.voiceTierUsage.premium}%</span> Premium</p>
                                 </div>
                             </div>
                         </div>
@@ -349,7 +281,7 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {user.ttsUsage.generationHistory.map((item, index) => (
+                                {MOCK_USER_DETAILS.ttsUsage.generationHistory.map((item, index) => (
                                     <TableRow key={index} className="text-xs">
                                         <TableCell>{item.timestamp}</TableCell>
                                         <TableCell>{item.voice}</TableCell>
@@ -384,7 +316,7 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                         <CardContent>
-                            {user.referredUsers.length > 0 ? (
+                            {MOCK_USER_DETAILS.referredUsers.length > 0 ? (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -394,7 +326,7 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {user.referredUsers.map((refUser) => (
+                                        {MOCK_USER_DETAILS.referredUsers.map((refUser) => (
                                             <TableRow 
                                                 key={refUser.id} 
                                                 className="cursor-pointer"
@@ -419,5 +351,3 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
     </div>
   );
 }
-
-    
