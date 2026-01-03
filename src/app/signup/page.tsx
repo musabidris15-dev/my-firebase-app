@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useUser } from '@/firebase';
-import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
+import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -19,7 +19,7 @@ const GoogleIcon = () => (
 );
 
 
-export default function LoginPage() {
+export default function SignUpPage() {
     const auth = useAuth();
     const { user, isUserLoading } = useUser();
     const router = useRouter();
@@ -33,10 +33,10 @@ export default function LoginPage() {
         }
     }, [user, isUserLoading, router]);
 
-    const handleEmailSignIn = (e: React.FormEvent) => {
+    const handleEmailSignUp = (e: React.FormEvent) => {
         e.preventDefault();
         if (auth) {
-            initiateEmailSignIn(auth, email, password);
+            initiateEmailSignUp(auth, email, password);
         }
     };
 
@@ -59,13 +59,13 @@ export default function LoginPage() {
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Welcome Back</CardTitle>
-                    <CardDescription>Sign in to continue to Geez Voice</CardDescription>
+                    <CardTitle className="text-2xl">Create an Account</CardTitle>
+                    <CardDescription>Join Geez Voice to start creating.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
                         <GoogleIcon />
-                        Sign in with Google
+                        Sign up with Google
                     </Button>
 
                     <div className="relative">
@@ -79,7 +79,7 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <form onSubmit={handleEmailSignIn} className="grid gap-4">
+                    <form onSubmit={handleEmailSignUp} className="grid gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="email">Email</Label>
                             <Input
@@ -103,15 +103,15 @@ export default function LoginPage() {
                         </div>
                          {error && <p className="text-sm font-medium text-destructive">{error}</p>}
                         <Button type="submit" className="w-full">
-                            Sign In
+                            Create Account
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="flex-col gap-4 text-sm">
                      <p>
-                        Don't have an account?{' '}
-                        <Link href="/signup" className="text-primary hover:underline">
-                            Sign up
+                        Already have an account?{' '}
+                        <Link href="/login" className="text-primary hover:underline">
+                            Log in
                         </Link>
                     </p>
                 </CardFooter>
