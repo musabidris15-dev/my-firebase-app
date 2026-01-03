@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info, PitchFork } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isBefore, subHours } from 'date-fns';
 import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 // --- Voice Definitions ---
 const voices = {
@@ -59,6 +61,8 @@ const voices = {
 voices.female.sort((a, b) => a.name.localeCompare(b.name));
 voices.male.sort((a, b) => a.name.localeCompare(b.name));
 const allVoices = [...voices.female, ...voices.male];
+
+const freeVoiceValues = ['Autonoe', 'Erinome', 'Vindemiatrix', 'Zephyr', 'Fenrir', 'Schedar'];
 
 const expressions = [
     { value: 'Default', label: 'Default' },
@@ -112,6 +116,9 @@ export default function TTSPage() {
 
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -146,7 +153,8 @@ export default function TTSPage() {
   const lastEmotionUseDate = userProfile?.lastEmotionUseDate?.toDate();
   const canUseFreeEmotion = !lastEmotionUseDate || isBefore(lastEmotionUseDate, subHours(new Date(), 24));
   
-  const isEmotionControlDisabled = userProfile?.planId === 'free' && !canUseFreeEmotion;
+  const isFreePlan = userProfile?.planId === 'free';
+  const isEmotionControlDisabled = isFreePlan && !canUseFreeEmotion;
   const isEffectControlDisabled = userProfile?.planId !== 'creator';
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
@@ -302,6 +310,19 @@ export default function TTSPage() {
     }
   };
 
+  const handleLockedFeatureClick = () => {
+    toast({
+        title: 'Upgrade Required',
+        description: 'This feature is only available on a paid plan.',
+        action: (
+            <Button onClick={() => router.push('/profile#upgrade-plans')}>
+                Upgrade Now
+            </Button>
+        ),
+    });
+    setPopoverOpen(false);
+  };
+
   const insertTag = (tag: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -341,6 +362,43 @@ export default function TTSPage() {
   
   const characterCount = text.length;
 
+  const renderVoiceItem = (voice: {name: string, value: string}) => {
+    const isLocked = isFreePlan && !freeVoiceValues.includes(voice.value);
+    
+    return (
+        <CommandItem
+            key={voice.value}
+            value={voice.name}
+            onSelect={() => {
+                if (isLocked) {
+                    handleLockedFeatureClick();
+                } else {
+                    setSelectedVoice(voice.value);
+                    setPopoverOpen(false);
+                }
+            }}
+            className={cn("flex justify-between items-center", isLocked && "text-muted-foreground cursor-pointer")}
+        >
+            <div className="flex items-center">
+                <Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")} />
+                {voice.name}
+                {isLocked && <Lock className="ml-2 h-3 w-3" />}
+            </div>
+            {!isLocked && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={(e) => handlePreview(e, voice.value)}
+                    disabled={preview.isLoading && preview.voice === voice.value}
+                >
+                    {preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </Button>
+            )}
+        </CommandItem>
+    );
+};
+
   return (
     <div className="container mx-auto max-w-4xl">
         <Card className="shadow-lg">
@@ -368,7 +426,7 @@ export default function TTSPage() {
                         </Label>
                         {userProfile?.planId === 'free' && !canUseFreeEmotion && (
                             <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
-                                <Link href="/profile"><Sparkles className="mr-2 h-4 w-4" />Upgrade to use more</Link>
+                                <Link href="/profile#upgrade-plans"><Sparkles className="mr-2 h-4 w-4" />Upgrade to use more</Link>
                             </Button>
                         )}
                       </div>
@@ -398,7 +456,7 @@ export default function TTSPage() {
                             </Label>
                             {isEffectControlDisabled && userProfile?.planId !== 'creator' && (
                                 <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
-                                    <Link href="/profile"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
+                                    <Link href="/profile#upgrade-plans"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
                                 </Button>
                             )}
                         </div>
@@ -429,13 +487,20 @@ export default function TTSPage() {
                               </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                              <Command><CommandInput placeholder="Search voice..." />
-                                  <CommandList>{previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}<CommandEmpty>No voice found.</CommandEmpty>
-                                      <CommandGroup heading="Female Voices">{voices.female.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
-                                      <CommandGroup heading="Male Voices">{voices.male.map((voice) => (<CommandItem key={voice.value} value={voice.name} onSelect={() => { setSelectedVoice(voice.value); setPopoverOpen(false);}} className="flex justify-between items-center"><div className="flex items-center"><Check className={cn("mr-2 h-4 w-4", selectedVoice === voice.value ? "opacity-100" : "opacity-0")}/>{voice.name}</div><Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handlePreview(e, voice.value)} disabled={preview.isLoading && preview.voice === voice.value}>{preview.isLoading && preview.voice === voice.value ? <Loader2 className="h-4 w-4 animate-spin" /> : (preview.isPlaying && preview.voice === voice.value) ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button></CommandItem>))}</CommandGroup>
-                                  </CommandList>
-                              </Command>
-                          </PopoverContent>
+                                <Command>
+                                    <CommandInput placeholder="Search voice..." />
+                                    <CommandList>
+                                        {previewError && <div className="p-2 text-xs text-red-500">{previewError}</div>}
+                                        <CommandEmpty>No voice found.</CommandEmpty>
+                                        <CommandGroup heading="Female Voices">
+                                            {voices.female.map(renderVoiceItem)}
+                                        </CommandGroup>
+                                        <CommandGroup heading="Male Voices">
+                                            {voices.male.map(renderVoiceItem)}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
                       </Popover>
                   </div>
                   
@@ -518,5 +583,3 @@ export default function TTSPage() {
     </div>
   );
 }
-
-    

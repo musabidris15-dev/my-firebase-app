@@ -301,7 +301,7 @@ export default function ProfilePage() {
                         )}
                     </Card>
                     
-                    <div ref={plansRef}>
+                    <div id="upgrade-plans" ref={plansRef}>
                         <Card>
                              <CardHeader>
                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
