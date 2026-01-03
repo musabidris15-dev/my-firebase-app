@@ -45,9 +45,11 @@ exports.initializeUser = functions.auth.user().onCreate(async (user) => {
             email: user.email,
             planId: 'free',
             credits: 2000,
+            creditsRemaining: 2000,
+            totalCredits: 2000,
             creationDate: admin.firestore.FieldValue.serverTimestamp(),
             referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        });
+        }, { merge: true });
         logger.info(`Successfully created Firestore document for user: ${user.uid}`);
     } catch (error) {
         logger.error(`Failed to create Firestore document for user: ${user.uid}`, { error });
@@ -65,56 +67,88 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
         return;
     }
     
+    // It's good practice to verify the webhook signature here in a real app
+    
     const event = req.body;
     
-    if (event.type === 'membership.activated') {
+    try {
         const membership = event.data.object;
-        
         const firebaseUid = membership.metadata ? membership.metadata.firebase_uid : null;
-        const whopSubscriptionId = membership.id;
+        
+        if (!firebaseUid) {
+            logger.warn(`Webhook event '${event.type}' received without 'firebase_uid' in metadata.`, { whopMembershipId: membership.id });
+            res.status(400).send({ error: "Missing 'firebase_uid' in webhook metadata." });
+            return;
+        }
 
-        if (firebaseUid && membership.plan) {
-            logger.info(`Processing 'membership.activated' for Firebase UID: ${firebaseUid}, Whop Sub ID: ${whopSubscriptionId}`);
+        const userRef = db.collection('users').doc(firebaseUid);
+
+        if (event.type === 'membership.activated') {
+            logger.info(`Processing 'membership.activated' for Firebase UID: ${firebaseUid}`);
             
             const planId = membership.plan.id;
             const planDetails = WHOP_PLANS[planId];
 
             if (!planDetails) {
-                 logger.error(`Unknown Whop Plan ID received: ${planId}`);
+                 logger.error(`Unknown Whop Plan ID received during activation: ${planId}`);
                  res.status(400).send({ error: 'Unknown plan ID.' });
                  return;
             }
 
-            try {
-                const userRef = db.collection('users').doc(firebaseUid);
-                const now = admin.firestore.FieldValue.serverTimestamp();
-
-                await userRef.update({
-                    planId: planDetails.name,
-                    subscriptionTier: planDetails.tier,
-                    credits: planDetails.credits,
-                    creditsRemaining: planDetails.credits,
-                    whopSubscriptionId: whopSubscriptionId,
-                    subscriptionStartDate: now,
-                    lastCreditRenewalDate: now,
-                });
-
-                logger.info(`Successfully granted ${planDetails.name} access to user: ${firebaseUid}`);
-                res.status(200).send({ message: 'User updated successfully.' });
-
-            } catch (error) {
-                logger.error(`Failed to update user document for UID: ${firebaseUid}`, { error: error.message });
-                res.status(500).send({ error: 'Failed to update user in database.' });
-            }
-        } else {
-            logger.warn("'membership.activated' webhook received without 'firebase_uid' in metadata or missing plan info.", {
-                whopSubscriptionId: whopSubscriptionId,
+            const now = admin.firestore.FieldValue.serverTimestamp();
+            await userRef.update({
+                planId: planDetails.name,
+                subscriptionTier: planDetails.tier,
+                totalCredits: planDetails.credits,
+                creditsRemaining: planDetails.credits, // Full credits on activation
+                whopSubscriptionId: membership.id,
+                subscriptionStartDate: now,
+                lastCreditRenewalDate: now,
             });
-            res.status(400).send({ error: "Missing 'firebase_uid' in webhook metadata or missing plan info." });
+            logger.info(`Successfully granted ${planDetails.name} access to user: ${firebaseUid}`);
+
+        } else if (event.type === 'membership.renewed') {
+            logger.info(`Processing 'membership.renewed' for Firebase UID: ${firebaseUid}`);
+            
+            const planId = membership.plan.id;
+            const planDetails = WHOP_PLANS[planId];
+
+             if (!planDetails) {
+                 logger.error(`Unknown Whop Plan ID received during renewal: ${planId}`);
+                 res.status(400).send({ error: 'Unknown plan ID.' });
+                 return;
+            }
+
+            await userRef.update({
+                creditsRemaining: admin.firestore.FieldValue.increment(planDetails.credits), // Add renewed credits
+                lastCreditRenewalDate: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            logger.info(`Successfully renewed credits for user: ${firebaseUid}`);
+        
+        } else if (event.type === 'membership.deactivated') {
+            logger.info(`Processing 'membership.deactivated' for Firebase UID: ${firebaseUid}`);
+            
+            // Downgrade user to the free plan
+            await userRef.update({
+                planId: 'free',
+                subscriptionTier: null,
+                totalCredits: 2000, 
+                // Decide if you want to wipe remaining credits or let them keep them.
+                // creditsRemaining: 0, 
+                whopSubscriptionId: admin.firestore.FieldValue.delete(),
+                subscriptionEndDate: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            logger.info(`Successfully deactivated subscription for user: ${firebaseUid}`);
+
+        } else {
+            logger.info(`Received an unhandled Whop webhook event of type '${event.type}'.`, { eventType: event.type });
         }
-    } else {
-        logger.info(`Received a Whop webhook event of type '${event.type}', which is not handled.`, { eventType: event.type });
-        res.status(200).send({ message: `Event type '${event.type}' received but not handled.` });
+        
+        res.status(200).send({ message: `Webhook event '${event.type}' processed.` });
+
+    } catch (error) {
+        logger.error(`Webhook processing failed for event type '${event.type}'.`, { error: error.message, event: event });
+        res.status(500).send({ error: 'Internal server error during webhook processing.' });
     }
 });
 
@@ -269,5 +303,7 @@ exports.cancelSubscription = onCall(async (request) => {
     logger.info(`User ${request.auth.uid} requested to cancel their subscription.`);
     return { success: true, message: "Your subscription cancellation request has been received. Please check your email." };
 });
+
+    
 
     
