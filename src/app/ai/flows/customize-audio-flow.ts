@@ -84,10 +84,12 @@ export const customizeAudioFlow = ai.defineFlow(
     return new Promise((resolve, reject) => {
         const reader = new wav.Reader();
 
-        reader.on('format', (format) => {
-            const pcmData: Buffer[] = [];
-            reader.on('data', (chunk) => {
-                pcmData.push(chunk);
+       // Add ': any' to format and chunk
+reader.on('format', (format: any) => {
+  const pcmData: Buffer[] = [];
+  reader.on('data', (chunk: any) => {
+      pcmData.push(chunk);
+  });
             });
 
             reader.on('end', () => {
