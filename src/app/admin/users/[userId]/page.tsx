@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -35,7 +34,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { useState, useMemo } from 'react';
+// UPDATED: Added 'use' to imports
+import { useState, useMemo, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -44,48 +44,49 @@ import { doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 type UserProfile = {
-    id: string;
-    name?: string;
-    email: string;
-    planId: string;
-    subscriptionTier: string | null;
-    creationDate: { toDate: () => Date };
-    lastKnownIp: string;
-    creditsRemaining: number;
-    totalCredits: number;
-    // These would be added for a more complete picture
-    lastLoginDate?: { toDate: () => Date }; 
-    lifetimeValue?: number;
+  id: string;
+  name?: string;
+  email: string;
+  planId: string;
+  subscriptionTier: string | null;
+  creationDate: { toDate: () => Date };
+  lastKnownIp: string;
+  creditsRemaining: number;
+  totalCredits: number;
+  lastLoginDate?: { toDate: () => Date }; 
+  lifetimeValue?: number;
 };
 
-
 const VoiceTierChart = ({ data }: { data: { standard: number, premium: number }}) => {
-    const chartData = [
-        { name: 'Standard', value: data.standard, fill: 'hsl(var(--chart-1))' },
-        { name: 'Premium', value: data.premium, fill: 'hsl(var(--chart-2))' },
-    ];
-    
-    return (
-        <div className="h-24 w-24 relative">
-            <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={25} outerRadius={40} paddingAngle={2}>
-                        {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{
-                        background: 'hsl(var(--card-background))',
-                        borderColor: 'hsl(var(--border))',
-                        color: 'hsl(var(--card-foreground))',
-                        borderRadius: 'var(--radius)'
-                    }}/>
-                </PieChart>
-            </ResponsiveContainer>
-        </div>
-    );
+  const chartData = [
+    { name: 'Standard', value: data.standard, fill: 'hsl(var(--chart-1))' },
+    { name: 'Premium', value: data.premium, fill: 'hsl(var(--chart-2))' },
+  ];
+  
+  return (
+    <div className="h-24 w-24 relative">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={25} outerRadius={40} paddingAngle={2}>
+            {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+          </Pie>
+          <Tooltip contentStyle={{
+            background: 'hsl(var(--card-background))',
+            borderColor: 'hsl(var(--border))',
+            color: 'hsl(var(--card-foreground))',
+            borderRadius: 'var(--radius)'
+          }}/>
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
-
-export default function UserDetailPage({ params: { userId } }: { params: { userId: string } }) {
+// UPDATED: Changed props definition and added unwrapping logic
+export default function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
+  // UPDATED: Unwrap params using React.use()
+  const { userId } = use(params);
+  
   const router = useRouter();
   const firestore = useFirestore();
 
@@ -326,7 +327,7 @@ export default function UserDetailPage({ params: { userId } }: { params: { userI
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {MOCK_USER_DETAILS.referredUsers.map((refUser) => (
+                                        {MOCK_USER_DETAILS.referredUsers.map((refUser: any) => (
                                             <TableRow 
                                                 key={refUser.id} 
                                                 className="cursor-pointer"
