@@ -42,6 +42,13 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
+    /**
+     * Checks if the free tier is currently enabled for generation.
+     */
+    function isFreeTierEnabled() {
+      return get(/databases/$(database)/documents/server/status).data.isFreeTierEnabled == true;
+    }
+
     // Prototyping Validation: Functions to enforce relational integrity and business logic.
 
     /**
@@ -78,14 +85,17 @@ service cloud.firestore {
     /**
      * Validates a new TTS request document.
      * CRITICAL: Enforces character limit on the input text to prevent billing abuse.
+     * Free tier users can only create if the global flag is enabled.
      */
     function hasValidTtsRequestCreateData(userId) {
         let data = request.resource.data;
+        let isPaidUser = get(/databases/$(database)/documents/users/$(userId)).data.planId != 'free';
         return data.userId == userId &&
                data.text is string &&
                data.text.size() > 0 &&
                data.text.size() <= 500 && // Max 500 characters
-               data.createdAt == request.time;
+               data.createdAt == request.time &&
+               (isPaidUser || isFreeTierEnabled()); // Free users are blocked if flag is false
     }
 
 
@@ -131,6 +141,16 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create, update, delete: if false;
     }
+    
+    /**
+     * @description Global server settings, only writable by admins.
+     * @path /server/status
+     */
+    match /server/status {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
 
     /**
      * @description Stores records of deleted users to prevent re-sign-up abuse.

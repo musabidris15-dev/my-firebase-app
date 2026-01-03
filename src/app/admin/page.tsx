@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert, Shield, Loader2 } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Send, MessageSquare, Search, Download, Calendar as CalendarIcon, BarChart3, ShieldAlert, Shield, Loader2, Server } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,9 +37,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import Link from 'next/link';
 import { format, subDays, formatDistanceToNow } from 'date-fns';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 
 type User = {
     id: string;
@@ -62,6 +64,9 @@ type FraudAttempt = {
     timestamp: { toDate: () => Date };
 };
 
+type ServerStatus = {
+    isFreeTierEnabled: boolean;
+};
 
 // --- Mock Data for Stats ---
 const MOCK_GENERATION_DATA = Array.from({ length: 90 }, (_, i) => ({
@@ -92,6 +97,7 @@ const calculateStats = (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all
 
 export default function AdminPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
   const adminEmails = ['musabidris15@gmail.com', 'geezvoices@gmail.com'];
@@ -109,6 +115,9 @@ export default function AdminPage() {
 
   const fraudQuery = useMemoFirebase(() => firestore ? collection(firestore, 'fraudAttempts') : null, [firestore]);
   const { data: fraudAttempts, isLoading: areFraudAttemptsLoading } = useCollection<FraudAttempt>(fraudQuery);
+  
+  const serverStatusDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'server', 'status') : null, [firestore]);
+  const { data: serverStatus, isLoading: isServerStatusLoading } = useDoc<ServerStatus>(serverStatusDocRef);
 
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
@@ -160,6 +169,23 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   };
   
+  const handleFreeTierToggle = async (isEnabled: boolean) => {
+    if (!serverStatusDocRef) return;
+    try {
+        await setDoc(serverStatusDocRef, { isFreeTierEnabled: isEnabled }, { merge: true });
+        toast({
+            title: 'Success',
+            description: `Free tier audio generation has been ${isEnabled ? 'enabled' : 'disabled'}.`,
+        });
+    } catch (error: any) {
+         toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: error.message || 'Could not update server status.',
+        });
+    }
+  };
+
   const getDayClass = (date: Date) => {
     const dateString = format(date, 'yyyy-MM-dd');
     const dayData = MOCK_GENERATION_DATA.find(d => d.date === dateString);
@@ -472,7 +498,46 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security">
+        <TabsContent value="security" className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Server className="h-5 w-5 text-primary" />
+                        Server Status Controls
+                    </CardTitle>
+                    <CardDescription>Globally enable or disable features.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isServerStatusLoading ? (
+                        <div className="flex items-center space-x-2">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span>Loading server status...</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="free-tier-switch" className="text-base">
+                                    Free Tier Generation
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Enable or disable audio generation for all free-tier users.
+                                </p>
+                            </div>
+                            <Switch
+                                id="free-tier-switch"
+                                checked={serverStatus?.isFreeTierEnabled ?? false}
+                                onCheckedChange={handleFreeTierToggle}
+                                aria-label="Toggle Free Tier Generation"
+                            />
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter>
+                     <p className="text-xs text-muted-foreground">
+                        This is a global switch. When disabled, free users will not be able to generate any audio until it is re-enabled. Paid users are not affected.
+                     </p>
+                </CardFooter>
+            </Card>
            <Card>
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -536,3 +601,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

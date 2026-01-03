@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info, Lock } from 'lucide-react';
+import { Terminal, Volume2, Loader2, CircleCheck, AlertCircle, ChevronsUpDown, Check, Play, Square, Wallet, Download, Sparkles, Wand2, History, Trash2, Info, Lock, Server } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -102,6 +102,10 @@ type HistoryItem = {
   timestamp: Date;
 };
 
+type ServerStatus = {
+    isFreeTierEnabled: boolean;
+};
+
 const PREVIEW_TEXT = "ሰላም ይህ ግዕዝ ነው የናንተ አማርኛ ፅሁፍን ወደ ንግግር መቀየሪያ";
 
 export default function TTSPage() {
@@ -124,8 +128,11 @@ export default function TTSPage() {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-
   const { data: userProfile, isLoading: isUserLoading } = useDoc<any>(userDocRef);
+
+  const serverStatusDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'server', 'status') : null, [firestore]);
+  const { data: serverStatus, isLoading: isServerStatusLoading } = useDoc<ServerStatus>(serverStatusDocRef);
+
 
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -156,6 +163,8 @@ export default function TTSPage() {
   const isFreePlan = userProfile?.planId === 'free';
   const isEmotionControlDisabled = isFreePlan && !canUseFreeEmotion;
   const isEffectControlDisabled = userProfile?.planId !== 'creator';
+  const isFreeTierGloballyDisabled = isFreePlan && serverStatus?.isFreeTierEnabled === false;
+
 
   const showStatus = (message: string, type: Status['type'] = 'info') => setStatus({ message, type });
 
@@ -413,6 +422,15 @@ export default function TTSPage() {
                   <TabsTrigger value="history">History</TabsTrigger>
                 </TabsList>
                 <TabsContent value="generator" className="p-6 md:p-8 space-y-6">
+                 {isFreeTierGloballyDisabled && (
+                        <Alert variant="destructive">
+                            <Server className="h-4 w-4" />
+                            <AlertTitle>Free Tier Temporarily Disabled</AlertTitle>
+                            <AlertDescription>
+                                Due to high server load, audio generation for free-tier users is temporarily disabled. Please check back later or <Link href="/profile#upgrade-plans" className="font-semibold underline">upgrade to a paid plan</Link> for uninterrupted access.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                   <div className="space-y-2">
                       <Label htmlFor="text-to-speak" className="text-sm font-medium text-muted-foreground">1. Enter your script</Label>
                       <Textarea ref={textareaRef} id="text-to-speak" rows={6} className="text-lg" placeholder="[Happy] Welcome to Geez Voice! Start typing here..." value={text} onChange={handleTextChange} />
@@ -504,7 +522,7 @@ export default function TTSPage() {
                       </Popover>
                   </div>
                   
-                  <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isUserLoading}>
+                  <Button id="speak-button" className="w-full text-lg py-6" onClick={handleGenerate} disabled={isLoading || isUserLoading || isFreeTierGloballyDisabled}>
                       {isLoading || isUserLoading ? (<Loader2 className="mr-2 h-6 w-6 animate-spin" />) : (<Volume2 className="mr-2 h-6 w-6" />)}
                       <span>Generate Audio ({characterCount.toLocaleString()} credits)</span>
                   </Button>
@@ -583,3 +601,5 @@ export default function TTSPage() {
     </div>
   );
 }
+
+    
