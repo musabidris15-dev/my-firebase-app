@@ -221,7 +221,22 @@ exports.verifySignUpAttempt = onCall(async (request) => {
         throw new HttpsError('permission-denied', 'VPN detected. Please disable your VPN to continue.');
     }
 
-    // --- 2. Duplicate Device Check (from fraud logs) ---
+    // --- 2. Check against deleted users ---
+    const deletedUserByEmailQuery = db.collection('deletedUsers').where('email', '==', email);
+    const deletedUserByEmailSnapshot = await deletedUserByEmailQuery.get();
+    if (!deletedUserByEmailSnapshot.empty) {
+        logger.warn(`Re-sign-up attempt by deleted user (email): ${email}`);
+        throw new HttpsError('already-exists', 'This account has previously been deleted. Re-creating accounts to abuse the free tier is not permitted.');
+    }
+    const deletedUserByDeviceQuery = db.collection('deletedUsers').where('deviceFingerprint', '==', deviceFingerprint);
+    const deletedUserByDeviceSnapshot = await deletedUserByDeviceQuery.get();
+    if (!deletedUserByDeviceSnapshot.empty) {
+        logger.warn(`Re-sign-up attempt by deleted user (device): ${email}`);
+        throw new HttpsError('already-exists', 'This device has been associated with a deleted account. Re-creating accounts to abuse the free tier is not permitted.');
+    }
+
+
+    // --- 3. Duplicate Device Check (from fraud logs) ---
     const fraudDeviceQuery = db.collection('fraudAttempts').where('deviceFingerprint', '==', deviceFingerprint);
     const fraudDeviceSnapshot = await fraudDeviceQuery.get();
     if (!fraudDeviceSnapshot.empty) {
@@ -230,7 +245,7 @@ exports.verifySignUpAttempt = onCall(async (request) => {
         throw new HttpsError('permission-denied', 'This device has already been used for a free sign-up.');
     }
 
-    // --- 3. Duplicate IP Check (from existing free tier users) ---
+    // --- 4. Duplicate IP Check (from existing free tier users) ---
     const usersIpQuery = db.collection('users').where('lastKnownIp', '==', ip).where('planId', '==', 'free');
     const usersIpSnapshot = await usersIpQuery.get();
     if (!usersIpSnapshot.empty) {
@@ -262,6 +277,7 @@ async function logFraudAttempt({ email, ip, deviceFingerprint, reason }) {
 
 /**
  * Deletes a user's account and all associated data from Firestore.
+ * Logs user info to a 'deletedUsers' collection to prevent re-sign-up abuse.
  */
 exports.deleteUserAccount = onCall(async (request) => {
     if (!request.auth) {
@@ -271,14 +287,33 @@ exports.deleteUserAccount = onCall(async (request) => {
     logger.info(`Attempting to delete account and data for user: ${uid}`);
 
     try {
+        const userRef = db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            // Log essential info to prevent re-signup abuse
+            await db.collection('deletedUsers').doc(uid).set({
+                uid: uid,
+                email: userData.email,
+                lastKnownIp: userData.lastKnownIp || null,
+                deviceFingerprint: request.data.deviceFingerprint || null, // Assuming fingerprint is passed from client
+                deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            logger.info(`Logged deleted user info for: ${uid}`);
+        } else {
+            logger.warn(`User document not found for UID: ${uid}. Cannot log deletion info.`);
+        }
+
         // Delete the user from Firebase Authentication
         await admin.auth().deleteUser(uid);
         logger.info(`Successfully deleted user from Firebase Auth: ${uid}`);
 
         // Delete the user's document from Firestore
-        const userRef = db.collection('users').doc(uid);
-        await userRef.delete();
-        logger.info(`Successfully deleted user document from Firestore: ${uid}`);
+        if (userDoc.exists) {
+            await userRef.delete();
+            logger.info(`Successfully deleted user document from Firestore: ${uid}`);
+        }
         
         // Note: In a production app, you would also delete all subcollections 
         // and associated data (e.g., avatars, videos) here.
@@ -307,5 +342,7 @@ exports.cancelSubscription = onCall(async (request) => {
     logger.info(`User ${request.auth.uid} requested to cancel their subscription.`);
     return { success: true, message: "Your subscription cancellation request has been received. Please check your email." };
 });
+
+    
 
     

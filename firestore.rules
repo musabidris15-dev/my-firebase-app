@@ -131,5 +131,16 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create, update, delete: if false;
     }
+
+    /**
+     * @description Stores records of deleted users to prevent re-sign-up abuse.
+     * @path /deletedUsers/{userId}
+     */
+    match /deletedUsers/{userId} {
+      // No client access whatsoever. This collection is managed by backend functions.
+      allow read, write: if false;
+    }
   }
 }
+
+    
