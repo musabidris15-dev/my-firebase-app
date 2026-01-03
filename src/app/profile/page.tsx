@@ -60,14 +60,14 @@ export default function ProfilePage() {
         const initialProfile: UserProfile = {
             name: 'Abebe Bikila',
             email: 'abebe.bikila@example.com',
-            planId: 'creator',
-            subscriptionTier: 'yearly',
-            creditsUsed: 230000,
-            creditsRemaining: 120000,
+            planId: 'free',
+            subscriptionTier: null,
+            creditsUsed: 200,
+            creditsRemaining: 1800,
         };
 
         const initialPlanDetails: PlanDetails = {
-            totalCredits: 350000
+            totalCredits: 2000
         };
         
         setUserProfile(initialProfile);
@@ -75,18 +75,23 @@ export default function ProfilePage() {
         setBillingCycle(initialProfile.subscriptionTier || 'monthly');
 
         const today = new Date();
-        const subscriptionEndDate = addDays(new Date('2023-01-15'), 365);
-        const lastCreditRenewalDate = new Date('2023-07-01');
+        const subscriptionEndDate = null; // No end date for free users
+        const lastCreditRenewalDate = null; // No renewal for free users
         
         if (subscriptionEndDate) {
             const days = differenceInDays(subscriptionEndDate, today);
             const expiresSoon = isBefore(subscriptionEndDate, addDays(today, 30));
             setDaysUntilPlanExpires(days > 0 ? days : 0);
             setShouldShowRenewalMessage(expiresSoon && days > 0);
+        } else {
+            setDaysUntilPlanExpires(null);
+            setShouldShowRenewalMessage(false);
         }
 
         if (lastCreditRenewalDate) {
             setNextRenewalDate(format(addDays(lastCreditRenewalDate, 30), 'MMM d, yyyy'));
+        } else {
+            setNextRenewalDate(null);
         }
     }, []);
 
@@ -337,7 +342,7 @@ export default function ProfilePage() {
                                         {userProfile.planId === 'hobbyist' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
-                                             <Button asChild className="w-full">
+                                             <Button asChild className="w-full" variant={userProfile.planId === 'free' ? 'default' : 'outline'}>
                                                 <Link href={getPlanUrl('hobbyist')} target="_blank" rel="noopener noreferrer">
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     Subscribe
