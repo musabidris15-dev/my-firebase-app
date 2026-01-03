@@ -249,6 +249,11 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
         <main className="flex-grow p-4 md:p-6 lg:p-8">{children}</main>
         <footer className="py-6 text-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} Geez Voice. All Rights Reserved.</p>
+          <p className="mt-2">
+            <a href="mailto:geezvoices@gmail.com" className="hover:text-primary hover:underline">
+              Contact Support
+            </a>
+          </p>
         </footer>
       </SidebarInset>
     </SidebarProvider>
@@ -295,5 +300,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
