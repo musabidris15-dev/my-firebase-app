@@ -406,23 +406,6 @@ export default function ProfilePage() {
                         </Card>
                     </div>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Code className="h-5 w-5 text-muted-foreground" />
-                                Developer Tools
-                            </CardTitle>
-                             <CardDescription>Use these tools for testing and verification.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button asChild variant="secondary">
-                                <Link href={`https://whop.com/checkout/plan_S0CZdw9meDbCs?metadata[firebase_uid]=${user?.uid}`} target="_blank" rel="noopener noreferrer">
-                                    Test Webhook ($0 Checkout)
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
                     <Card className="border-destructive/50">
                         <CardHeader>
                             <CardTitle className="text-destructive">Danger Zone</CardTitle>
