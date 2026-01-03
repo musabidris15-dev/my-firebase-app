@@ -30,7 +30,7 @@ async function toWav(
 
     const bufs: any[] = [];
     writer.on('error', reject);
-    writer.on('data', function (d) {
+    writer.on('data', function (d: any) {
       bufs.push(d);
     });
     writer.on('end', function () {
