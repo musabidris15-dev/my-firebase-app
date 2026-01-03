@@ -58,7 +58,8 @@ function pcmToMp3(pcmData: Buffer, channels: number, sampleRate: number): Buffer
         mp3Data.push(mp3buf);
     }
     
-    return Buffer.from(mp3Data.flat());
+    // Fix: Convert each chunk to a Buffer and then concat them
+return Buffer.concat(mp3Data.map((chunk: any) => Buffer.from(chunk)));
 }
 
 // Define the Genkit flow
