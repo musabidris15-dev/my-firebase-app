@@ -82,7 +82,7 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
         const response = await axios.post(
             'https://api.whop.com/v2/checkout_sessions',
             {
-                product: planKey,
+                plan: planId,
                 metadata: {
                     firebase_uid: uid,
                 },
