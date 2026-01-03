@@ -91,7 +91,6 @@ exports.createWhopCheckoutSession = onCall(async (request) => {
                 headers: {
                     'Authorization': `Bearer ${WHOP_API_KEY}`,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
                 },
             }
         );
