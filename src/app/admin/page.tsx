@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -49,7 +48,7 @@ type User = {
     email: string;
     planId: string;
     subscriptionTier: string | null;
-    status: string; // This might need to be derived or stored
+    status: string;
     creationDate: Date | string;
     creditsRemaining: number;
     totalCredits: number;
@@ -100,6 +99,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
+  // Ensure your email is in this list
   const adminEmails = ['musabidris15@gmail.com', 'geezvoices@gmail.com'];
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,6 +122,7 @@ export default function AdminPage() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    // Basic client-side protection
     if (!isAuthLoading && (!user || !adminEmails.includes(user.email ?? ''))) {
         router.push('/');
     }
@@ -134,8 +135,8 @@ export default function AdminPage() {
         setFilteredUsers(allUsers);
     } else {
         const results = allUsers.filter(u =>
-            u.name?.toLowerCase().includes(lowercasedTerm) ||
-            u.email.toLowerCase().includes(lowercasedTerm)
+            (u.name || '').toLowerCase().includes(lowercasedTerm) ||
+            (u.email || '').toLowerCase().includes(lowercasedTerm)
         );
         setFilteredUsers(results);
     }
@@ -178,7 +179,7 @@ export default function AdminPage() {
             description: `Free tier audio generation has been ${isEnabled ? 'enabled' : 'disabled'}.`,
         });
     } catch (error: any) {
-         toast({
+          toast({
             variant: 'destructive',
             title: 'Update Failed',
             description: error.message || 'Could not update server status.',
@@ -353,10 +354,10 @@ export default function AdminPage() {
                             </Badge>
                       </TableCell>
                       <TableCell>
-                          {u.planId}
+                          {u.planId || 'free'}
                           {u.subscriptionTier && <span className="text-muted-foreground"> ({u.subscriptionTier})</span>}
                       </TableCell>
-                      <TableCell>{u.creditsRemaining.toLocaleString()}</TableCell>
+                      <TableCell>{(u.creditsRemaining || 0).toLocaleString()}</TableCell>
                       <TableCell>
                           <Badge variant={adminEmails.includes(u.email) ? 'destructive' : 'secondary'}>
                             {adminEmails.includes(u.email) ? 'Admin' : 'User'}
@@ -430,7 +431,7 @@ export default function AdminPage() {
                                       )}
                                       <div className="grid grid-cols-4 items-center gap-4">
                                           <Label htmlFor="credits" className="text-right">Credits</Label>
-                                          <Input id="credits" type="number" value={editingUser.creditsRemaining} onChange={(e) => setEditingUser({...editingUser, creditsRemaining: Number(e.target.value)})} className="col-span-3" />
+                                          <Input id="credits" type="number" value={editingUser.creditsRemaining || 0} onChange={(e) => setEditingUser({...editingUser, creditsRemaining: Number(e.target.value)})} className="col-span-3" />
                                       </div>
                                   </div>
                                   <DialogFooter>
@@ -474,7 +475,7 @@ export default function AdminPage() {
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="notification-recipient">Recipient Group</Label>
-                       <Select defaultValue="all">
+                        <Select defaultValue="all">
                           <SelectTrigger id="notification-recipient">
                               <SelectValue placeholder="Select a recipient group" />
                           </SelectTrigger>
@@ -531,9 +532,9 @@ export default function AdminPage() {
                     )}
                 </CardContent>
                 <CardFooter>
-                     <p className="text-xs text-muted-foreground">
-                        This is a global switch. When disabled, free users will not be able to generate any audio until it is re-enabled. Paid users are not affected.
-                     </p>
+                      <p className="text-xs text-muted-foreground">
+                         This is a global switch. When disabled, free users will not be able to generate any audio until it is re-enabled. Paid users are not affected.
+                      </p>
                 </CardFooter>
             </Card>
            <Card>
@@ -566,8 +567,8 @@ export default function AdminPage() {
                             fraudAttempts.map(attempt => (
                                 <TableRow key={attempt.id}>
                                     <TableCell>
-                                        <div>{format(attempt.timestamp.toDate(), 'yyyy-MM-dd HH:mm')}</div>
-                                        <div className="text-xs text-muted-foreground">{formatDistanceToNow(attempt.timestamp.toDate(), { addSuffix: true })}</div>
+                                        <div>{attempt.timestamp ? format(attempt.timestamp.toDate(), 'yyyy-MM-dd HH:mm') : 'N/A'}</div>
+                                        <div className="text-xs text-muted-foreground">{attempt.timestamp ? formatDistanceToNow(attempt.timestamp.toDate(), { addSuffix: true }) : ''}</div>
                                     </TableCell>
                                     <TableCell>{attempt.email}</TableCell>
                                     <TableCell className="font-mono">{attempt.ipAddress}</TableCell>
@@ -579,7 +580,7 @@ export default function AdminPage() {
                                     <TableCell>
                                          <Button variant="outline" size="sm">
                                               Block IP
-                                          </Button>
+                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -599,5 +600,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
