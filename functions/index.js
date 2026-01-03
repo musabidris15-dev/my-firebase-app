@@ -135,18 +135,40 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
         const firebaseUid = membership.metadata ? membership.metadata.firebase_uid : null;
         const whopSubscriptionId = membership.id;
 
-        if (firebaseUid) {
+        if (firebaseUid && membership.plan) {
             logger.info(`Processing 'membership.created' for Firebase UID: ${firebaseUid}, Whop Sub ID: ${whopSubscriptionId}`);
             
             try {
                 const userRef = db.collection('users').doc(firebaseUid);
+
+                const planId = membership.plan.id;
+                let credits = 0;
+                let planName = 'free';
+                let subscriptionTier = null;
+
+                if (planId === WHOP_PLANS.hobbyist_monthly || planId === WHOP_PLANS.hobbyist_yearly) {
+                    credits = 100000;
+                    planName = 'hobbyist';
+                    subscriptionTier = planId === WHOP_PLANS.hobbyist_monthly ? 'monthly' : 'yearly';
+                } else if (planId === WHOP_PLANS.creator_monthly || planId === WHOP_PLANS.creator_yearly) {
+                    credits = 350000;
+                    planName = 'creator';
+                    subscriptionTier = planId === WHOP_PLANS.creator_monthly ? 'monthly' : 'yearly';
+                }
+
+                const now = admin.firestore.FieldValue.serverTimestamp();
+
                 await userRef.update({
-                    isPremium: true,
+                    planId: planName,
+                    subscriptionTier: subscriptionTier,
+                    credits: credits,
+                    creditsRemaining: credits,
                     whopSubscriptionId: whopSubscriptionId,
-                    planId: membership.plan.id, 
+                    subscriptionStartDate: now,
+                    lastCreditRenewalDate: now,
                 });
 
-                logger.info(`Successfully granted premium access to user: ${firebaseUid}`);
+                logger.info(`Successfully granted ${planName} access to user: ${firebaseUid}`);
                 res.status(200).send({ message: 'User updated successfully.' });
 
             } catch (error) {
@@ -154,10 +176,10 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
                 res.status(500).send({ error: 'Failed to update user in database.' });
             }
         } else {
-            logger.warn("'membership.created' webhook received without 'firebase_uid' in metadata.", {
+            logger.warn("'membership.created' webhook received without 'firebase_uid' in metadata or missing plan info.", {
                 whopSubscriptionId: whopSubscriptionId,
             });
-            res.status(400).send({ error: "Missing 'firebase_uid' in webhook metadata." });
+            res.status(400).send({ error: "Missing 'firebase_uid' in webhook metadata or missing plan info." });
         }
     } else {
         logger.info(`Received a Whop webhook event of type '${event.type}', which is not handled.`, { eventType: event.type });
