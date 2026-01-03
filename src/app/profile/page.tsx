@@ -91,6 +91,7 @@ export default function ProfilePage() {
             }
 
         } else if (!isProfileLoading) {
+             // Fallback for when profile hasn't loaded yet
              setUserProfile({
                 name: 'Guest',
                 email: 'guest@example.com',
@@ -179,7 +180,6 @@ export default function ProfilePage() {
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 144;
     const creatorPrice = billingCycle === 'monthly' ? 39 : 374.40;
 
-    // 1. Guard Clause: If loading or no profile, return Loader.
     if (isProfileLoading || !userProfile) {
         return (
             <div className="container mx-auto max-w-7xl">
@@ -194,10 +194,13 @@ export default function ProfilePage() {
         );
     }
 
-    // 2. Safe Access: Now we know 'userProfile' is definitely NOT null.
-    // We assign it to 'profile' to help TypeScript understand it better in the JSX below.
+    // FIX: Safe Defaults. Even if fields are missing in DB, these variables will be numbers.
     const profile = userProfile;
-    const creditUsagePercentage = (profile.creditsRemaining / profile.totalCredits) * 100;
+    const safeCreditsRemaining = profile.creditsRemaining || 0;
+    const safeCreditsUsed = profile.creditsUsed || 0;
+    const safeTotalCredits = profile.totalCredits || 1000; // Default to 1000 to avoid divide-by-zero
+    
+    const creditUsagePercentage = (safeCreditsRemaining / safeTotalCredits) * 100;
     
     const getReferralBonus = () => {
         switch (profile.planId) {
@@ -295,7 +298,8 @@ export default function ProfilePage() {
                                 <div className="flex justify-between items-end mb-2">
                                     <h4 className="font-semibold text-lg">Character Credits</h4>
                                     <p className="text-sm text-muted-foreground">
-                                        <span className="font-bold text-foreground">{profile.creditsRemaining.toLocaleString()}</span> remaining
+                                        {/* FIX: Use safe variable */}
+                                        <span className="font-bold text-foreground">{safeCreditsRemaining.toLocaleString()}</span> remaining
                                     </p>
                                 </div>
                                 <Progress value={creditUsagePercentage} className="h-3" />
@@ -309,7 +313,8 @@ export default function ProfilePage() {
                                         ) : <span>One-time credits</span>}
                                     </div>
                                     <span>
-                                        {profile.creditsUsed.toLocaleString()} of {profile.totalCredits.toLocaleString()} characters used
+                                        {/* FIX: Use safe variables */}
+                                        {safeCreditsUsed.toLocaleString()} of {safeTotalCredits.toLocaleString()} characters used
                                     </span>
                                 </div>
                             </div>
