@@ -26,12 +26,17 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        if (!isUserLoading && user) {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (isClient && !isUserLoading && user) {
             router.push('/');
         }
-    }, [user, isUserLoading, router]);
+    }, [user, isUserLoading, router, isClient]);
 
     const handleEmailSignIn = (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,7 +51,7 @@ export default function LoginPage() {
         }
     };
 
-    if (isUserLoading || user) {
+    if (isUserLoading || (isClient && user)) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />

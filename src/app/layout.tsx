@@ -27,7 +27,7 @@ import { FirebaseProvider, useAuth, useUser, useFirestore, useDoc, useMemoFireba
 import { useEffect, useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
@@ -35,6 +35,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
   
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -49,7 +50,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && !user && pathname !== '/login' && pathname !== '/signup') {
         router.push('/login');
     }
     if (user) {
@@ -59,7 +60,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           { id: 3, title: 'Maintenance Scheduled', message: 'We will be undergoing scheduled maintenance on Sunday at 2 AM.', read: true, date: '3 days ago' },
       ]);
     }
-  }, [isUserLoading, user, auth, router]);
+  }, [isUserLoading, user, auth, router, pathname]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -75,6 +76,10 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const isLoading = isUserLoading || isProfileLoading;
   const isAdmin = user ? adminEmails.includes(user.email ?? '') : false;
+
+  if (pathname === '/login' || pathname === '/signup') {
+    return <>{children}</>;
+  }
 
 
   return (
