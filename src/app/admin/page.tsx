@@ -275,9 +275,7 @@ export default function AdminPage() {
                         modifiers={{
                            activity: MOCK_GENERATION_DATA.map(d => new Date(d.date + 'T12:00:00'))
                         }}
-                        modifiersClassNames={{
-                           activity: getDayClass,
-                        }}
+                        
                         className="p-0"
                         classNames={{
                           day_selected: "rounded-md",
