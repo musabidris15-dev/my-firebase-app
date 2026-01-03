@@ -108,7 +108,7 @@ export const customizeAudioFlow = ai.defineFlow(
             });
         });
 
-        reader.on('error', (err) => {
+        reader.on('error', (err: any) => {
             reject(new Error(`Failed to read WAV file: ${err.message}`));
         });
 
