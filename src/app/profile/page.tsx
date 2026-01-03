@@ -18,6 +18,7 @@ import { useFirebaseApp, useUser } from '@/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { signOut } from 'firebase/auth';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type UserProfile = {
     name: string;
@@ -55,6 +56,7 @@ export default function ProfilePage() {
     const firebaseApp = useFirebaseApp();
     const { user, auth } = useUser();
     const plansRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
     useEffect(() => {
         const initialProfile: UserProfile = {
@@ -171,6 +173,13 @@ export default function ProfilePage() {
         }
     };
 
+    const handleLogout = async () => {
+        if (auth) {
+            await signOut(auth);
+            router.push('/');
+        }
+    };
+
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 144;
     const creatorPrice = billingCycle === 'monthly' ? 39 : 374.40;
 
@@ -213,6 +222,12 @@ export default function ProfilePage() {
                                 <p className="font-semibold">{userProfile.email}</p>
                             </div>
                         </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" onClick={handleLogout}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Log Out
+                            </Button>
+                        </CardFooter>
                     </Card>
                     <Card>
                         <CardHeader>
@@ -226,7 +241,7 @@ export default function ProfilePage() {
                             <p className="text-sm text-muted-foreground">
                                 {referralBonus 
                                     ? `As a ${userProfile.planId} member, you earn a ${referralBonus} credit bonus for every new paid subscriber.`
-                                    : 'Invite your friends! Upgrade to a paid plan to earn credit bonuses for each new subscriber.'
+                                    : 'Invite friends to earn rewards! You will receive credit bonuses for each new subscriber once you upgrade.'
                                 }
                             </p>
                             <div className="flex space-x-2">
@@ -442,3 +457,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+    
