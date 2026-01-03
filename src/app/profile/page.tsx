@@ -14,11 +14,12 @@ import { addDays, format, differenceInDays, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirebaseApp, useUser } from '@/firebase';
+import { useFirebaseApp, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { doc } from 'firebase/firestore';
 
 type UserProfile = {
     name: string;
@@ -27,9 +28,6 @@ type UserProfile = {
     subscriptionTier: string | null;
     creditsUsed: number;
     creditsRemaining: number;
-};
-
-type PlanDetails = {
     totalCredits: number;
 };
 
@@ -43,7 +41,6 @@ const planLinks = {
 
 export default function ProfilePage() {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const [planDetails, setPlanDetails] = useState<PlanDetails | null>(null);
     const [copied, setCopied] = useState(false);
     const [billingCycle, setBillingCycle] = useState('monthly');
     const [creatorGlow, setCreatorGlow] = useState(false);
@@ -55,50 +52,59 @@ export default function ProfilePage() {
     const { toast } = useToast();
     const firebaseApp = useFirebaseApp();
     const { user, auth } = useUser();
-    const plansRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
+    const userDocRef = useMemoFirebase(() => {
+        if (!auth?.currentUser) return null;
+        return doc(auth.firestore, 'users', auth.currentUser.uid);
+    }, [auth?.currentUser]);
+
+    const { data: liveProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
     useEffect(() => {
-        const initialProfile: UserProfile = {
-            name: 'Abebe Bikila',
-            email: 'abebe.bikila@example.com',
-            planId: 'free',
-            subscriptionTier: null,
-            creditsUsed: 200,
-            creditsRemaining: 1800,
-        };
+        if (liveProfile) {
+            setUserProfile(liveProfile);
+            setBillingCycle(liveProfile.subscriptionTier || 'monthly');
+            const today = new Date();
+            // @ts-ignore
+            const subscriptionEndDate = liveProfile.subscriptionEndDate?.toDate();
+            // @ts-ignore
+            const lastCreditRenewalDate = liveProfile.lastCreditRenewalDate?.toDate();
 
-        const initialPlanDetails: PlanDetails = {
-            totalCredits: 2000
-        };
-        
-        setUserProfile(initialProfile);
-        setPlanDetails(initialPlanDetails);
-        setBillingCycle(initialProfile.subscriptionTier || 'monthly');
+            if (subscriptionEndDate) {
+                const days = differenceInDays(subscriptionEndDate, today);
+                const expiresSoon = isBefore(subscriptionEndDate, addDays(today, 30));
+                setDaysUntilPlanExpires(days > 0 ? days : 0);
+                setShouldShowRenewalMessage(expiresSoon && days > 0);
+            } else {
+                setDaysUntilPlanExpires(null);
+                setShouldShowRenewalMessage(false);
+            }
+    
+            if (lastCreditRenewalDate) {
+                setNextRenewalDate(format(addDays(lastCreditRenewalDate, 30), 'MMM d, yyyy'));
+            } else {
+                setNextRenewalDate(null);
+            }
 
-        const today = new Date();
-        const subscriptionEndDate = null; // No end date for free users
-        const lastCreditRenewalDate = null; // No renewal for free users
-        
-        if (subscriptionEndDate) {
-            const days = differenceInDays(subscriptionEndDate, today);
-            const expiresSoon = isBefore(subscriptionEndDate, addDays(today, 30));
-            setDaysUntilPlanExpires(days > 0 ? days : 0);
-            setShouldShowRenewalMessage(expiresSoon && days > 0);
-        } else {
-            setDaysUntilPlanExpires(null);
-            setShouldShowRenewalMessage(false);
+        } else if (!isProfileLoading) {
+            // Set a default for non-logged-in or new users for display purposes before redirect
+             setUserProfile({
+                name: 'Guest',
+                email: 'guest@example.com',
+                planId: 'free',
+                subscriptionTier: null,
+                creditsUsed: 0,
+                creditsRemaining: 2000,
+                totalCredits: 2000
+            });
         }
+    }, [liveProfile, isProfileLoading]);
 
-        if (lastCreditRenewalDate) {
-            setNextRenewalDate(format(addDays(lastCreditRenewalDate, 30), 'MMM d, yyyy'));
-        } else {
-            setNextRenewalDate(null);
-        }
-    }, []);
 
+    const plansRef = useRef<HTMLDivElement>(null);
     const referralLink = user ? `https://geezvoice.app/join?ref=${user.uid}` : '';
-    const creditUsagePercentage = (userProfile && planDetails) ? (userProfile.creditsRemaining / planDetails.totalCredits) * 100 : 0;
+    const creditUsagePercentage = (userProfile) ? (userProfile.creditsRemaining / userProfile.totalCredits) * 100 : 0;
 
     const getReferralBonus = () => {
         if (!userProfile) return null;
@@ -161,7 +167,7 @@ export default function ProfilePage() {
                 description: "Your account and all associated data have been permanently deleted.",
             });
             if(auth) await signOut(auth);
-            // Redirect or handle post-deletion state
+            router.push('/');
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -183,7 +189,7 @@ export default function ProfilePage() {
     const hobbyistPrice = billingCycle === 'monthly' ? 15 : 144;
     const creatorPrice = billingCycle === 'monthly' ? 39 : 374.40;
 
-    if (!userProfile || !planDetails) {
+    if (isProfileLoading || !userProfile) {
         return (
             <div className="container mx-auto max-w-7xl">
                  <header className="mb-10">
@@ -214,7 +220,7 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-muted-foreground">Name</p>
-                                <p className="font-semibold">{userProfile.name}</p>
+                                <p className="font-semibold">{userProfile.name || user?.displayName || 'N/A'}</p>
                             </div>
                             <Separator />
                             <div className="space-y-1">
@@ -238,10 +244,10 @@ export default function ProfilePage() {
                             <CardDescription>Invite others and earn rewards.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
+                           <p className="text-sm text-muted-foreground">
                                 {referralBonus 
                                     ? `As a ${userProfile.planId} member, you earn a ${referralBonus} credit bonus for every new paid subscriber.`
-                                    : 'Invite friends to earn rewards! You will receive credit bonuses for each new subscriber once you upgrade.'
+                                    : 'Share your link to invite friends! Upgrade to a paid plan to earn credit bonuses for each new subscriber.'
                                 }
                             </p>
                             <div className="flex space-x-2">
@@ -298,7 +304,7 @@ export default function ProfilePage() {
                                         ) : <span>One-time credits</span>}
                                     </div>
                                     <span>
-                                        {userProfile.creditsUsed.toLocaleString()} of {planDetails.totalCredits.toLocaleString()} characters used
+                                        {userProfile.creditsUsed.toLocaleString()} of {userProfile.totalCredits.toLocaleString()} characters used
                                     </span>
                                 </div>
                             </div>
@@ -458,4 +464,3 @@ export default function ProfilePage() {
     );
 }
 
-    

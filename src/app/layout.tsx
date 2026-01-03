@@ -28,12 +28,14 @@ import { useEffect, useState } from 'react';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
   
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -64,6 +66,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
+      router.push('/');
     }
   };
 
