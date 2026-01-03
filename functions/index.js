@@ -39,9 +39,12 @@ exports.initializeUser = functions.auth.user().onCreate(async (user) => {
     logger.info(`Initializing new user: ${user.uid} (${user.email})`);
 
     const userRef = db.collection('users').doc(user.uid);
+    
+    const adminEmails = ['musabidris15@gmail.com', 'geezvoices@gmail.com'];
+    const userRole = user.email && adminEmails.includes(user.email) ? 'Admin' : 'User';
 
     try {
-        await userRef.set({
+        const userData = {
             id: user.uid,
             email: user.email,
             planId: 'free',
@@ -50,8 +53,15 @@ exports.initializeUser = functions.auth.user().onCreate(async (user) => {
             totalCredits: 2000,
             creationDate: admin.firestore.FieldValue.serverTimestamp(),
             referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        }, { merge: true });
-        logger.info(`Successfully created Firestore document for user: ${user.uid}`);
+            role: userRole,
+        };
+
+        if (!user.email) {
+            delete userData.email;
+        }
+
+        await userRef.set(userData, { merge: true });
+        logger.info(`Successfully created Firestore document for user: ${user.uid} with role: ${userRole}`);
     } catch (error) {
         logger.error(`Failed to create Firestore document for user: ${user.uid}`, { error });
     }
