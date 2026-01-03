@@ -338,7 +338,7 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                              <Button asChild className="w-full">
-                                                <Link href={getPlanUrl('hobbyist')}>
+                                                <Link href={getPlanUrl('hobbyist')} target="_blank" rel="noopener noreferrer">
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     Subscribe
                                                 </Link>
@@ -371,7 +371,7 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <Button asChild className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")}>
-                                                <Link href={getPlanUrl('creator')}>
+                                                <Link href={getPlanUrl('creator')} target="_blank" rel="noopener noreferrer">
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Subscribe'}
                                                 </Link>
