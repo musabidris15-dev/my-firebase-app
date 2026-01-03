@@ -72,7 +72,9 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
     const event = req.body;
     
     try {
-        const membership = event.data.object;
+        const dataObject = event.data.object;
+        // For payment events, the user info is nested differently
+        const membership = event.type.startsWith('payment') ? dataObject.membership : dataObject;
         const firebaseUid = membership.metadata ? membership.metadata.firebase_uid : null;
         
         if (!firebaseUid) {
@@ -107,8 +109,8 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
             });
             logger.info(`Successfully granted ${planDetails.name} access to user: ${firebaseUid}`);
 
-        } else if (event.type === 'membership.renewed') {
-            logger.info(`Processing 'membership.renewed' for Firebase UID: ${firebaseUid}`);
+        } else if (event.type === 'payment.succeeded') {
+            logger.info(`Processing 'payment.succeeded' for Firebase UID: ${firebaseUid}`);
             
             const planId = membership.plan.id;
             const planDetails = WHOP_PLANS[planId];
@@ -118,9 +120,11 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
                  res.status(400).send({ error: 'Unknown plan ID.' });
                  return;
             }
-
+            
+            // For yearly plans, this logic might need adjustment depending on business rules.
+            // This assumes credits are added on each "payment.succeeded" event.
             await userRef.update({
-                creditsRemaining: admin.firestore.FieldValue.increment(planDetails.credits), // Add renewed credits
+                creditsRemaining: planDetails.credits, // Reset credits to full amount on renewal
                 lastCreditRenewalDate: admin.firestore.FieldValue.serverTimestamp(),
             });
             logger.info(`Successfully renewed credits for user: ${firebaseUid}`);
@@ -133,8 +137,8 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
                 planId: 'free',
                 subscriptionTier: null,
                 totalCredits: 2000, 
-                // Decide if you want to wipe remaining credits or let them keep them.
-                // creditsRemaining: 0, 
+                // Decision: Reset remaining credits to the free tier limit, or let them keep them?
+                creditsRemaining: 2000, 
                 whopSubscriptionId: admin.firestore.FieldValue.delete(),
                 subscriptionEndDate: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -303,7 +307,5 @@ exports.cancelSubscription = onCall(async (request) => {
     logger.info(`User ${request.auth.uid} requested to cancel their subscription.`);
     return { success: true, message: "Your subscription cancellation request has been received. Please check your email." };
 });
-
-    
 
     
