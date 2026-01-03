@@ -90,7 +90,7 @@ export default function ProfilePage() {
         }
     }, []);
 
-    const referralLink = userProfile ? `https://geezvoice.app/join?ref=${userProfile.name.toLowerCase().replace(' ', '-')}` : '';
+    const referralLink = user ? `https://geezvoice.app/join?ref=${user.uid}` : '';
     const creditUsagePercentage = (userProfile && planDetails) ? (userProfile.creditsRemaining / planDetails.totalCredits) * 100 : 0;
 
     const getReferralBonus = () => {
@@ -112,10 +112,15 @@ export default function ProfilePage() {
         });
     };
     
-    const handleUpgradeClick = () => {
-        const creatorPlanUrl = billingCycle === 'monthly' ? planLinks.creator_monthly : planLinks.creator_yearly;
-        window.location.href = creatorPlanUrl;
-    };
+    const getPlanUrl = (plan: 'hobbyist' | 'creator') => {
+        const tier = billingCycle === 'monthly' ? 'monthly' : 'yearly';
+        const planKey = `${plan}_${tier}` as keyof typeof planLinks;
+        let url = planLinks[planKey];
+        if (user) {
+            url += `?metadata[firebase_uid]=${user.uid}`;
+        }
+        return url;
+    }
 
     const handleCancelSubscription = async () => {
         setIsCancelling(true);
@@ -255,7 +260,7 @@ export default function ProfilePage() {
                                     <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
                                     <p className="text-xl font-bold text-primary capitalize">{userProfile.planId === 'free' ? 'Free Tier' : userProfile.planId}{userProfile.subscriptionTier ? ` (${userProfile.subscriptionTier})` : ''}</p>
                                 </div>
-                                {userProfile.planId !== 'creator' && <Button onClick={handleUpgradeClick}>Upgrade Plan</Button>}
+                                {userProfile.planId !== 'creator' && <Button onClick={() => plansRef.current?.scrollIntoView({ behavior: 'smooth' })}>Upgrade Plan</Button>}
                             </div>
                             
                             <div>
@@ -333,7 +338,7 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                              <Button asChild className="w-full">
-                                                <Link href={billingCycle === 'monthly' ? planLinks.hobbyist_monthly : planLinks.hobbyist_yearly}>
+                                                <Link href={getPlanUrl('hobbyist')}>
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     Subscribe
                                                 </Link>
@@ -366,7 +371,7 @@ export default function ProfilePage() {
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
                                             <Button asChild className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")}>
-                                                <Link href={billingCycle === 'monthly' ? planLinks.creator_monthly : planLinks.creator_yearly}>
+                                                <Link href={getPlanUrl('creator')}>
                                                     <ShoppingCart className="mr-2 h-4 w-4" />
                                                     {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Subscribe'}
                                                 </Link>

@@ -67,14 +67,14 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
     
     const event = req.body;
     
-    if (event.type === 'membership.created') {
+    if (event.type === 'membership.activated') {
         const membership = event.data.object;
         
         const firebaseUid = membership.metadata ? membership.metadata.firebase_uid : null;
         const whopSubscriptionId = membership.id;
 
         if (firebaseUid && membership.plan) {
-            logger.info(`Processing 'membership.created' for Firebase UID: ${firebaseUid}, Whop Sub ID: ${whopSubscriptionId}`);
+            logger.info(`Processing 'membership.activated' for Firebase UID: ${firebaseUid}, Whop Sub ID: ${whopSubscriptionId}`);
             
             const planId = membership.plan.id;
             const planDetails = WHOP_PLANS[planId];
@@ -107,7 +107,7 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
                 res.status(500).send({ error: 'Failed to update user in database.' });
             }
         } else {
-            logger.warn("'membership.created' webhook received without 'firebase_uid' in metadata or missing plan info.", {
+            logger.warn("'membership.activated' webhook received without 'firebase_uid' in metadata or missing plan info.", {
                 whopSubscriptionId: whopSubscriptionId,
             });
             res.status(400).send({ error: "Missing 'firebase_uid' in webhook metadata or missing plan info." });
