@@ -220,7 +220,7 @@ export default function ProfilePage() {
                                 <Gift className="h-5 w-5 text-primary" />
                                 Referral Program
                             </CardTitle>
-                            <CardDescription>Invite others and earn free credits.</CardDescription>
+                            <CardDescription>Invite others and earn rewards.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                              {referralBonus ? (
@@ -229,12 +229,12 @@ export default function ProfilePage() {
                                 </p>
                             ) : (
                                 <p className="text-sm text-muted-foreground">
-                                   Upgrade to a paid plan to earn referral bonuses when you invite new users.
+                                   Invite your friends! You'll earn credit bonuses for each new paid subscriber once you <Link href="#upgrade-plans" className="text-primary underline">upgrade to a plan</Link>.
                                 </p>
                             )}
                             <div className="flex space-x-2">
                                 <Input value={referralLink} readOnly />
-                                <Button onClick={handleCopy} variant="outline" size="icon" className="shrink-0" disabled={!referralBonus}>
+                                <Button onClick={handleCopy} variant="outline" size="icon" className="shrink-0">
                                     {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                     <span className="sr-only">Copy referral link</span>
                                 </Button>
