@@ -28,6 +28,7 @@ const WHOP_PLANS = {
     'plan_cGxf08gK0OBVC': { name: 'hobbyist', tier: 'yearly', credits: 100000 * 12 },
     'plan_6VPgm0sLSThCZ': { name: 'creator', tier: 'monthly', credits: 350000 },
     'plan_Xh8nEVACfO2aS': { name: 'creator', tier: 'yearly', credits: 350000 * 12 },
+    'plan_S0CZdw9meDbCs': { name: 'Test Plan', tier: 'monthly', credits: 5000 }, // Test Plan
 };
 
 
@@ -102,7 +103,7 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
                 planId: planDetails.name,
                 subscriptionTier: planDetails.tier,
                 totalCredits: planDetails.credits,
-                creditsRemaining: planDetails.credits, // Full credits on activation
+                creditsRemaining: admin.firestore.FieldValue.increment(planDetails.credits), // Full credits on activation
                 whopSubscriptionId: membership.id,
                 subscriptionStartDate: now,
                 lastCreditRenewalDate: now,
@@ -342,7 +343,3 @@ exports.cancelSubscription = onCall(async (request) => {
     logger.info(`User ${request.auth.uid} requested to cancel their subscription.`);
     return { success: true, message: "Your subscription cancellation request has been received. Please check your email." };
 });
-
-    
-
-    

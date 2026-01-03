@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock, Users, Loader2, LogOut, Trash2 } from 'lucide-react';
+import { CheckCircle, Zap, ShoppingCart, Copy, Check, Gift, AlertTriangle, CalendarClock, Users, Loader2, LogOut, Trash2, Code } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -223,15 +223,12 @@ export default function ProfilePage() {
                             <CardDescription>Invite others and earn rewards.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                             {referralBonus ? (
-                                <p className="text-sm text-muted-foreground">
-                                    As a <span className="font-semibold text-primary capitalize">{userProfile.planId}</span> member, you'll earn a <span className="font-semibold">{referralBonus}</span> credit bonus for every new paid subscriber who signs up using your link.
-                                </p>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                   Invite your friends! You'll earn credit bonuses for each new paid subscriber once you <Link href="#upgrade-plans" className="text-primary underline">upgrade to a plan</Link>.
-                                </p>
-                            )}
+                            <p className="text-sm text-muted-foreground">
+                                {referralBonus 
+                                    ? `As a ${userProfile.planId} member, you earn a ${referralBonus} credit bonus for every new paid subscriber.`
+                                    : 'Invite your friends! Upgrade to a paid plan to earn credit bonuses for each new subscriber.'
+                                }
+                            </p>
                             <div className="flex space-x-2">
                                 <Input value={referralLink} readOnly />
                                 <Button onClick={handleCopy} variant="outline" size="icon" className="shrink-0">
@@ -388,6 +385,23 @@ export default function ProfilePage() {
                         </Card>
                     </div>
 
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Code className="h-5 w-5 text-muted-foreground" />
+                                Developer Tools
+                            </CardTitle>
+                             <CardDescription>Use these tools for testing and verification.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button asChild variant="secondary">
+                                <Link href={`https://whop.com/checkout/plan_S0CZdw9meDbCs?metadata[firebase_uid]=${user?.uid}`} target="_blank" rel="noopener noreferrer">
+                                    Test Webhook ($0 Checkout)
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
                     <Card className="border-destructive/50">
                         <CardHeader>
                             <CardTitle className="text-destructive">Danger Zone</CardTitle>
@@ -428,5 +442,3 @@ export default function ProfilePage() {
         </div>
     );
 }
-
-    
