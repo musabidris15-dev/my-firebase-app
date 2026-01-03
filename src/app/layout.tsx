@@ -44,6 +44,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const adminEmails = ['musabidris15@gmail.com', 'geezvoices@gmail.com'];
 
   useEffect(() => {
     setIsClient(true);
@@ -72,7 +73,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     : 0;
 
   const isLoading = isUserLoading || isProfileLoading;
-  const isAdmin = userProfile?.role === 'Admin';
+  const isAdmin = user ? adminEmails.includes(user.email ?? '') : false;
 
 
   return (

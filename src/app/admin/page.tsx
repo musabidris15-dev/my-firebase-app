@@ -156,15 +156,9 @@ const calculateStats = (period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-
-  const userAdminRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users');
-  }, [firestore, user]);
-
-  const { data: userAdminList } = useCollection(userAdminRef);
+  const adminEmails = ['musabidris15@gmail.com', 'geezvoices@gmail.com'];
 
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<User[]>([]);
@@ -176,15 +170,14 @@ export default function AdminPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   useEffect(() => {
-    if (user && userAdminList) {
-        const currentUser = userAdminList.find((u) => u.id === user.uid);
-        if (!currentUser || currentUser.role !== 'Admin') {
-            router.push('/');
-        }
+    if (!isUserLoading) {
+      if (!user || !adminEmails.includes(user.email ?? '')) {
+        router.push('/');
+      }
     }
     setUsers(initialUsers);
     setFilteredUsers(initialUsers);
-  }, [user, userAdminList, router]);
+  }, [user, isUserLoading, router, adminEmails]);
 
   useEffect(() => {
     const lowercasedTerm = searchTerm.toLowerCase();
