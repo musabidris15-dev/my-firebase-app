@@ -59,7 +59,7 @@ function pcmToMp3(pcmData: Buffer, channels: number, sampleRate: number): Buffer
     }
     
     // Fix: Convert each chunk to a Buffer and then concat them
-return Buffer.concat(mp3Data.map((chunk: any) => Buffer.from(chunk)));
+    return Buffer.concat(mp3Data.map((chunk: any) => Buffer.from(chunk)));
 }
 
 // Define the Genkit flow
@@ -84,14 +84,16 @@ export const customizeAudioFlow = ai.defineFlow(
     return new Promise((resolve, reject) => {
         const reader = new wav.Reader();
 
-       // Add ': any' to format and chunk
-reader.on('format', (format: any) => {
-  const pcmData: Buffer[] = [];
-  reader.on('data', (chunk: any) => {
-      pcmData.push(chunk);
-  });
+        // We handle everything INSIDE the format event so we have access to format info
+        reader.on('format', (format: any) => {
+            const pcmData: Buffer[] = [];
+
+            // Collect data chunks
+            reader.on('data', (chunk: any) => {
+                pcmData.push(chunk);
             });
 
+            // Once reading is done, convert to MP3
             reader.on('end', () => {
                 try {
                     const fullPcmData = Buffer.concat(pcmData);
