@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -157,12 +156,15 @@ export default function TTSPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Safe Defaults
+  const safeCreditsRemaining = userProfile?.creditsRemaining || 0;
+  const safePlanId = userProfile?.planId || 'free';
   const lastEmotionUseDate = userProfile?.lastEmotionUseDate?.toDate();
   const canUseFreeEmotion = !lastEmotionUseDate || isBefore(lastEmotionUseDate, subHours(new Date(), 24));
   
-  const isFreePlan = userProfile?.planId === 'free';
+  const isFreePlan = safePlanId === 'free';
   const isEmotionControlDisabled = isFreePlan && !canUseFreeEmotion;
-  const isEffectControlDisabled = userProfile?.planId !== 'creator';
+  const isEffectControlDisabled = safePlanId !== 'creator';
   const isFreeTierGloballyDisabled = isFreePlan && serverStatus?.isFreeTierEnabled === false;
 
 
@@ -194,8 +196,8 @@ export default function TTSPage() {
       showStatus('Error: Please enter at least 2 characters to generate audio.', 'error');
       return;
     }
-    if (userProfile && characterCount > userProfile.creditsRemaining) {
-      showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${userProfile.creditsRemaining.toLocaleString()}.`, 'error');
+    if (userProfile && characterCount > safeCreditsRemaining) {
+      showStatus(`Error: Insufficient credits. This action requires ${characterCount.toLocaleString()} credits, but you only have ${safeCreditsRemaining.toLocaleString()}.`, 'error');
       return;
     }
 
@@ -206,13 +208,13 @@ export default function TTSPage() {
 
     try {
       if (userDocRef) {
-        const newCredits = userProfile.creditsRemaining - characterCount;
+        const newCredits = safeCreditsRemaining - characterCount;
         await setDoc(userDocRef, { creditsRemaining: newCredits }, { merge: true });
         creditsRefund = characterCount;
       }
       
       const containsEmotionTag = /\[(?!Default|reverb|echo|pitch)[a-zA-Z\s]+\]/.test(textToGenerate);
-      if (userProfile?.planId === 'free' && containsEmotionTag && canUseFreeEmotion && userDocRef) {
+      if (safePlanId === 'free' && containsEmotionTag && canUseFreeEmotion && userDocRef) {
         await setDoc(userDocRef, { lastEmotionUseDate: serverTimestamp() }, { merge: true });
       }
 
@@ -250,7 +252,7 @@ export default function TTSPage() {
         if (error.message.includes("not valid JSON")) errorMessage = "Error: An unexpected response was received from the server. Check if your API key is valid.";
         showStatus(errorMessage, 'error');
         if (creditsRefund > 0 && userDocRef) {
-            await setDoc(userDocRef, { creditsRemaining: userProfile.creditsRemaining }, { merge: true });
+            await setDoc(userDocRef, { creditsRemaining: safeCreditsRemaining }, { merge: true });
         }
     } finally {
         setIsLoading(false);
@@ -442,13 +444,13 @@ export default function TTSPage() {
                         <Label className={cn("text-sm font-medium", isEmotionControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
                           2. Add emotions to your script (optional)
                         </Label>
-                        {userProfile?.planId === 'free' && !canUseFreeEmotion && (
+                        {safePlanId === 'free' && !canUseFreeEmotion && (
                             <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
                                 <Link href="/profile#upgrade-plans"><Sparkles className="mr-2 h-4 w-4" />Upgrade to use more</Link>
                             </Button>
                         )}
                       </div>
-                      {userProfile?.planId === 'free' && canUseFreeEmotion && (
+                      {safePlanId === 'free' && canUseFreeEmotion && (
                           <Alert variant="default" className="border-primary/50 bg-primary/10">
                               <Info className="h-4 w-4 text-primary"/>
                               <AlertTitle>Daily Emotion Pass</AlertTitle>
@@ -472,7 +474,7 @@ export default function TTSPage() {
                             <Label className={cn("text-sm font-medium", isEffectControlDisabled ? "text-muted-foreground/50" : "text-muted-foreground")}>
                                 3. Audio Effects Lab (Creator Plan only)
                             </Label>
-                            {isEffectControlDisabled && userProfile?.planId !== 'creator' && (
+                            {isEffectControlDisabled && safePlanId !== 'creator' && (
                                 <Button variant="link" size="sm" asChild className="text-primary p-0 h-auto">
                                     <Link href="/profile#upgrade-plans"><Wand2 className="mr-2 h-4 w-4" />Upgrade to Creator</Link>
                                 </Button>
@@ -562,29 +564,29 @@ export default function TTSPage() {
                                         <div className="text-xs text-muted-foreground mt-2">Voice: {item.voice}</div>
                                     </CardContent>
                                     <CardFooter className="flex-col items-stretch space-y-4">
-                                         <Alert variant="destructive" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300">
-                                            <AlertCircle className="h-4 w-4 !text-yellow-600 dark:!text-yellow-400" />
-                                            <AlertTitle className="text-yellow-800 dark:text-yellow-200">Download Your Audio</AlertTitle>
-                                            <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                                                History is cleared on page reload. Download now to save your work.
-                                            </AlertDescription>
-                                        </Alert>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            <Button 
-                                              onClick={() => handleDownload(item.id, item.audioUrl, 'wav')} 
-                                              disabled={downloadState.isLoading && downloadState.id === item.id}
-                                            >
-                                                {downloadState.isLoading && downloadState.id === item.id && downloadState.format === 'wav' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                Download WAV
-                                            </Button>
-                                            <Button 
-                                              onClick={() => handleDownload(item.id, item.audioUrl, 'mp3')} 
-                                              disabled={downloadState.isLoading && downloadState.id === item.id}
-                                            >
-                                                {downloadState.isLoading && downloadState.id === item.id && downloadState.format === 'mp3' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                Download MP3
-                                            </Button>
-                                        </div>
+                                             <Alert variant="destructive" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300">
+                                                <AlertCircle className="h-4 w-4 !text-yellow-600 dark:!text-yellow-400" />
+                                                <AlertTitle className="text-yellow-800 dark:text-yellow-200">Download Your Audio</AlertTitle>
+                                                <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                                                    History is cleared on page reload. Download now to save your work.
+                                                </AlertDescription>
+                                            </Alert>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <Button 
+                                                  onClick={() => handleDownload(item.id, item.audioUrl, 'wav')} 
+                                                  disabled={downloadState.isLoading && downloadState.id === item.id}
+                                                >
+                                                    {downloadState.isLoading && downloadState.id === item.id && downloadState.format === 'wav' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                    Download WAV
+                                                </Button>
+                                                <Button 
+                                                  onClick={() => handleDownload(item.id, item.audioUrl, 'mp3')} 
+                                                  disabled={downloadState.isLoading && downloadState.id === item.id}
+                                                >
+                                                    {downloadState.isLoading && downloadState.id === item.id && downloadState.format === 'mp3' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                    Download MP3
+                                                </Button>
+                                            </div>
                                     </CardFooter>
                                 </Card>
                             ))}
@@ -595,11 +597,9 @@ export default function TTSPage() {
             </CardContent>
              <CardFooter className="flex justify-center items-center text-sm text-muted-foreground p-4 border-t">
                 <Wallet className="h-4 w-4 mr-2" />
-                Remaining Credits: {isUserLoading ? '...' : userProfile?.creditsRemaining.toLocaleString() ?? '...'}
+                Remaining Credits: {isUserLoading ? '...' : (userProfile?.creditsRemaining || 0).toLocaleString()}
             </CardFooter>
         </Card>
     </div>
   );
 }
-
-    
