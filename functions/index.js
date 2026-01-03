@@ -24,10 +24,10 @@ if (!WHOP_API_KEY) {
 
 // Whop Plan IDs
 const WHOP_PLANS = {
-    hobbyist_monthly: 'plan_gumriTEj5ozKe',
-    hobbyist_yearly: 'plan_cGxf08gK0OBVC',
-    creator_monthly: 'plan_6VPgm0sLSThCZ',
-    creator_yearly: 'plan_Xh8nEVACfO2aS',
+    'plan_gumriTEj5ozKe': { name: 'hobbyist', tier: 'monthly', credits: 100000 },
+    'plan_cGxf08gK0OBVC': { name: 'hobbyist', tier: 'yearly', credits: 100000 * 12 },
+    'plan_6VPgm0sLSThCZ': { name: 'creator', tier: 'monthly', credits: 350000 },
+    'plan_Xh8nEVACfO2aS': { name: 'creator', tier: 'yearly', credits: 350000 * 12 },
 };
 
 
@@ -56,67 +56,6 @@ exports.initializeUser = functions.auth.user().onCreate(async (user) => {
 
 
 /**
- * Creates a Whop checkout session for an authenticated user.
- */
-exports.createWhopCheckoutSession = onCall(async (request) => {
-    // Security: Ensure the user is authenticated.
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
-    }
-    const uid = request.auth.uid;
-    const { planKey } = request.data;
-
-    if (!WHOP_API_KEY) {
-        throw new HttpsError("internal", "The server is missing the Whop API key configuration.");
-    }
-
-    // Input Validation: Ensure planKey is provided and valid.
-    if (!planKey || !WHOP_PLANS[planKey]) {
-        throw new HttpsError("invalid-argument", "The function must be called with a valid 'planKey'.");
-    }
-
-    const planId = WHOP_PLANS[planKey];
-    logger.info(`Creating Whop checkout session for user: ${uid}, plan: ${planId} (key: ${planKey})`);
-
-    try {
-        const response = await axios.post(
-            'https://api.whop.com/v2/checkout_sessions',
-            {
-                plan: planId,
-                metadata: {
-                    firebase_uid: uid,
-                },
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${WHOP_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
-        
-        const checkoutUrl = response.data.url;
-        
-        if (!checkoutUrl) {
-            logger.error("Whop API did not return a URL.", { whopResponse: response.data });
-            throw new Error("Could not retrieve checkout URL from Whop.");
-        }
-        
-        logger.info(`Successfully created checkout session for UID: ${uid}. URL: ${checkoutUrl}`);
-        
-        return { url: checkoutUrl };
-
-    } catch (error) {
-        logger.error(`Error creating Whop checkout session for UID: ${uid}`, {
-            errorMessage: error.message,
-            axiosResponse: error.response ? error.response.data : 'No response from axios',
-        });
-        throw new HttpsError("internal", "Failed to create a checkout session.");
-    }
-});
-
-
-/**
  * Handles incoming webhooks from Whop to update user subscriptions.
  */
 exports.handleWhopWebhook = onRequest(async (req, res) => {
@@ -137,37 +76,30 @@ exports.handleWhopWebhook = onRequest(async (req, res) => {
         if (firebaseUid && membership.plan) {
             logger.info(`Processing 'membership.created' for Firebase UID: ${firebaseUid}, Whop Sub ID: ${whopSubscriptionId}`);
             
+            const planId = membership.plan.id;
+            const planDetails = WHOP_PLANS[planId];
+
+            if (!planDetails) {
+                 logger.error(`Unknown Whop Plan ID received: ${planId}`);
+                 res.status(400).send({ error: 'Unknown plan ID.' });
+                 return;
+            }
+
             try {
                 const userRef = db.collection('users').doc(firebaseUid);
-
-                const planId = membership.plan.id;
-                let credits = 0;
-                let planName = 'free';
-                let subscriptionTier = null;
-
-                if (planId === WHOP_PLANS.hobbyist_monthly || planId === WHOP_PLANS.hobbyist_yearly) {
-                    credits = 100000;
-                    planName = 'hobbyist';
-                    subscriptionTier = planId === WHOP_PLANS.hobbyist_monthly ? 'monthly' : 'yearly';
-                } else if (planId === WHOP_PLANS.creator_monthly || planId === WHOP_PLANS.creator_yearly) {
-                    credits = 350000;
-                    planName = 'creator';
-                    subscriptionTier = planId === WHOP_PLANS.creator_monthly ? 'monthly' : 'yearly';
-                }
-
                 const now = admin.firestore.FieldValue.serverTimestamp();
 
                 await userRef.update({
-                    planId: planName,
-                    subscriptionTier: subscriptionTier,
-                    credits: credits,
-                    creditsRemaining: credits,
+                    planId: planDetails.name,
+                    subscriptionTier: planDetails.tier,
+                    credits: planDetails.credits,
+                    creditsRemaining: planDetails.credits,
                     whopSubscriptionId: whopSubscriptionId,
                     subscriptionStartDate: now,
                     lastCreditRenewalDate: now,
                 });
 
-                logger.info(`Successfully granted ${planName} access to user: ${firebaseUid}`);
+                logger.info(`Successfully granted ${planDetails.name} access to user: ${firebaseUid}`);
                 res.status(200).send({ message: 'User updated successfully.' });
 
             } catch (error) {

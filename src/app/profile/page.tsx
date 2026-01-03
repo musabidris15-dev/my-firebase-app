@@ -17,6 +17,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirebaseApp, useUser } from '@/firebase';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { signOut } from 'firebase/auth';
+import Link from 'next/link';
 
 type UserProfile = {
     name: string;
@@ -31,7 +32,13 @@ type PlanDetails = {
     totalCredits: number;
 };
 
-type PlanKey = 'hobbyist_monthly' | 'hobbyist_yearly' | 'creator_monthly' | 'creator_yearly';
+const planLinks = {
+    hobbyist_monthly: 'https://whop.com/checkout/plan_gumriTEj5ozKe',
+    hobbyist_yearly: 'https://whop.com/checkout/plan_cGxf08gK0OBVC',
+    creator_monthly: 'https://whop.com/checkout/plan_6VPgm0sLSThCZ',
+    creator_yearly: 'https://whop.com/checkout/plan_Xh8nEVACfO2aS',
+} as const;
+
 
 export default function ProfilePage() {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -42,7 +49,6 @@ export default function ProfilePage() {
     const [daysUntilPlanExpires, setDaysUntilPlanExpires] = useState<number | null>(null);
     const [nextRenewalDate, setNextRenewalDate] = useState<string | null>(null);
     const [shouldShowRenewalMessage, setShouldShowRenewalMessage] = useState(false);
-    const [isLoading, setIsLoading] = useState<PlanKey | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const { toast } = useToast();
@@ -107,42 +113,8 @@ export default function ProfilePage() {
     };
     
     const handleUpgradeClick = () => {
-        const planKey: PlanKey = billingCycle === 'monthly' ? 'creator_monthly' : 'creator_yearly';
-        handlePurchase(planKey);
-    };
-
-    const handlePurchase = async (planKey: PlanKey) => {
-        if (!firebaseApp) {
-            toast({
-                variant: 'destructive',
-                title: "Error",
-                description: "Firebase is not initialized. Please refresh the page.",
-            });
-            return;
-        }
-        setIsLoading(planKey);
-        try {
-            const functions = getFunctions(firebaseApp);
-            const createSession = httpsCallable(functions, 'createWhopCheckoutSession');
-            const result = await createSession({ planKey });
-            
-            const data = result.data as { url?: string };
-
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                throw new Error('No checkout URL returned from server.');
-            }
-        } catch (error: any) {
-            console.error("Purchase Error:", error);
-            toast({
-                variant: 'destructive',
-                title: "Uh oh! Something went wrong.",
-                description: error.message || "Could not create a checkout session. Please try again.",
-            });
-        } finally {
-            setIsLoading(null);
-        }
+        const creatorPlanUrl = billingCycle === 'monthly' ? planLinks.creator_monthly : planLinks.creator_yearly;
+        window.location.href = creatorPlanUrl;
     };
 
     const handleCancelSubscription = async () => {
@@ -189,8 +161,8 @@ export default function ProfilePage() {
         }
     };
 
-    const hobbyistPrice = billingCycle === 'monthly' ? 15 : 15 * 12 * 0.8;
-    const creatorPrice = billingCycle === 'monthly' ? 39 : 39 * 12 * 0.8;
+    const hobbyistPrice = billingCycle === 'monthly' ? 15 : 144;
+    const creatorPrice = billingCycle === 'monthly' ? 39 : 374.40;
 
     if (!userProfile || !planDetails) {
         return (
@@ -360,13 +332,11 @@ export default function ProfilePage() {
                                         {userProfile.planId === 'hobbyist' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
-                                             <Button 
-                                                className="w-full"
-                                                onClick={() => handlePurchase(billingCycle === 'monthly' ? 'hobbyist_monthly' : 'hobbyist_yearly')}
-                                                disabled={isLoading !== null}
-                                            >
-                                                {isLoading === `hobbyist_${billingCycle}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                                                Pay with Whop
+                                             <Button asChild className="w-full">
+                                                <Link href={billingCycle === 'monthly' ? planLinks.hobbyist_monthly : planLinks.hobbyist_yearly}>
+                                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                                    Subscribe
+                                                </Link>
                                             </Button>
                                         )}
                                     </CardFooter>
@@ -395,13 +365,11 @@ export default function ProfilePage() {
                                          {userProfile.planId === 'creator' ? (
                                             <Button className="w-full" disabled>Current Plan</Button>
                                         ) : (
-                                            <Button 
-                                                className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")}
-                                                onClick={() => handlePurchase(billingCycle === 'monthly' ? 'creator_monthly' : 'creator_yearly')}
-                                                disabled={isLoading !== null}
-                                            >
-                                                {isLoading === `creator_${billingCycle}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                                                {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Pay with Whop'}
+                                            <Button asChild className={cn("w-full", creatorGlow && "animate-pulse shadow-lg shadow-primary/50")}>
+                                                <Link href={billingCycle === 'monthly' ? planLinks.creator_monthly : planLinks.creator_yearly}>
+                                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                                    {userProfile.planId === 'hobbyist' ? 'Upgrade to Creator' : 'Subscribe'}
+                                                </Link>
                                             </Button>
                                         )}
                                     </CardFooter>
