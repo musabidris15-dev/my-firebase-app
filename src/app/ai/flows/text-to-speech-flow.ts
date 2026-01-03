@@ -1,10 +1,10 @@
-
 'use server';
 
 import { ai } from '@/app/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
-import { GenerateRequest } from 'genkit/generate';
+// FIX: Removed broken import
+// import { GenerateRequest } from 'genkit/generate';
 
 const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech. Can include tags like [expression] or [effect:value] to specify emotions and effects.'),
@@ -32,7 +32,8 @@ async function toWav(
 
     const bufs: any[] = [];
     writer.on('error', reject);
-    writer.on('data', function (d) {
+    // FIX: Added 'any' type to data chunk
+    writer.on('data', function (d: any) {
       bufs.push(d);
     });
     writer.on('end', function () {
@@ -124,7 +125,8 @@ export const textToSpeechFlow = ai.defineFlow(
             promptText = `With effects (${effectsString}), synthesize the following text in a ${segment.tag} voice: ${segment.text}`;
         }
 
-        const request: GenerateRequest = {
+        // FIX: Changed type to 'any' to avoid import error
+        const request: any = {
             model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {
                 responseModalities: ['AUDIO'],
