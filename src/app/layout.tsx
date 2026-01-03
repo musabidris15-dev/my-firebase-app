@@ -25,7 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { FirebaseProvider, useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useEffect, useState } from 'react';
-import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -50,9 +49,8 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
-    if (!isUserLoading && !user && auth) {
-         // Automatically sign in a default user for demonstration
-         initiateEmailSignIn(auth, 'abebe.bikila@example.com', 'password123');
+    if (!isUserLoading && !user) {
+        router.push('/login');
     }
     if (user) {
       setNotifications([
@@ -61,12 +59,12 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           { id: 3, title: 'Maintenance Scheduled', message: 'We will be undergoing scheduled maintenance on Sunday at 2 AM.', read: true, date: '3 days ago' },
       ]);
     }
-  }, [isUserLoading, user, auth]);
+  }, [isUserLoading, user, auth, router]);
 
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
-      router.push('/');
+      router.push('/login');
     }
   };
 
