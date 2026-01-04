@@ -1,4 +1,3 @@
-
 'use client';
 
 import './globals.css';
@@ -23,17 +22,21 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FirebaseProvider, useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { FirebaseProvider, useAuth, useUser, useFirestore, useDoc, useMemoFirebase, useFirebaseApp } from '@/firebase'; // Added useFirebaseApp
 import { useEffect, useState } from 'react';
-import { signOut } from 'firebase/auth';
+import { signOut, getAuth } from 'firebase/auth'; // Added getAuth
 import { doc } from 'firebase/firestore';
 import { usePathname, useRouter } from 'next/navigation';
 
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const auth = useAuth();
-  const firestore = useFirestore();
+  // 1. Get the real Auth System instance for signOut
+  const app = useFirebaseApp();
+  const firebaseAuth = getAuth(app);
+
+  // 2. Get User Data
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -60,11 +63,11 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
           { id: 3, title: 'Maintenance Scheduled', message: 'We will be undergoing scheduled maintenance on Sunday at 2 AM.', read: true, date: '3 days ago' },
       ]);
     }
-  }, [isUserLoading, user, auth, router, pathname]);
+  }, [isUserLoading, user, router, pathname]);
 
   const handleLogout = async () => {
-    if (auth) {
-      await signOut(auth);
+    if (firebaseAuth) {
+      await signOut(firebaseAuth); // Now passing the correct Auth Instance
       router.push('/login');
     }
   };

@@ -1,11 +1,11 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useUser } from '@/firebase';
+import { useUser, useFirebaseApp } from '@/firebase'; // Added useFirebaseApp
+import { getAuth } from 'firebase/auth'; // Added getAuth
 import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -20,7 +20,10 @@ const GoogleIcon = () => (
 
 
 export default function LoginPage() {
-    const auth = useAuth();
+    // 1. Get the Real Auth Instance
+    const app = useFirebaseApp();
+    const auth = getAuth(app);
+
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const [email, setEmail] = useState('');
@@ -68,7 +71,7 @@ export default function LoginPage() {
                     <CardDescription>Sign in to continue to Geez Voice</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                     <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
                         <GoogleIcon />
                         Sign in with Google
                     </Button>
@@ -113,7 +116,7 @@ export default function LoginPage() {
                     </form>
                 </CardContent>
                 <CardFooter className="flex-col gap-4 text-sm">
-                     <p>
+                      <p>
                         Don't have an account?{' '}
                         <Link href="/signup" className="text-primary hover:underline">
                             Sign up

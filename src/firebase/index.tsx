@@ -45,19 +45,22 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 // 1. useUser: Returns the current auth user
 export const useUser = () => useContext(AuthContext);
 
-// 2. useFirebaseApp: Returns the initialized Firebase App
+// 2. useAuth: Alias for useUser (FIX ADDED HERE)
+export const useAuth = useUser;
+
+// 3. useFirebaseApp: Returns the initialized Firebase App
 export const useFirebaseApp = () => app;
 
-// 3. useFirestore: Returns the Firestore instance
+// 4. useFirestore: Returns the Firestore instance
 export const useFirestore = () => db;
 
-// 4. useMemoFirebase: Helper to memoize Firestore refs (prevents infinite loops)
+// 5. useMemoFirebase: Helper to memoize Firestore refs (prevents infinite loops)
 export function useMemoFirebase<T>(factory: () => T, deps: any[]): T {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(factory, deps);
 }
 
-// 5. useDoc: Real-time listener for a single document
+// 6. useDoc: Real-time listener for a single document
 export function useDoc<T = DocumentData>(ref: DocumentReference | null) {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +85,7 @@ export function useDoc<T = DocumentData>(ref: DocumentReference | null) {
   return { data, isLoading };
 }
 
-// 6. useCollection: Real-time listener for a collection/query
+// 7. useCollection: Real-time listener for a collection/query
 export function useCollection<T = DocumentData>(queryRef: Query | null) {
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
