@@ -10,6 +10,4 @@ export const ai = genkit({
       apiKey: myKey 
     })
   ],
-  // We initialize the plugin here. 
-  // You will specify the 'gemini-2.5-flash-preview' model in your TTS route file.
-});
+  });
