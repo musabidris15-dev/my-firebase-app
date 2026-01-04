@@ -1,15 +1,14 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-// import { getAnalytics } from "firebase/analytics"; // Optional: Uncomment if you use Analytics
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDN_RmrN0PeUWhJRsdlldN7bo9ZlzT5ZLU",
+  authDomain: "studio-587322716-5bb8b.firebaseapp.com",
+  projectId: "studio-587322716-5bb8b",
+  storageBucket: "studio-587322716-5bb8b.firebasestorage.app",
+  messagingSenderId: "352288848431",
+  appId: "1:352288848431:web:0ad2d8f8b4c5ab26e124da"
 };
 
 // Initialize Firebase
