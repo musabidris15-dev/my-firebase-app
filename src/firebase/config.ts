@@ -1,8 +1,22 @@
-export const firebaseConfig = {
-  "projectId": "studio-587322716-5bb8b",
-  "appId": "1:352288848431:web:0ad2d8f8b4c5ab26e124da",
-  "apiKey": "AIzaSyDN_RmrN0PeUWhJRsdlldN7bo9ZlzT5ZLU",
-  "authDomain": "studio-587322716-5bb8b.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "352288848431"
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+// import { getAnalytics } from "firebase/analytics"; // Optional: Uncomment if you use Analytics
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+// Initialize Firebase
+// This check prevents Firebase from crashing by initializing twice in Next.js
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { app, auth, db };

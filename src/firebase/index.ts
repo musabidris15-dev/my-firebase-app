@@ -1,49 +1,109 @@
 'use client';
 
-import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { useEffect, useState, useMemo, createContext, useContext, ReactNode } from 'react';
+import { app, auth, db } from './config'; // Import initialized instances
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { 
+  doc, 
+  getDoc, 
+  onSnapshot, 
+  DocumentReference, 
+  Query, 
+  DocumentData, 
+  Firestore,
+  collection
+} from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
+// --- Contexts ---
+const AuthContext = createContext<{ user: User | null; isUserLoading: boolean }>({
+  user: null,
+  isUserLoading: true,
+});
+
+// --- Provider Component ---
+export function FirebaseProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (usr) => {
+      setUser(usr);
+      setIsUserLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, isUserLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// --- Hooks ---
+
+// 1. useUser: Returns the current auth user
+export const useUser = () => useContext(AuthContext);
+
+// 2. useFirebaseApp: Returns the initialized Firebase App
+export const useFirebaseApp = () => app;
+
+// 3. useFirestore: Returns the Firestore instance
+export const useFirestore = () => db;
+
+// 4. useMemoFirebase: Helper to memoize Firestore refs (prevents infinite loops)
+export function useMemoFirebase<T>(factory: () => T, deps: any[]): T {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(factory, deps);
+}
+
+// 5. useDoc: Real-time listener for a single document
+export function useDoc<T = DocumentData>(ref: DocumentReference | null) {
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!ref) {
+      setData(null);
+      setIsLoading(false);
+      return;
     }
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      setData({ id: snap.id, ...snap.data() } as unknown as T);
+      setIsLoading(false);
+    }, (err) => {
+      console.error("useDoc Error:", err);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [ref]); // Ref must be memoized using useMemoFirebase
 
-    return getSdks(firebaseApp);
-  }
-
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  return { data, isLoading };
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
-}
+// 6. useCollection: Real-time listener for a collection/query
+export function useCollection<T = DocumentData>(queryRef: Query | null) {
+  const [data, setData] = useState<T[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-export * from './provider';
-export * from './firestore/use-collection';
-export * from './firestore/use-doc';
-export * from './non-blocking-updates';
-export * from './non-blocking-login';
-export * from './errors';
-export * from './error-emitter';
+  useEffect(() => {
+    if (!queryRef) {
+      setData([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(queryRef, (snap) => {
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setData(docs as unknown as T[]);
+      setIsLoading(false);
+    }, (err) => {
+      console.error("useCollection Error:", err);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [queryRef]); // queryRef must be memoized
+
+  return { data, isLoading };
+}
