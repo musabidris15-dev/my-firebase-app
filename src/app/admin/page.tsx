@@ -44,6 +44,7 @@ type User = {
     email: string;
     planId: string;
     creditsRemaining: number;
+    subscriptionTier?: string | null;
 };
 
 type AdminRecord = {
@@ -68,17 +69,17 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
-  // Firestore Data Fetching
+  // Firestore Queries
   const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const { data: users, isLoading: areUsersLoading } = useCollection<User>(usersQuery);
 
   const adminsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'admins') : null, [firestore]);
-  const { data: allAdmins } = useCollection<AdminRecord>(adminsQuery);
+  const { data: allAdmins } = useCollection<any>(adminsQuery);
 
   const serverStatusRef = useMemoFirebase(() => firestore ? doc(firestore, 'server', 'status') : null, [firestore]);
   const { data: serverStatus } = useDoc<{isFreeTierEnabled: boolean}>(serverStatusRef);
 
-  // Security: Redirect non-admins immediately
+  // Protection Redirect
   useEffect(() => {
     if (!isAuthLoading && !isAdminCheckLoading) {
         if (!user || !adminRecord) {
@@ -87,7 +88,7 @@ export default function AdminPage() {
     }
   }, [user, isAuthLoading, isAdminCheckLoading, adminRecord, router]);
 
-  // Filter Logic
+  // Search Logic
   useEffect(() => {
     const term = searchTerm.toLowerCase();
     setFilteredUsers(
@@ -97,28 +98,39 @@ export default function AdminPage() {
     );
   }, [searchTerm, users]);
 
-  // --- Database Update Actions ---
+  // --- FIXED SAVE LOGIC ---
   const handleSaveChanges = async () => {
     if (!editingUser || !firestore) return;
     setIsSaving(true);
     try {
+      // Find the document by the ID (this is the key to syncing correctly)
       const userRef = doc(firestore, 'users', editingUser.id);
-      await updateDoc(userRef, {
+      
+      const updatedData = {
         name: editingUser.name || 'N/A',
         planId: editingUser.planId,
-        creditsRemaining: Number(editingUser.creditsRemaining),
+        creditsRemaining: Number(editingUser.creditsRemaining), // Must be a number for user dashboards
+        subscriptionTier: editingUser.planId === 'free' ? 'free' : 'paid'
+      };
+
+      // Push to Firestore
+      await updateDoc(userRef, updatedData);
+
+      toast({ 
+        title: 'User Updated', 
+        description: `Successfully synced ${editingUser.email} across all platforms.` 
       });
-      toast({ title: 'Update Successful', description: `Saved changes for ${editingUser.email}` });
+      
       setEditingUser(null);
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Error', description: e.message });
+      console.error("Logic Error:", e);
+      toast({ variant: 'destructive', title: 'Save Failed', description: e.message });
     } finally { setIsSaving(false); }
   };
 
   const toggleFreeTier = async (val: boolean) => {
     if (!serverStatusRef) return;
     await setDoc(serverStatusRef, { isFreeTierEnabled: val }, { merge: true });
-    toast({ title: 'System Updated', description: `Free tier generation is now ${val ? 'Enabled' : 'Disabled'}` });
   };
 
   if (isAuthLoading || isAdminCheckLoading) {
@@ -131,55 +143,51 @@ export default function AdminPage() {
     <div className="container mx-auto max-w-7xl py-10">
       <header className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">Admin Console</h1>
-        <div className="flex items-center gap-2 mt-2">
-            <Badge variant="outline" className="bg-primary/10">{adminRecord.role}</Badge>
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-        </div>
+        <p className="text-sm text-muted-foreground mt-2">Managing as: {user?.email}</p>
       </header>
 
       <Tabs defaultValue="users">
         <TabsList className="mb-6">
-          <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="broadcast">Global Broadcast</TabsTrigger>
-          <TabsTrigger value="security">System Security</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="security">System Control</TabsTrigger>
         </TabsList>
         
         <TabsContent value="users">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Registered Users</CardTitle>
+              <CardTitle>User Directory</CardTitle>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search name or email..." className="pl-8 w-[300px]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Input placeholder="Search name/email..." className="pl-8 w-[250px]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User Information</TableHead>
-                    <TableHead>Current Plan</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Plan</TableHead>
                     <TableHead>Credits</TableHead>
-                    <TableHead>Access Level</TableHead>
-                    <TableHead className="text-right">Manage</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {areUsersLoading ? (
-                    <TableRow><TableCell colSpan={5} className="text-center py-10">Syncing database...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-10"><Loader2 className="animate-spin inline mr-2"/>Updating...</TableCell></TableRow>
                   ) : filteredUsers.map((u) => (
                     <TableRow key={u.id}>
                       <TableCell>
-                        <div className="font-semibold">{u.name || 'Anonymous'}</div>
+                        <div className="font-semibold">{u.name || 'N/A'}</div>
                         <div className="text-xs text-muted-foreground">{u.email}</div>
                       </TableCell>
-                      <TableCell><Badge variant="secondary">{u.planId}</Badge></TableCell>
+                      <TableCell><Badge variant="outline">{u.planId}</Badge></TableCell>
                       <TableCell>{(u.creditsRemaining || 0).toLocaleString()}</TableCell>
                       <TableCell>
-                         {allAdmins?.some(a => a.id === u.email) ? (
-                            <Badge className="bg-red-500 hover:bg-red-600">Admin</Badge>
+                         {allAdmins?.some((a:any) => a.id === u.email) ? (
+                            <Badge variant="destructive">Admin</Badge>
                          ) : (
-                            <Badge variant="outline">User</Badge>
+                            <Badge variant="secondary">Member</Badge>
                          )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -188,8 +196,7 @@ export default function AdminPage() {
                             <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingUser(u)}>Adjust Credits/Plan</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Restrict Access</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingUser(u)}>Edit User Info</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -201,25 +208,14 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="broadcast">
-           <Card>
-              <CardHeader><CardTitle>Push Notification</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                 <Input placeholder="Announcement Title" />
-                 <Textarea placeholder="Message body..." rows={4} />
-                 <Button className="w-full"><Send className="mr-2 h-4 w-4"/> Broadcast to All</Button>
-              </CardContent>
-           </Card>
-        </TabsContent>
-
         <TabsContent value="security">
-           <Card className="border-red-200 bg-red-50/30">
-              <CardHeader><CardTitle className="text-red-700 flex items-center gap-2"><ShieldAlert/> System Controls</CardTitle></CardHeader>
+           <Card className="border-red-200">
+              <CardHeader><CardTitle className="text-red-600 flex items-center gap-2"><ShieldAlert/> Kill Switch</CardTitle></CardHeader>
               <CardContent>
-                 <div className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
+                 <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                       <div className="font-bold">Free Tier Generation</div>
-                       <div className="text-sm text-muted-foreground">Kill switch for all free-tier audio generation.</div>
+                       <div className="font-bold">Free Tier Audio</div>
+                       <div className="text-sm text-muted-foreground">Toggle generation for all free users.</div>
                     </div>
                     <Switch checked={serverStatus?.isFreeTierEnabled ?? false} onCheckedChange={toggleFreeTier} />
                  </div>
@@ -231,23 +227,27 @@ export default function AdminPage() {
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Profile</DialogTitle>
-            <DialogDescription>Modifying settings for {editingUser?.email}</DialogDescription>
+            <DialogTitle>Update User Profile</DialogTitle>
+            <DialogDescription>Changes take effect immediately for {editingUser?.email}</DialogDescription>
           </DialogHeader>
           {editingUser && (
             <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Name</Label>
+                <Input className="col-span-3" value={editingUser.name || ''} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} />
+              </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Credits</Label>
                 <Input type="number" className="col-span-3" value={editingUser.creditsRemaining} onChange={(e) => setEditingUser({...editingUser, creditsRemaining: Number(e.target.value)})} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Plan ID</Label>
+                <Label className="text-right">Plan</Label>
                 <Select value={editingUser.planId} onValueChange={(v) => setEditingUser({...editingUser, planId: v})}>
                   <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="hobbyist">Hobbyist</SelectItem>
-                    <SelectItem value="creator">Creator</SelectItem>
+                    <SelectItem value="free">free</SelectItem>
+                    <SelectItem value="hobbyist">hobbyist</SelectItem>
+                    <SelectItem value="creator">creator</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
